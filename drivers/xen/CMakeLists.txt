@@ -4,6 +4,7 @@
 zephyr_sources(hvm.c)
 zephyr_sources(events.c)
 zephyr_sources_ifdef(CONFIG_XEN_GRANT_TABLE gnttab.c)
+zephyr_sources(memory.c)
 
 #add_subdirectory(xenbus)
 add_subdirectory_ifdef(CONFIG_XEN_INITIAL_DOMAIN dom0)
