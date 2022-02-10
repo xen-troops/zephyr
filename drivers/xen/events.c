@@ -82,6 +82,56 @@ int evtchn_close(evtchn_port_t port)
 	return HYPERVISOR_event_channel_op(EVTCHNOP_close, &close);
 }
 
+int evtchn_alloc_unbound(domid_t dom, domid_t remote_dom)
+{
+	int rc;
+	struct evtchn_alloc_unbound alloc = {
+		.dom = dom,
+		.remote_dom = remote_dom,
+	};
+
+	rc = HYPERVISOR_event_channel_op(EVTCHNOP_alloc_unbound, &alloc);
+	if (rc == 0) {
+		rc = alloc.port;
+	}
+
+	return rc;
+}
+
+int evtchn_bind_interdomain(domid_t remote_dom, evtchn_port_t remote_port)
+{
+	int rc;
+	struct evtchn_bind_interdomain bind = {
+		.remote_dom = remote_dom,
+		.remote_port = remote_port,
+	};
+
+	rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_interdomain, &bind);
+	if (rc == 0) {
+		rc = bind.local_port;
+	}
+
+	return rc;
+}
+
+int evtchn_unmask(evtchn_port_t port)
+{
+	struct evtchn_unmask unmask = {
+		.port = port,
+	};
+
+	return HYPERVISOR_event_channel_op(EVTCHNOP_unmask, &unmask);
+}
+
+int evtchn_reset(domid_t dom)
+{
+	struct evtchn_reset reset = {
+		.dom = dom,
+	};
+
+	return HYPERVISOR_event_channel_op(EVTCHNOP_reset, &reset);
+}
+
 int evtchn_set_priority(evtchn_port_t port, uint32_t priority)
 {
 	struct evtchn_set_priority set = {
