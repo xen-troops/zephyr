@@ -252,10 +252,112 @@ struct xen_domctl_scheduler_op {
     } u;
 };
 
+/* XEN_DOMCTL_iomem_permission */
+struct xen_domctl_iomem_permission {
+    uint64_aligned_t first_mfn;/* first page (physical page number) in range */
+    uint64_aligned_t nr_mfns;  /* number of pages in range (>0) */
+    uint8_t  allow_access;     /* allow (!0) or deny (0) access to range? */
+};
+
 /* XEN_DOMCTL_set_address_size */
 /* XEN_DOMCTL_get_address_size */
 struct xen_domctl_address_size {
     uint32_t size;
+};
+
+/* Assign a device to a guest. Sets up IOMMU structures. */
+/* XEN_DOMCTL_assign_device */
+/*
+ * XEN_DOMCTL_test_assign_device: Pass DOMID_INVALID to find out whether the
+ * given device is assigned to any DomU at all. Pass a specific domain ID to
+ * find out whether the given device can be assigned to that domain.
+ */
+/*
+ * XEN_DOMCTL_deassign_device: The behavior of this DOMCTL differs
+ * between the different type of device:
+ *  - PCI device (XEN_DOMCTL_DEV_PCI) will be reassigned to DOM0
+ *  - DT device (XEN_DOMCTL_DEV_DT) will left unassigned. DOM0
+ *  will have to call XEN_DOMCTL_assign_device in order to use the
+ *  device.
+ */
+#define XEN_DOMCTL_DEV_PCI      0
+#define XEN_DOMCTL_DEV_DT       1
+struct xen_domctl_assign_device {
+    /* IN */
+    uint32_t dev;   /* XEN_DOMCTL_DEV_* */
+    uint32_t flags;
+#define XEN_DOMCTL_DEV_RDM_RELAXED      1 /* assign only */
+    union {
+        struct {
+            uint32_t machine_sbdf;   /* machine PCI ID of assigned device */
+        } pci;
+        struct {
+            uint32_t size; /* Length of the path */
+            XEN_GUEST_HANDLE_64(char) path; /* path to the device tree node */
+        } dt;
+    } u;
+};
+
+/* Pass-through interrupts: bind real irq -> hvm devfn. */
+/* XEN_DOMCTL_bind_pt_irq */
+/* XEN_DOMCTL_unbind_pt_irq */
+enum pt_irq_type {
+    PT_IRQ_TYPE_PCI,
+    PT_IRQ_TYPE_ISA,
+    PT_IRQ_TYPE_MSI,
+    PT_IRQ_TYPE_MSI_TRANSLATE,
+    PT_IRQ_TYPE_SPI,    /* ARM: valid range 32-1019 */
+};
+struct xen_domctl_bind_pt_irq {
+    uint32_t machine_irq;
+    uint32_t irq_type; /* enum pt_irq_type */
+
+    union {
+        struct {
+            uint8_t isa_irq;
+        } isa;
+        struct {
+            uint8_t bus;
+            uint8_t device;
+            uint8_t intx;
+        } pci;
+        struct {
+            uint8_t gvec;
+            uint32_t gflags;
+#define XEN_DOMCTL_VMSI_X86_DEST_ID_MASK 0x0000ff
+#define XEN_DOMCTL_VMSI_X86_RH_MASK      0x000100
+#define XEN_DOMCTL_VMSI_X86_DM_MASK      0x000200
+#define XEN_DOMCTL_VMSI_X86_DELIV_MASK   0x007000
+#define XEN_DOMCTL_VMSI_X86_TRIG_MASK    0x008000
+#define XEN_DOMCTL_VMSI_X86_UNMASKED     0x010000
+
+            uint64_aligned_t gtable;
+        } msi;
+        struct {
+            uint16_t spi;
+        } spi;
+    } u;
+};
+
+
+/* Bind machine I/O address range -> HVM address range. */
+/* XEN_DOMCTL_memory_mapping */
+/* Returns
+   - zero     success, everything done
+   - -E2BIG   passed in nr_mfns value too large for the implementation
+   - positive partial success for the first <result> page frames (with
+              <result> less than nr_mfns), requiring re-invocation by the
+              caller after updating inputs
+   - negative error; other than -E2BIG
+*/
+#define DPCI_ADD_MAPPING         1
+#define DPCI_REMOVE_MAPPING      0
+struct xen_domctl_memory_mapping {
+    uint64_aligned_t first_gfn; /* first page (hvm guest phys page) in range */
+    uint64_aligned_t first_mfn; /* first page (machine page) in range */
+    uint64_aligned_t nr_mfns;   /* number of pages in range (>0) */
+    uint32_t add_mapping;       /* add or remove mapping */
+    uint32_t padding;           /* padding for 64-bit aligned structure */
 };
 
 /*
@@ -366,7 +468,11 @@ struct xen_domctl {
         struct xen_domctl_vcpucontext       vcpucontext;
         struct xen_domctl_max_vcpus         max_vcpus;
         struct xen_domctl_scheduler_op      scheduler_op;
+        struct xen_domctl_iomem_permission  iomem_permission;
         struct xen_domctl_address_size      address_size;
+        struct xen_domctl_assign_device     assign_device;
+        struct xen_domctl_bind_pt_irq       bind_pt_irq;
+        struct xen_domctl_memory_mapping    memory_mapping;
         struct xen_domctl_cacheflush        cacheflush;
         uint8_t                             pad[128];
     } u;
