@@ -30,7 +30,7 @@
 #ifndef __XEN_PUBLIC_GRANT_TABLE_H__
 #define __XEN_PUBLIC_GRANT_TABLE_H__
 
-#include "xen.h"
+#include "zephyr/xen/public/xen.h"
 
 /*
  * `incontents 150 gnttab Grant Tables
