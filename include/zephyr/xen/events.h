@@ -31,7 +31,7 @@ int evtchn_unmask(evtchn_port_t port);
 int evtchn_close(evtchn_port_t port);
 int evtchn_reset(domid_t dom);
 int evtchn_set_priority(evtchn_port_t port, uint32_t priority);
-void notify_evtchn(evtchn_port_t port);
+int notify_evtchn(evtchn_port_t port);
 
 /*
  * Allocate event-channel between caller and remote domain
@@ -72,6 +72,9 @@ int bind_event_channel(evtchn_port_t port, evtchn_cb_t cb, void *data);
  */
 int unbind_event_channel(evtchn_port_t port);
 int get_missed_events(evtchn_port_t port);
+
+int unmask_event_channel(evtchn_port_t port);
+void clear_event_channel(evtchn_port_t port);
 
 int xen_events_init(void);
 
