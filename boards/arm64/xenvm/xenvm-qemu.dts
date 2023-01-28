@@ -28,6 +28,7 @@
 		zephyr,sram = &ram;
 		zephyr,console = &xen_consoleio_hvc;
 		zephyr,shell-uart = &xen_consoleio_hvc;
+		zephyr,flash = &flash_sim0;
 	};
 
 	cpus {
@@ -81,5 +82,46 @@
 	xen_consoleio_hvc: hvc {
 		compatible = "xen,uart_hvc";
 		status = "okay";
+	};
+	flashcontroller0: flashcontroller {
+		compatible = "zephyr,sim-flash";
+		label = "FLASH_SIMULATOR";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		erase-value = <0xff>;
+		flash_sim0: flash_sim@0 {
+			compatible = "soc-nv-flash";
+			reg = <0x00000000 DT_SIZE_K(1024)>;
+			erase-block-size = <1024>;
+			write-block-size = <4>;
+		};
+	};
+};
+
+&flash_sim0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+/*
+ * Storage partition will be used by FCB/LittleFS/NVS
+ * if enabled.
+ */
+		storage_partition: partition@1000 {
+			label = "storage";
+			reg = <0x00001000 0x00010000>;
+		};
+		slot0_partition: partition@11000 {
+			 label = "image-0";
+			 reg = <0x00011000 0x00010000>;
+		};
+		slot1_partition: partition@21000 {
+			 label = "image-1";
+			 reg = <0x00021000 0x00010000>;
+		};
+		eepromemu_partition: partition@31000 {
+			label = "eeprom-emu";
+			reg = <0x00031000 0x00010000>;
+		};
 	};
 };
