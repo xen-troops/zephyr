@@ -1,10 +1,10 @@
-#include <arch/arm64/hypercall.h>
+#include <zephyr/arch/arm64/hypercall.h>
 #include <zephyr/xen/generic.h>
 #include <zephyr/xen/public/memory.h>
 #include <zephyr/xen/public/xen.h>
 
-#include <init.h>
-#include <kernel.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
 #include <string.h>
 
 

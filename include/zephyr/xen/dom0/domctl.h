@@ -6,11 +6,11 @@
 #ifndef __XEN_DOM0_DOMCTL_H__
 #define __XEN_DOM0_DOMCTL_H__
 
-#include <xen/generic.h>
-#include <xen/public/domctl.h>
-#include <xen/public/xen.h>
+#include <zephyr/xen/generic.h>
+#include <zephyr/xen/public/domctl.h>
+#include <zephyr/xen/public/xen.h>
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 int xen_domctl_scheduler_op(int domid, struct xen_domctl_scheduler_op *sched_op);
 int xen_domctl_pausedomain(int domid);

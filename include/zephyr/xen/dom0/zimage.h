@@ -8,7 +8,7 @@
 #ifndef __XEN_DOM0_ZIMAGE_H__
 #define __XEN_DOM0_ZIMAGE_H__
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #define ZIMAGE64_MAGIC_V0	0x14000008
 /* ASCII ARM\x64 */
