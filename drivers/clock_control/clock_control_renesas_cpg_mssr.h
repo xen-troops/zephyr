@@ -7,7 +7,7 @@
 #ifndef ZEPHYR_DRIVERS_RENESAS_RENESAS_CPG_MSSR_H_
 #define ZEPHYR_DRIVERS_RENESAS_RENESAS_CPG_MSSR_H_
 
-#ifdef CONFIG_SOC_SERIES_RCAR_GEN3
+#if defined(CONFIG_SOC_SERIES_RCAR_GEN3) || defined(CONFIG_SOC_SERIES_RCAR_GEN3_ARM64)
 /* Software Reset Clearing Register offsets */
 #define SRSTCLR(i)      (0x940 + (i) * 4)
 
