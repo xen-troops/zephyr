@@ -36,24 +36,6 @@
                 __device_states_end = .;
         } GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 
-#if defined(CONFIG_XEN_INITIAL_DOMAIN)
-        SECTION_DATA_PROLOGUE(img_domd,,)
-        {
-		. = ALIGN(64);
-               __img_domd_start = .;
-               KEEP(*(".img_domd"));
-               __img_domd_end = .;
-        } GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
-
-	SECTION_DATA_PROLOGUE(dtb_domd,,)
-	{
-		. = ALIGN(64);
-               __dtb_domd_start = .;
-               KEEP(*(".dtb_domd"));
-               __dtb_domd_end = .;
-	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
-#endif
-
 #if CONFIG_PM_DEVICE
 	SECTION_DATA_PROLOGUE(pm_device_slots, (NOLOAD),)
 	{
