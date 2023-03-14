@@ -21,13 +21,6 @@ static const struct arm_mmu_region mmu_regions[] = {
 			      DT_REG_SIZE_BY_IDX(DT_INST(0, arm_gic), 1),
 			      MT_DEVICE_nGnRnE | MT_RW | MT_NS),
 
-#if DT_NODE_HAS_STATUS(DT_INST(0, renesas_rcar_scif), okay)
-	MMU_REGION_FLAT_ENTRY("UART",
-			      DT_REG_ADDR(DT_INST(0, renesas_rcar_scif)),
-			      ROUND_UP_SIZE_MMU_PAGE_FOR_NODE(0, renesas_rcar_scif),
-			      MT_DEVICE_nGnRnE | MT_RW | MT_NS),
-#endif
-
 	MMU_REGION_FLAT_ENTRY("CPG",
 			      DT_REG_ADDR(DT_INST(0, renesas_r8a7795_cpg_mssr)),
 			      DT_REG_SIZE(DT_INST(0, renesas_r8a7795_cpg_mssr)),
