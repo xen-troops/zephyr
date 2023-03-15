@@ -1,0 +1,4 @@
+CONFIG_XENVM_USE_GIC_V3=y
+
+# Enable PV hypervisor console
+CONFIG_UART_XEN_HVC_CONSOLEIO=y

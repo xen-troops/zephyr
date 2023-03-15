@@ -1,0 +1,2 @@
+# Enable PV hypervisor console
+CONFIG_UART_XEN_HVC_CONSOLEIO=y
