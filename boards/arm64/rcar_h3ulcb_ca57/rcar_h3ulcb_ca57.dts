@@ -8,11 +8,13 @@
 /dts-v1/;
 #include <arm64/renesas/r8a7795.dtsi>
 #include "rcar_h3ulcb_ca57-pinctrl.dtsi"
+#include <mem.h>
 
 / {
 	model = "H3ULCB CA57";
 
 	chosen {
+		zephyr,sram = &ram;
 		zephyr,console = &scif2;
 		zephyr,shell-uart = &scif2;
 	};
@@ -20,6 +22,11 @@
 	/* These aliases are provided for compatibility with samples */
 	aliases {
 		sdhc0 = &emmc2;
+	};
+
+	ram: memory@48000000 {
+		device_type = "mmio-sram";
+		reg = <0x0 0x48000000 0x0 DT_SIZE_M(512)>;
 	};
 };
 
