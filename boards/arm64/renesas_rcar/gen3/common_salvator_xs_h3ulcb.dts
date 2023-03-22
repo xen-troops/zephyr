@@ -4,15 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  */
-
-/dts-v1/;
-#include <arm64/renesas/r8a7795.dtsi>
-#include "rcar_h3ulcb_ca57-pinctrl.dtsi"
 #include <mem.h>
 
 / {
-	model = "H3ULCB CA57";
-
 	chosen {
 		zephyr,sram = &ram;
 		zephyr,console = &scif2;
