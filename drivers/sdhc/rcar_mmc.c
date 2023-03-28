@@ -48,6 +48,7 @@ struct mmc_rcar_data {
 	 */
 	uint8_t width_access_sd_buf0;
 	uint8_t ddr_mode;
+	uint8_t dma_support;
 };
 
 /**
@@ -112,11 +113,21 @@ static void rcar_mmc_write_reg32(const struct device *dev,
  */
 static inline void rcar_mmc_reset_and_mask_irqs(const struct device *dev)
 {
+	struct mmc_rcar_data *data = dev->data;
+
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1, 0);
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK, ~0);
 
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CLEAR);
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2_MASK, ~0);
+
+	if (data->dma_support) {
+		/* default value of Seq suspend should be 0 */
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1_MASK, 0xfffffeff);
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1, 0x0);
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK, 0xffffffff);
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2, 0x0);
+	}
 }
 
 /**
@@ -451,15 +462,22 @@ static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
 	return cmd_reg;
 }
 
+static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
+	struct sdhc_data *data,
+	bool is_read)
+{
+	int ret = -ENOSYS;
+	return ret;
+}
+
 /**
- * @brief Transmit/Receive data to/from MMC
+ * @brief Transmit/Receive data to/from MMC without DMA
  *
  * Sends/Receives data to/from the MMC controller.
  *
  * @note in/out parameters should be checked by a caller function.
  *
  * @param dev MMC device
- * @param cmd MMC command
  * @param data MMC data buffer for tx/rx
  * @param is_read it is read or write operation
  *
@@ -469,26 +487,18 @@ static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_rx_tx_data(const struct device *dev,
-	struct sdhc_command *cmd,
+static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	struct sdhc_data *data,
 	bool is_read)
 {
 	struct mmc_rcar_data *dev_data = dev->data;
-	uint32_t info1_reg;
 	uint32_t block;
 	int ret = 0;
 	uint32_t info2_poll_flag = is_read ? RCAR_MMC_INFO2_BRE : RCAR_MMC_INFO2_BWE;
 
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK,
-			(uint32_t)~RCAR_MMC_INFO1_CMP);
-
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2_MASK,
 			~(info2_poll_flag | RCAR_MMC_INFO2_ERRORS));
 
-#ifdef CONFIG_RCAR_MMC_DMA_SUPPORT
-#error "Add support of DMA request"
-#else
 	if ((data->block_size % dev_data->width_access_sd_buf0) ||
 	    (data->block_size < dev_data->width_access_sd_buf0)) {
 		/* TODO: fix me */
@@ -522,7 +532,48 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 			}
 		}
 	}
-#endif
+
+	return ret;
+}
+
+/**
+ * @brief Transmit/Receive data to/from MMC
+ *
+ * Sends/Receives data to/from the MMC controller.
+ *
+ * @note in/out parameters should be checked by a caller function.
+ *
+ * @param dev MMC device
+ * @param data MMC data buffer for tx/rx
+ * @param is_read it is read or write operation
+ *
+ * @retval 0 tx/rx was successful
+ * @retval -EINVAL: invalid block size
+ * @retval -ETIMEDOUT: timed out while tx/rx
+ * @retval -EIO: I/O error
+ * @retval -EILSEQ: communication out of sync
+ */
+static int rcar_mmc_rx_tx_data(const struct device *dev,
+	struct sdhc_data *data,
+	bool is_read)
+{
+	struct mmc_rcar_data *dev_data = dev->data;
+	uint32_t info1_reg;
+	int ret = 0;
+
+	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK,
+			(uint32_t)~RCAR_MMC_INFO1_CMP);
+
+	if (dev_data->dma_support && ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0)) {
+		ret = rcar_mmc_dma_rx_tx_data(dev, data, is_read);
+	} else {
+		ret = rcar_mmc_sd_buf_rx_tx_data(dev, data, is_read);
+	}
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
 					RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true);
 	if (ret) {
@@ -614,7 +665,7 @@ static int rcar_mmc_request(const struct device *dev,
 	rcar_mmc_extract_resp(dev, cmd, response_type);
 
 	if (data) {
-		ret = rcar_mmc_rx_tx_data(dev, cmd, data, is_read);
+		ret = rcar_mmc_rx_tx_data(dev, data, is_read);
 		if (ret) {
 			return ret;
 		}
@@ -1554,6 +1605,12 @@ static int rcar_mmc_init(const struct device *dev)
 
 	/* it's needed for SDHC */
 	rcar_mmc_init_host_props(dev);
+
+	/*
+	 * note: we need to set this flag before call rcar_mmc_init_controller_regs,
+	 *       because we want to cleanup dma regs and mask dma irqs
+	 */
+	data->dma_support = IS_ENABLED(CONFIG_RCAR_MMC_DMA_SUPPORT);
 
 	ret = rcar_mmc_init_controller_regs(dev);
 	if (ret) {
