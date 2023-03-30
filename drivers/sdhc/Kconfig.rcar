@@ -23,6 +23,10 @@ if RCAR_MMC_DMA_SUPPORT
 config SDHC_BUFFER_ALIGNMENT
 	default 128
 
+config RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	bool "Internal DMA IRQ driven support for Renesas Rcar MMC driver"
+	default y
+
 endif # RCAR_MMC_DMA_SUPPORT
 
 endif # MMC_RCAR

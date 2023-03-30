@@ -31,6 +31,7 @@ LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define MMC_POLL_FLAGS_TIMEOUT_US 100000
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
+#define MMC_DMA_RW_ONE_BLOCK_US 100
 
 /**
  * @brief Renesas MMC host controller driver data
@@ -40,6 +41,9 @@ struct mmc_rcar_data {
 	DEVICE_MMIO_RAM; /* Must be first */
 	struct sdhc_io host_io;
 	struct sdhc_host_props props;
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	struct k_sem irq_xref_fin;
+#endif
 
 	uint8_t ver;
 	/*
@@ -61,6 +65,11 @@ struct mmc_rcar_cfg {
 	const struct pinctrl_dev_config *pcfg;
 
 	uint32_t max_frequency;
+
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	void (*irq_config_func)(const struct device *dev);
+#endif
+
 	uint8_t non_removable;
 	uint8_t uhs_support;
 	uint8_t mmc_hs200_1_8v;
@@ -127,6 +136,9 @@ static inline void rcar_mmc_reset_and_mask_irqs(const struct device *dev)
 		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1, 0x0);
 		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK, 0xffffffff);
 		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2, 0x0);
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+		k_sem_reset(&data->irq_xref_fin);
+#endif
 	}
 }
 
@@ -496,6 +508,9 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 	uint32_t reg;
 	int ret = 0;
 	uint32_t dma_info1_poll_flag;
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	struct mmc_rcar_data *dev_data = dev->data;
+#endif
 
 	ret = sys_cache_data_flush_range(data->data, data->blocks * data->block_size);
 	if (ret < 0) {
@@ -523,10 +538,34 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_ADDR_L, dma_addr);
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_ADDR_H, 0);
 
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK,
+		(uint32_t)(is_read ? (~RCAR_MMC_DMA_INFO2_ERR_RD) :
+				     (~RCAR_MMC_DMA_INFO2_ERR_WR)));
+
+	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO1_MASK);
+	reg &= ~dma_info1_poll_flag;
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1_MASK, reg);
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_CTL, RCAR_MMC_DMA_CTL_START);
 
+	ret = k_sem_take(&dev_data->irq_xref_fin,
+			 K_USEC(MMC_POLL_FLAGS_TIMEOUT_US +
+				MMC_DMA_RW_ONE_BLOCK_US * data->blocks));
+	if (ret < 0) {
+		LOG_ERR("%s: interrupt signal timeout error %d", dev->name, ret);
+	}
+
+	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2);
+	if (reg) {
+		LOG_ERR("%s: an error occurs on the DMAC channel #%u",
+			dev->name, (reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
+		ret = -EIO;
+	}
+#else
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_CTL, RCAR_MMC_DMA_CTL_START);
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_DMA_INFO1, dma_info1_poll_flag,
 						dma_info1_poll_flag, false, true);
+#endif
 
 	if (is_read) {
 		if (sys_cache_data_invd_range(data->data, data->blocks * data->block_size) < 0) {
@@ -1611,6 +1650,33 @@ static int rcar_mmc_init_controller_regs(const struct device *dev)
 	return 0;
 }
 
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+/**
+ * @brief MMC IRQ handler
+ *
+ * @param arg The pointer to an MMC device structure
+ *
+ * @retval none
+ */
+static void rcar_mmc_irq_handler(const void *arg)
+{
+	const struct device *dev = arg;
+
+	uint32_t dma_info1 = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO1);
+	uint32_t dma_info2 = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2);
+
+	if (dma_info1 || dma_info2) {
+		struct mmc_rcar_data *data = dev->data;
+
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1_MASK, 0xfffffeff);
+		rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK, ~0);
+		k_sem_give(&data->irq_xref_fin);
+	} else {
+		LOG_WRN("%s: warning: non-dma event triggers irq", dev->name);
+	}
+}
+#endif /* CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT */
+
 /**
  * @brief Initialize and configure the Renesas MMC driver
  *
@@ -1683,15 +1749,41 @@ static int rcar_mmc_init(const struct device *dev)
 		return ret;
 	}
 
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	ret = k_sem_init(&data->irq_xref_fin, 0, 1);
+	if (ret) {
+		LOG_ERR("%s: can't init semaphore", dev->name);
+		return ret;
+	}
+	cfg->irq_config_func(dev);
+#endif /* CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT */
+
 	LOG_INF("%s: initialize driver, MMC version 0x%hhx",
 		dev->name, data->ver);
 
 	return 0;
 }
 
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+#define RCAR_MMC_CONFIG_FUNC(n) \
+	static void irq_config_func_##n(const struct device *dev) \
+	{ \
+		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), \
+			    rcar_mmc_irq_handler, DEVICE_DT_INST_GET(n), \
+			    DT_INST_IRQ(n, flags)); \
+		irq_enable(DT_INST_IRQN(n)); \
+	}
+#define RCAR_MMC_IRQ_CFG_FUNC_INIT(n) \
+	.irq_config_func = irq_config_func_##n,
+#else
+#define RCAR_MMC_IRQ_CFG_FUNC_INIT(n)
+#define RCAR_MMC_CONFIG_FUNC(n)
+#endif
+
 #define MMC_RCAR_INIT(n) \
 	static struct mmc_rcar_data mmc_rcar_data_##n; \
 	PINCTRL_DT_INST_DEFINE(n);	\
+	RCAR_MMC_CONFIG_FUNC(n); \
 	static const struct mmc_rcar_cfg mmc_rcar_cfg_##n = { \
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)), \
 		.cpg_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)), \
@@ -1705,6 +1797,7 @@ static int rcar_mmc_init(const struct device *dev)
 		.mmc_sdr104_support = DT_INST_PROP(n, mmc_sdr104_support), \
 		.uhs_support = 1, \
 		.bus_width = DT_INST_PROP(n, bus_width), \
+		RCAR_MMC_IRQ_CFG_FUNC_INIT(n) \
 	}; \
 	DEVICE_DT_INST_DEFINE(n, \
 				rcar_mmc_init, \
