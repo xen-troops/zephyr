@@ -32,11 +32,11 @@ LOG_MODULE_DECLARE(clock_control_rcar);
 #define R8A779F_CLK_SD0CKCR1_DIV_SHIFT 29
 
 struct r8a779f_cpg_mssr_cfg {
-	mm_reg_t base_address;
+	DEVICE_MMIO_ROM; /* Must be first */
 };
 
 struct r8a779f_cpg_mssr_data {
-	struct rcar_cpg_mssr_data cmn;
+	struct rcar_cpg_mssr_data cmn; /* Must be first */
 };
 
 /* NOTE: the array MUST be sorted by module field */
@@ -55,7 +55,7 @@ static struct cpg_clk_info_table mod_props[] = {
 };
 
 
-static int r8a779f_cpg_enable_disable_core(const struct r8a779f_cpg_mssr_cfg *cfg,
+static int r8a779f_cpg_enable_disable_core(const struct device *dev,
 					   struct cpg_clk_info_table *clk_info,
 					   uint32_t enable)
 {
@@ -83,7 +83,7 @@ static int r8a779f_cpg_enable_disable_core(const struct r8a779f_cpg_mssr_cfg *cf
 	}
 
 	if (!ret) {
-		rcar_cpg_write(cfg->base_address, clk_info->offset, reg);
+		rcar_cpg_write(DEVICE_MMIO_GET(dev), clk_info->offset, reg);
 	}
 	return ret;
 }
@@ -93,7 +93,6 @@ static int r8a779f_cpg_core_clock_endisable(const struct device *dev,
 					    bool enable)
 {
 	struct cpg_clk_info_table *clk_info;
-	const struct r8a779f_cpg_mssr_cfg *cfg = dev->config;
 	struct r8a779f_cpg_mssr_data *data = dev->data;
 	k_spinlock_key_t key;
 	int ret = 0;
@@ -116,7 +115,7 @@ static int r8a779f_cpg_core_clock_endisable(const struct device *dev,
 	}
 
 	key = k_spin_lock(&data->cmn.lock);
-	r8a779f_cpg_enable_disable_core(cfg, clk_info, enable);
+	r8a779f_cpg_enable_disable_core(dev, clk_info, enable);
 	k_spin_unlock(&data->cmn.lock, key);
 
 	return ret;
@@ -143,7 +142,7 @@ int r8a779f_cpg_mssr_start_stop(const struct device *dev,
 	data = dev->data;
 
 	key = k_spin_lock(&data->cmn.lock);
-	ret = rcar_cpg_mstp_clock_endisable(config->base_address, clk->module, enable);
+	ret = rcar_cpg_mstp_clock_endisable(DEVICE_MMIO_GET(dev), clk->module, enable);
 	k_spin_unlock(&data->cmn.lock, key);
 	return ret;
 }
@@ -162,6 +161,8 @@ static int r8a779f_cpg_mssr_stop(const struct device *dev,
 
 static int r8a779f_cpg_mssr_init(const struct device *dev)
 {
+	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
+
 	rcar_cpg_build_clock_relationship(dev);
 	rcar_cpg_update_all_in_out_freq(dev);
 	return 0;
@@ -255,11 +256,10 @@ static const struct clock_control_driver_api r8a779f_cpg_mssr_api = {
 
 #define R8A779F_MSSR_INIT(inst)							\
 	static struct r8a779f_cpg_mssr_cfg cpg_mssr##inst##_cfg = {		\
-		.base_address = DT_INST_REG_ADDR(inst)				\
+		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(inst)),			\
 	};									\
 										\
 	static struct r8a779f_cpg_mssr_data cpg_mssr##inst##_data = {		\
-		.cmn.base_addr = DT_INST_REG_ADDR(inst),			\
 		.cmn.clk_info_table[CPG_CORE] = core_props,			\
 		.cmn.clk_info_table_size[CPG_CORE] = ARRAY_SIZE(core_props),	\
 		.cmn.clk_info_table[CPG_MOD] = mod_props,			\
