@@ -23,9 +23,6 @@
 
 LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 
-/* SD-IF2 Clock Frequency Control Register offset */
-#define SDIF2_CFCR_OFFSET 0x268
-
 #define MMC_POLL_FLAGS_TIMEOUT_US 100000
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
 #define MMC_DMA_RW_ONE_BLOCK_US 100
@@ -968,7 +965,6 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 		return -EINVAL;
 	}
 
-	/* TODO: get clock rate from clock dev instead */
 	divisor = ceiling_fraction(data->props.f_max, ios->clock);
 
 	/* Do not set divider to 0xff in DDR mode */
@@ -1454,14 +1450,6 @@ static const struct sdhc_driver_api rcar_sdhc_api = {
 	.set_io = rcar_mmc_set_io,
 };
 
-/*
- * TODO: share structure using header file or add API for get base
- *       address to CPG driver
- */
-struct r8a7795_cpg_mssr_config {
-	mm_reg_t base_address;
-};
-
 /**
  * @brief Start SD-IF2 clock at 200MHz
  *
@@ -1473,17 +1461,18 @@ static int rcar_mmc_init_start_clk(const struct mmc_rcar_cfg *cfg)
 {
 	int ret = 0;
 	const struct device *cpg_dev = cfg->cpg_dev;
-	const struct r8a7795_cpg_mssr_config *clk_cfg = cpg_dev->config;
-
-	/*
-	 * TODO: fix me for Gen4
-	 *
-	 * RCAR Gen3 SD-IF2 clock frequency control register base + SDIF2_CFCR_OFFSET
-	 * SDn = 200 MHz
-	 */
-	sys_write32(1, clk_cfg->base_address + SDIF2_CFCR_OFFSET);
+	uintptr_t rate = cfg->max_frequency;
 
 	ret = clock_control_on(cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = clock_control_set_rate(cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk,
+				     (clock_control_subsys_rate_t)rate);
+	if (ret < 0) {
+		clock_control_off(cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk);
+	}
 
 	/* SD spec recommends at least 1 ms of delay after start of clock */
 	k_msleep(1);
@@ -1759,10 +1748,6 @@ static int rcar_mmc_init(const struct device *dev)
 	 * note: u-boot already configured this pin (dataX/cmd) as 1.8V IO.
 	 */
 
-	/*
-	 * TODO: call clock_control_set_rate instead of the next lines here,
-	 * but due to a migration of this driver to XenVM, maybe it isn't necessary
-	 */
 	ret = rcar_mmc_init_start_clk(cfg);
 	if (ret < 0) {
 		LOG_ERR("%s: error can't turn on the cpg", dev->name);
