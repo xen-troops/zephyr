@@ -197,6 +197,7 @@ static int rcar_mmc_check_errors(const struct device *dev)
  * @param flag polling flag(s)
  * @param state state of flag(s) when we should stop polling
  * @param check_errors call @ref rcar_mmc_check_errors function or not
+ * @param check_dma_errors check if there are DMA errors inside info2
  *
  * @retval 0 poll of flag(s) was successful
  * @retval -ETIMEDOUT: timed out while tx/rx
@@ -204,7 +205,8 @@ static int rcar_mmc_check_errors(const struct device *dev)
  * @retval -EILSEQ: communication out of sync
  */
 static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
-	unsigned int reg, uint32_t flag, uint32_t state, bool check_errors)
+	unsigned int reg, uint32_t flag, uint32_t state, bool check_errors,
+	bool check_dma_errors)
 {
 	int remain_us = MMC_POLL_FLAGS_TIMEOUT_US;
 	int ret;
@@ -221,6 +223,12 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 			if (ret) {
 				return ret;
 			}
+		}
+
+		if (check_dma_errors && rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2)) {
+			LOG_ERR("%s: an error occurs on the DMAC channel #%u",
+				dev->name, (reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
+			return -EIO;
 		}
 
 		k_usleep(MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US);
@@ -260,7 +268,7 @@ static int rcar_mmc_reset(const struct device *dev)
 	data = dev->data;
 
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false);
+				RCAR_MMC_INFO2_CBSY, 0, false, false);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -276,9 +284,10 @@ static int rcar_mmc_reset(const struct device *dev)
 
 	rcar_mmc_reset_and_mask_irqs(dev);
 
-#ifdef CONFIG_RCAR_MMC_DMA_SUPPORT
-#error "Add reset of DMAC"
-#endif
+	/*
+	 * note: DMA reset can be triggered only in case of error in
+	 * DMA Info2 otherwise the SDIP will not accurately operate
+	 */
 
 	data->ddr_mode = 0;
 
@@ -320,7 +329,7 @@ static int rcar_mmc_enable_clock(const struct device *dev, bool enable)
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false);
+				RCAR_MMC_INFO2_CBSY, 0, false, false);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -462,11 +471,73 @@ static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
 	return cmd_reg;
 }
 
+/**
+ * @brief Transmit/Receive data to/from MMC using DMA
+ *
+ * Sends/Receives data to/from the MMC controller.
+ *
+ * @note in/out parameters should be checked by a caller function.
+ *
+ * @param dev MMC device
+ * @param data MMC data buffer for tx/rx
+ * @param is_read it is read or write operation
+ *
+ * @retval 0 tx/rx was successful
+ * @retval -ENOTSUP: cache flush/invalidate aren't supported
+ * @retval -ETIMEDOUT: timed out while tx/rx
+ * @retval -EIO: I/O error
+ * @retval -EILSEQ: communication out of sync
+ */
 static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 	struct sdhc_data *data,
 	bool is_read)
 {
-	int ret = -ENOSYS;
+	uintptr_t dma_addr;
+	uint32_t reg;
+	int ret = 0;
+	uint32_t dma_info1_poll_flag;
+
+	ret = sys_cache_data_flush_range(data->data, data->blocks * data->block_size);
+	if (ret < 0) {
+		LOG_ERR("%s: can't invalidate data cache before write",
+			dev->name);
+		return ret;
+	}
+
+	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_MODE);
+	if (is_read) {
+		dma_info1_poll_flag = RCAR_MMC_DMA_INFO1_END_RD2;
+		reg |= RCAR_MMC_DMA_MODE_DIR_RD;
+	} else {
+		dma_info1_poll_flag = RCAR_MMC_DMA_INFO1_END_WR;
+		reg &= ~RCAR_MMC_DMA_MODE_DIR_RD;
+	}
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_MODE, reg);
+
+	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_EXTMODE);
+	reg |= RCAR_MMC_EXTMODE_DMA_EN;
+	rcar_mmc_write_reg32(dev, RCAR_MMC_EXTMODE, reg);
+
+	dma_addr = z_mem_phys_addr(data->data);
+
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_ADDR_L, dma_addr);
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_ADDR_H, 0);
+
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_CTL, RCAR_MMC_DMA_CTL_START);
+
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_DMA_INFO1, dma_info1_poll_flag,
+						dma_info1_poll_flag, false, true);
+
+	if (is_read) {
+		if (sys_cache_data_invd_range(data->data, data->blocks * data->block_size) < 0) {
+			LOG_ERR("%s: can't invalidate data cache after read", dev->name);
+		}
+	}
+
+	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_EXTMODE);
+	reg &= ~RCAR_MMC_EXTMODE_DMA_EN;
+	rcar_mmc_write_reg32(dev, RCAR_MMC_EXTMODE, reg);
+
 	return ret;
 }
 
@@ -514,7 +585,7 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 		uint32_t w_off; /* word offset in a block */
 		/* wait until the buffer is filled with data */
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						info2_poll_flag, info2_poll_flag, true);
+						info2_poll_flag, info2_poll_flag, true, false);
 		if (ret) {
 			return ret;
 		}
@@ -564,7 +635,9 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK,
 			(uint32_t)~RCAR_MMC_INFO1_CMP);
 
-	if (dev_data->dma_support && ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0)) {
+	if (dev_data->dma_support &&
+	    ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0) &&
+	    !(z_mem_phys_addr(data->data) >> 32)) {
 		ret = rcar_mmc_dma_rx_tx_data(dev, data, is_read);
 	} else {
 		ret = rcar_mmc_sd_buf_rx_tx_data(dev, data, is_read);
@@ -575,7 +648,7 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 	}
 
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-					RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true);
+					RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true, false);
 	if (ret) {
 		return ret;
 	}
@@ -652,7 +725,7 @@ static int rcar_mmc_request(const struct device *dev,
 
 	/* wait until response end flag is set or errors occur */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-				   RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true);
+				   RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false);
 	if (ret) {
 		return ret;
 	}
@@ -673,7 +746,9 @@ static int rcar_mmc_request(const struct device *dev,
 
 	/* wait until the SD bus (CMD, DAT) is free or errors occur */
 	return rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-					RCAR_MMC_INFO2_SCLKDIVEN, RCAR_MMC_INFO2_SCLKDIVEN, true);
+						 RCAR_MMC_INFO2_SCLKDIVEN,
+						 RCAR_MMC_INFO2_SCLKDIVEN,
+						 true, false);
 }
 
 /**
@@ -868,7 +943,7 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false);
+				RCAR_MMC_INFO2_CBSY, 0, false, false);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -954,7 +1029,7 @@ static int rcar_mmc_set_bus_width(const struct device *dev,
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false);
+				RCAR_MMC_INFO2_CBSY, 0, false, false);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -992,7 +1067,7 @@ static int rcar_mmc_set_ddr_mode(const struct device *dev)
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false);
+				RCAR_MMC_INFO2_CBSY, 0, false, false);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
