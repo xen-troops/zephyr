@@ -12,7 +12,10 @@ if MMC_RCAR
 
 config RCAR_MMC_DMA_SUPPORT
 	bool "Internal DMA support for Renesas Rcar MMC driver"
-	default n
+	select CACHE_MANAGEMENT
+	select DCACHE
+	depends on !SHIELD_XENVM_DOM0
+	default y
 	help
 	  Internal DMA support for Renesas Rcar MMC driver.
 
