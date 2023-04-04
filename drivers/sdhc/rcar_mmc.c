@@ -567,9 +567,6 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	int ret = 0;
 	uint32_t info2_poll_flag = is_read ? RCAR_MMC_INFO2_BRE : RCAR_MMC_INFO2_BWE;
 
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2_MASK,
-			~(info2_poll_flag | RCAR_MMC_INFO2_ERRORS));
-
 	if ((data->block_size % dev_data->width_access_sd_buf0) ||
 	    (data->block_size < dev_data->width_access_sd_buf0)) {
 		/* TODO: fix me */
@@ -631,9 +628,6 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 	struct mmc_rcar_data *dev_data = dev->data;
 	uint32_t info1_reg;
 	int ret = 0;
-
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK,
-			(uint32_t)~RCAR_MMC_INFO1_CMP);
 
 	if (dev_data->dma_support &&
 	    ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0) &&
@@ -698,9 +692,6 @@ static int rcar_mmc_request(const struct device *dev,
 	}
 
 	rcar_mmc_reset_and_mask_irqs(dev);
-
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1_MASK, (uint32_t)~RCAR_MMC_INFO1_RSP);
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2_MASK, (uint32_t)~RCAR_MMC_INFO2_ERRORS);
 
 	rcar_mmc_write_reg32(dev, RCAR_MMC_ARG, cmd->arg);
 
