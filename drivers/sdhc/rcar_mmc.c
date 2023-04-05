@@ -26,9 +26,6 @@ LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 /* SD-IF2 Clock Frequency Control Register offset */
 #define SDIF2_CFCR_OFFSET 0x268
 
-/* initial divider of SD clock register after soft reset */
-#define MMC_INIT_SD_CLK_DIV_SHIFT 7
-
 #define MMC_POLL_FLAGS_TIMEOUT_US 100000
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
 #define MMC_DMA_RW_ONE_BLOCK_US 100
@@ -53,6 +50,7 @@ struct mmc_rcar_data {
 	uint8_t width_access_sd_buf0;
 	uint8_t ddr_mode;
 	uint8_t dma_support;
+	uint8_t restore_cfg_after_reset;
 };
 
 /**
@@ -264,6 +262,7 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
  * @retval -ETIMEDOUT: controller reset timed out
  * @retval -EINVAL: the dev pointer is NULL
  * @retval -EILSEQ: communication out of sync
+ * @retval -ENOTSUP: controller does not support I/O
  *
  * @todo add list of all affected registers to description of the function.
  */
@@ -301,10 +300,21 @@ static int rcar_mmc_reset(const struct device *dev)
 	 * DMA Info2 otherwise the SDIP will not accurately operate
 	 */
 
-	data->ddr_mode = 0;
+	/* note: be careful soft reset stops SDCLK */
+	if (data->restore_cfg_after_reset) {
+		struct sdhc_io ios;
 
+		memcpy(&ios, &data->host_io, sizeof(ios));
+		memset(&data->host_io, 0, sizeof(ios));
+		ret = sdhc_set_io(dev, &ios);
+
+		rcar_mmc_write_reg32(dev, RCAR_MMC_STOP, RCAR_MMC_STOP_SEC);
+
+		return ret;
+	}
+
+	data->ddr_mode = 0;
 	data->host_io.bus_width = SDHC_BUS_WIDTH4BIT;
-	data->host_io.clock = data->props.f_max >> MMC_INIT_SD_CLK_DIV_SHIFT;
 	data->host_io.timing = SDHC_TIMING_LEGACY;
 
 	return 0;
@@ -1646,6 +1656,8 @@ static int rcar_mmc_init_controller_regs(const struct device *dev)
 	 */
 	ios.clock = data->props.f_min;
 	rcar_mmc_set_clk_rate(dev, &ios);
+
+	data->restore_cfg_after_reset = 1;
 
 	return 0;
 }
