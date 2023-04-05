@@ -264,7 +264,28 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
  * @retval -EILSEQ: communication out of sync
  * @retval -ENOTSUP: controller does not support I/O
  *
- * @todo add list of all affected registers to description of the function.
+ * @details List of affected registers and their bits during the soft reset trigger:
+ *              * RCAR_MMC_STOP all bits reset to default (0x0);
+ *              * RCAR_MMC_INFO1 affected bits:
+ *                  * RCAR_MMC_INFO1_CMP default state 0;
+ *                  * RCAR_MMC_INFO1_RSP default state 0;
+ *                  * HPIRES Response Reception Completion (16), default state 0;
+ *              * RCAR_MMC_INFO2 all bits reset 0, except the next:
+ *                  * RCAR_MMC_INFO2_DAT0 state unknown after reset;
+ *                  * RCAR_MMC_INFO2_SCLKDIVEN default state 1;
+ *              * RCAR_MMC_CLKCTL affected bit(s):
+ *                  * RCAR_MMC_CLKCTL_SCLKEN default state 0;
+ *              * RCAR_MMC_OPTION affected bits:
+ *                  * WIDTH (15) and WIDTH8 (13) set to 0, which equal to 4-bits bus;
+ *                  * Timeout Mode Select (EXTOP - 9) is set to 0;
+ *                  * Timeout Mask (TOUTMASK - 8) is set to 0;
+ *                  * Timeout Counter (TOP27-TOP24 bits 7-4) is equal to 0b1110;
+ *                  * Card Detect Time Counter (CTOP24-CTOP21 bits 3-0) is equal to 0b1110;
+ *              * RCAR_MMC_ERR_STS1 all bits after reset 0, except the next:
+ *                  * E13 default state 1 (E12-E14 it is CRC status 0b010);
+ *              * RCAR_MMC_ERR_STS2 all bits after reset 0;
+ *              * IO_INFO1 all bits after reset 0;
+ *              * RCAR_MMC_IF_MODE all bits after reset 0.
  */
 static int rcar_mmc_reset(const struct device *dev)
 {
