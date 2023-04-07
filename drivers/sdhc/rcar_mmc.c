@@ -1740,12 +1740,13 @@ static int rcar_mmc_init(const struct device *dev)
 	ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
 	if (ret < 0) {
 		LOG_ERR("%s: error can't apply pinctrl state", dev->name);
-		return ret;
+		goto exit_unmap;
 	}
 
 	if (!device_is_ready(cfg->cpg_dev)) {
 		LOG_ERR("%s: error cpg_dev isn't ready", dev->name);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto exit_unmap;
 	}
 
 	/*
@@ -1765,7 +1766,7 @@ static int rcar_mmc_init(const struct device *dev)
 	ret = rcar_mmc_init_start_clk(cfg);
 	if (ret < 0) {
 		LOG_ERR("%s: error can't turn on the cpg", dev->name);
-		return ret;
+		goto exit_unmap;
 	}
 
 	/* it's needed for SDHC */
@@ -1779,14 +1780,14 @@ static int rcar_mmc_init(const struct device *dev)
 
 	ret = rcar_mmc_init_controller_regs(dev);
 	if (ret) {
-		return ret;
+		goto exit_disable_clk;
 	}
 
 #ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
 	ret = k_sem_init(&data->irq_xref_fin, 0, 1);
 	if (ret) {
 		LOG_ERR("%s: can't init semaphore", dev->name);
-		return ret;
+		goto exit_disable_clk;
 	}
 	cfg->irq_config_func(dev);
 #endif /* CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT */
@@ -1795,6 +1796,15 @@ static int rcar_mmc_init(const struct device *dev)
 		dev->name, data->ver);
 
 	return 0;
+
+exit_disable_clk:
+	clock_control_off(cfg->cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk);
+
+exit_unmap:
+#if defined(DEVICE_MMIO_IS_IN_RAM) && defined(CONFIG_MMU)
+	z_phys_unmap((uint8_t *)DEVICE_MMIO_GET(dev), DEVICE_MMIO_ROM_PTR(dev)->size);
+#endif
+	return ret;
 }
 
 #ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
