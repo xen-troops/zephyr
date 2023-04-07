@@ -177,17 +177,17 @@ static int rcar_mmc_check_errors(const struct device *dev)
 	uint32_t info2 = rcar_mmc_read_reg32(dev, RCAR_MMC_INFO2);
 
 	if (info2 & (RCAR_MMC_INFO2_ERR_TO | RCAR_MMC_INFO2_ERR_RTO)) {
-		LOG_ERR("timeout error 0x%08x", info2);
+		LOG_DBG("timeout error 0x%08x", info2);
 		return -ETIMEDOUT;
 	}
 
 	if (info2 & (RCAR_MMC_INFO2_ERR_END | RCAR_MMC_INFO2_ERR_CRC | RCAR_MMC_INFO2_ERR_IDX)) {
-		LOG_ERR("communication out of sync 0x%08x", info2);
+		LOG_DBG("communication out of sync 0x%08x", info2);
 		return -EILSEQ;
 	}
 
 	if (info2 & (RCAR_MMC_INFO2_ERR_ILA | RCAR_MMC_INFO2_ERR_ILR |  RCAR_MMC_INFO2_ERR_ILW)) {
-		LOG_ERR("illegal access 0x%08x", info2);
+		LOG_DBG("illegal access 0x%08x", info2);
 		return -EIO;
 	}
 
@@ -220,7 +220,7 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 
 	while ((rcar_mmc_read_reg32(dev, reg) & flag) != state) {
 		if (remain_us < 0) {
-			LOG_ERR("timeout error during polling flag(s) 0x%08x in reg 0x%08x",
+			LOG_DBG("timeout error during polling flag(s) 0x%08x in reg 0x%08x",
 				flag, reg);
 			return -ETIMEDOUT;
 		}
@@ -233,7 +233,7 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 		}
 
 		if (check_dma_errors && rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2)) {
-			LOG_ERR("%s: an error occurs on the DMAC channel #%u",
+			LOG_DBG("%s: an error occurs on the DMAC channel #%u",
 				dev->name, (reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
 			return -EIO;
 		}
@@ -741,72 +741,80 @@ static int rcar_mmc_request(const struct device *dev,
 	struct sdhc_command *cmd,
 	struct sdhc_data *data)
 {
-	int ret;
+	int ret = -ENOTSUP;
 	uint32_t reg;
 	uint32_t response_type;
 	bool is_read = true;
+	int attempts;
 
 	if (!dev || !cmd) {
 		return -EINVAL;
 	}
 
-	/* TODO: add retries mechanism, use retries counter from cmd for that */
 	response_type = cmd->response_type & SDHC_NATIVE_RESPONSE_MASK;
+	attempts = cmd->retries + 1;
 
-	if (rcar_mmc_card_busy(dev)) {
-		LOG_ERR("%s: device busy", dev->name);
-		return -EBUSY;
-	}
-
-	rcar_mmc_reset_and_mask_irqs(dev);
-
-	rcar_mmc_write_reg32(dev, RCAR_MMC_ARG, cmd->arg);
-
-	reg = cmd->opcode;
-
-	if (data) {
-		rcar_mmc_write_reg32(dev, RCAR_MMC_SIZE, data->block_size);
-		rcar_mmc_write_reg32(dev, RCAR_MMC_SECCNT, data->blocks);
-		reg |= rcar_mmc_gen_data_cmd(cmd, data);
-		is_read = (reg & RCAR_MMC_CMD_RD) ? true : false;
-	}
-
-	ret = rcar_mmc_convert_sd_to_mmc_resp(response_type);
-	if (ret < 0) {
-		return -EINVAL;
-	}
-
-	reg |= ret;
-
-	LOG_DBG("(SD_CMD=%08x, SD_ARG=%08x)", cmd->opcode, cmd->arg);
-	rcar_mmc_write_reg32(dev, RCAR_MMC_CMD, reg);
-
-	/* wait until response end flag is set or errors occur */
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-				   RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false);
-	if (ret) {
-		return ret;
-	}
-
-	/* clear response end flag */
-	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_INFO1);
-	reg &= ~RCAR_MMC_INFO1_RSP;
-	rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1, reg);
-
-	rcar_mmc_extract_resp(dev, cmd, response_type);
-
-	if (data) {
-		ret = rcar_mmc_rx_tx_data(dev, data, is_read);
+	while (ret && attempts-- > 0) {
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
+							RCAR_MMC_INFO2_CBSY, 0, false, false);
 		if (ret) {
-			return ret;
+			ret = -EBUSY;
+			continue;
 		}
+
+		rcar_mmc_reset_and_mask_irqs(dev);
+
+		rcar_mmc_write_reg32(dev, RCAR_MMC_ARG, cmd->arg);
+
+		reg = cmd->opcode;
+
+		if (data) {
+			rcar_mmc_write_reg32(dev, RCAR_MMC_SIZE, data->block_size);
+			rcar_mmc_write_reg32(dev, RCAR_MMC_SECCNT, data->blocks);
+			reg |= rcar_mmc_gen_data_cmd(cmd, data);
+			is_read = (reg & RCAR_MMC_CMD_RD) ? true : false;
+		}
+
+		ret = rcar_mmc_convert_sd_to_mmc_resp(response_type);
+		if (ret < 0) {
+			/* don't need to retry we will always have the same result */
+			return -EINVAL;
+		}
+
+		reg |= ret;
+
+		LOG_DBG("(SD_CMD=%08x, SD_ARG=%08x)", cmd->opcode, cmd->arg);
+		rcar_mmc_write_reg32(dev, RCAR_MMC_CMD, reg);
+
+		/* wait until response end flag is set or errors occur */
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
+					RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false);
+		if (ret) {
+			continue;
+		}
+
+		/* clear response end flag */
+		reg = rcar_mmc_read_reg32(dev, RCAR_MMC_INFO1);
+		reg &= ~RCAR_MMC_INFO1_RSP;
+		rcar_mmc_write_reg32(dev, RCAR_MMC_INFO1, reg);
+
+		rcar_mmc_extract_resp(dev, cmd, response_type);
+
+		if (data) {
+			ret = rcar_mmc_rx_tx_data(dev, data, is_read);
+			if (ret) {
+				continue;
+			}
+		}
+
+		/* wait until the SD bus (CMD, DAT) is free or errors occur */
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
+							RCAR_MMC_INFO2_SCLKDIVEN,
+							RCAR_MMC_INFO2_SCLKDIVEN,
+							true, false);
 	}
 
-	/* wait until the SD bus (CMD, DAT) is free or errors occur */
-	return rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						 RCAR_MMC_INFO2_SCLKDIVEN,
-						 RCAR_MMC_INFO2_SCLKDIVEN,
-						 true, false);
+	return ret;
 }
 
 /**
