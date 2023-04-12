@@ -1279,26 +1279,48 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 		return ret;
 	}
 
-	/* Set card bus mode */
-	if (ios->bus_mode && host_io->bus_mode != ios->bus_mode) {
-		switch (ios->bus_mode) {
-		case SDHC_BUSMODE_OPENDRAIN:
-		case SDHC_BUSMODE_PUSHPULL:
-			/*
-			 * NOTE: do nothing for now, for most of scenarios it will be
-			 *       enough to add appropriate properties to pinctrl inside dts
-			 * TODO: make an investigation do we need to change it in runtime
-			 *       or not and if answer yes add appropriate pinctrl api call
-			 *       here
-			 */
-			break;
-		default:
-			LOG_ERR("SDHC I/O: not supported bus mode %d",
-				ios->bus_mode);
-			return -ENOTSUP;
-		}
-		host_io->bus_mode = ios->bus_mode;
+	/*
+	 * Set card bus mode
+	 *
+	 * SD Specifications Part 1 Physical Layer Simplified Specification Version 9.00
+	 * 4.7.1 Command Types: "... there is no Open Drain mode in SD Memory Card"
+	 *
+	 * The use of open-drain mode is not possible in SD memory cards because the SD bus uses
+	 * push-pull signaling, where both the host and the card can actively drive the data lines
+	 * high or low.
+	 * In an SD card, the command and response signaling needs to be bidirectional, and each
+	 * signal line needs to be actively driven high or low. The use of open-drain mode in this
+	 * scenario would not allow for the necessary bidirectional signaling and could result in
+	 * communication errors.
+	 *
+	 * JEDEC Standard No. 84-B51, 10 The eMMC bus:
+	 * "The e•MMC bus has eleven communication lines:
+	 *  - CMD: Command is a bidirectional signal. The host and Device drivers are operating in
+	 *    two modes, open drain and push/pull.
+	 *  - DAT0-7: Data lines are bidirectional signals. Host and Device drivers are operating
+	 *    in push-pull mode.
+	 *  - CLK: Clock is a host to Device signal. CLK operates in push-pull mode.
+	 *  - Data Strobe: Data Strobe is a Device to host signal. Data Strobe operates in
+	 *    push-pull mode."
+	 *
+	 * So, open-drain mode signaling is supported in eMMC as one of the signaling modes for
+	 * the CMD line. But Gen3 and Gen4 boards has MMC/SD controller which is a specialized
+	 * component designed specifically for managing communication with MMC/SD devices. It
+	 * handles low-level operations such as protocol handling, data transfer, and error
+	 * checking and should take care of the low-level details of communicating with the
+	 * MMC/SD card, including setting the bus mode. Moreover, we can use only MMIO mode, the
+	 * processor communicates with the MMC/SD controller through memory read and write
+	 * operations, rather than through dedicated I/O instructions or specialized data transfer
+	 * protocols like SPI or SDIO. Finally, R-Car Gen3 and Gen4 "User’s manuals: Hardware"
+	 * don't have direct configurations for open-drain mode for both PFC and GPIO and Zephyr
+	 * SDHC subsystem doesn't support any bus mode except push-pull.
+	 */
+	if (ios->bus_mode != SDHC_BUSMODE_PUSHPULL) {
+		LOG_ERR("SDHC I/O: not supported bus mode %d",
+			ios->bus_mode);
+		return -ENOTSUP;
 	}
+	host_io->bus_mode = ios->bus_mode;
 
 	/* Set card power */
 	if (ios->power_mode && host_io->power_mode != ios->power_mode) {
