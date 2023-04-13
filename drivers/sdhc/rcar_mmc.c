@@ -633,20 +633,26 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	uint32_t block;
 	int ret = 0;
 	uint32_t info2_poll_flag = is_read ? RCAR_MMC_INFO2_BRE : RCAR_MMC_INFO2_BWE;
+	uint8_t sd_buf0_size = dev_data->width_access_sd_buf0;
+	uint16_t aligned_block_size = ROUND_UP(data->block_size, sd_buf0_size);
 
+	/*
+	 * note: below code should work for all possible block sizes, but
+	 *       we need below check, because code isn't tested with smaller
+	 *       block sizes.
+	 */
 	if ((data->block_size % dev_data->width_access_sd_buf0) ||
 	    (data->block_size < dev_data->width_access_sd_buf0)) {
-		/* TODO: fix me */
 		LOG_ERR("%s: block size (%u) less or not align on SD BUF0 access width (%hhu)",
 			dev->name, data->block_size, dev_data->width_access_sd_buf0);
 		return -EINVAL;
 	}
 
 	for (block = 0; block < data->blocks; block++) {
-		uint64_t *buf = (uint64_t *)data->data +
-				(block * data->block_size) / sizeof(*buf);
+		uint8_t *buf = (uint8_t *)data->data + (block * data->block_size);
 		uint32_t info2_reg;
-		uint32_t w_off; /* word offset in a block */
+		uint16_t w_off; /* word offset in a block */
+
 		/* wait until the buffer is filled with data */
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
 						info2_poll_flag, info2_poll_flag, true, false);
@@ -659,11 +665,16 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 		info2_reg &= ~info2_poll_flag;
 		rcar_mmc_write_reg32(dev, RCAR_MMC_INFO2, info2_reg);
 
-		for (w_off = 0; (w_off * sizeof(*buf)) < data->block_size; w_off++) {
+		for (w_off = 0; w_off < aligned_block_size; w_off += sd_buf0_size) {
+			uint64_t buf0 = 0ULL;
+			uint8_t copy_size = MIN(sd_buf0_size, data->block_size - w_off);
+
 			if (is_read) {
-				buf[w_off] = sys_read64(DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
+				buf0 = sys_read64(DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
+				memcpy(buf + w_off, &buf0, copy_size);
 			} else {
-				sys_write64(buf[w_off], DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
+				memcpy(&buf0, buf + w_off, copy_size);
+				sys_write64(buf0, DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
 			}
 		}
 	}
