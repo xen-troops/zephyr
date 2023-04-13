@@ -40,10 +40,7 @@ struct mmc_rcar_data {
 #endif
 
 	uint8_t ver;
-	/*
-	 * in bytes, possible values are 2, 4 or 8
-	 * TODO: add possibility of working with 2/4 bytes width
-	 */
+	/* in bytes, possible values are 2, 4 or 8 */
 	uint8_t width_access_sd_buf0;
 	uint8_t ddr_mode;
 	uint8_t dma_support;
@@ -609,6 +606,68 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 }
 
 /**
+ * @brief Read from SD/MMC controller buf0 register
+ *
+ * @param dev MMC device
+ *
+ * @retval read data
+ */
+static inline uint64_t rcar_mmc_read_buf0(const struct device *dev)
+{
+	uint64_t buf0 = 0ULL;
+	struct mmc_rcar_data *dev_data = dev->data;
+	uint8_t sd_buf0_size = dev_data->width_access_sd_buf0;
+	mm_reg_t buf0_addr = DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0;
+
+	switch (sd_buf0_size) {
+	case 8:
+		buf0 = sys_read64(buf0_addr);
+		break;
+	case 4:
+		buf0 = sys_read32(buf0_addr);
+		break;
+	case 2:
+		buf0 = sys_read16(buf0_addr);
+		break;
+	default:
+		k_panic();
+		break;
+	}
+
+	return buf0;
+}
+
+/**
+ * @brief Write to SD/MMC controller buf0 register
+ *
+ * @param dev MMC device
+ * @param val value that we want to write to the register
+ *
+ * @retval none
+ */
+static inline void rcar_mmc_write_buf0(const struct device *dev, uint64_t val)
+{
+	struct mmc_rcar_data *dev_data = dev->data;
+	uint8_t sd_buf0_size = dev_data->width_access_sd_buf0;
+	mm_reg_t buf0_addr = DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0;
+
+	switch (sd_buf0_size) {
+	case 8:
+		sys_write64(val, buf0_addr);
+		break;
+	case 4:
+		sys_write32(val, buf0_addr);
+		break;
+	case 2:
+		sys_write16(val, buf0_addr);
+		break;
+	default:
+		k_panic();
+		break;
+	}
+}
+
+/**
  * @brief Transmit/Receive data to/from MMC without DMA
  *
  * Sends/Receives data to/from the MMC controller.
@@ -670,11 +729,11 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 			uint8_t copy_size = MIN(sd_buf0_size, data->block_size - w_off);
 
 			if (is_read) {
-				buf0 = sys_read64(DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
+				buf0 = rcar_mmc_read_buf0(dev);
 				memcpy(buf + w_off, &buf0, copy_size);
 			} else {
 				memcpy(&buf0, buf + w_off, copy_size);
-				sys_write64(buf0, DEVICE_MMIO_GET(dev) + RCAR_MMC_BUF0);
+				rcar_mmc_write_buf0(dev, buf0);
 			}
 		}
 	}
