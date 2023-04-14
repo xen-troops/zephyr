@@ -192,12 +192,27 @@
 
 /* set of SCC registers */
 
+/* Initial setting register */
+#define RENESAS_SDHI_SCC_DTCNTL			0x1000
+#define RENESAS_SDHI_SCC_DTCNTL_TAPEN		BIT(0)
+/* Sampling clock position setting register */
+#define RENESAS_SDHI_SCC_TAPSET			0x1008
+#define RENESAS_SDHI_SCC_DT2FF			0x1010
 /* Sampling Clock Selection Register */
 #define RENESAS_SDHI_SCC_CKSEL			0x1018
 #define RENESAS_SDHI_SCC_CKSEL_DTSEL		BIT(0)
 /* Sampling Clock Position Correction Register */
 #define RENESAS_SDHI_SCC_RVSCNTL		0x1020
 #define RENESAS_SDHI_SCC_RVSCNTL_RVSEN		BIT(0)
+/* Sampling Clock Position Correction Request Register */
+#define RENESAS_SDHI_SCC_RVSREQ			0x1028
+#define RENESAS_SDHI_SCC_RVSREQ_REQTAPDOWN	BIT(0)
+#define RENESAS_SDHI_SCC_RVSREQ_REQTAPUP	BIT(1)
+#define RENESAS_SDHI_SCC_RVSREQ_REQTAP_MASK \
+	(RENESAS_SDHI_SCC_RVSREQ_REQTAPDOWN | RENESAS_SDHI_SCC_RVSREQ_REQTAPUP)
+#define RENESAS_SDHI_SCC_RVSREQ_ERR		BIT(2)
+/* Sampling data comparison register */
+#define RENESAS_SDHI_SCC_SMPCMP			0x1030
 /* Hardware Adjustment Register 2, used for configuration HS400 mode */
 #define RENESAS_SDHI_SCC_TMPPORT2		0x1038
 #define RENESAS_SDHI_SCC_TMPPORT2_HS400EN	BIT(31)
