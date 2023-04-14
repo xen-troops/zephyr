@@ -30,6 +30,12 @@ LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
 #define MMC_DMA_RW_ONE_BLOCK_US 100
 
+#if CONFIG_RCAR_MMC_DMA_SUPPORT
+#define ALIGN_BUF_DMA __aligned(CONFIG_SDHC_BUFFER_ALIGNMENT)
+#else
+#define ALIGN_BUF_DMA
+#endif
+
 /**
  * @brief Renesas MMC host controller driver data
  *
@@ -48,6 +54,12 @@ struct mmc_rcar_data {
 	uint8_t ddr_mode;
 	uint8_t dma_support;
 	uint8_t restore_cfg_after_reset;
+
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+	uint8_t manual_retuning;
+	uint8_t tuning_buf[128] ALIGN_BUF_DMA;
+#endif /* CONFIG_RCAR_MMC_SCC_SUPPORT */
+	uint8_t can_retune;
 };
 
 /**
@@ -74,6 +86,12 @@ struct mmc_rcar_cfg {
 	uint8_t bus_width;
 	uint8_t mmc_sdr104_support;
 };
+
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+static int rcar_mmc_execute_tuning(const struct device *dev);
+static int rcar_mmc_retune_if_needed(const struct device *dev, bool request_retune);
+#endif
+static int rcar_mmc_disable_scc(const struct device *dev);
 
 /**
  * @brief Read 32-bit Renesas MMC register
@@ -309,6 +327,7 @@ static int rcar_mmc_reset(const struct device *dev)
 	int ret = 0;
 	uint32_t reg;
 	struct mmc_rcar_data *data;
+	uint8_t can_retune;
 
 	if (!dev) {
 		return -EINVAL;
@@ -335,15 +354,28 @@ static int rcar_mmc_reset(const struct device *dev)
 		rcar_mmc_reset_dma(dev);
 	}
 
+	can_retune = data->can_retune;
+	if (can_retune) {
+		rcar_mmc_disable_scc(dev);
+	}
+
 	/* note: be careful soft reset stops SDCLK */
 	if (data->restore_cfg_after_reset) {
 		struct sdhc_io ios;
 
 		memcpy(&ios, &data->host_io, sizeof(ios));
 		memset(&data->host_io, 0, sizeof(ios));
+
 		ret = sdhc_set_io(dev, &ios);
 
 		rcar_mmc_write_reg32(dev, RCAR_MMC_STOP, RCAR_MMC_STOP_SEC);
+
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+		/* tune if this reset isn't invoked during tuning */
+		if (can_retune && (ios.timing == SDHC_TIMING_HS200)) {
+			ret = rcar_mmc_execute_tuning(dev);
+		}
+#endif
 
 		return ret;
 	}
@@ -506,6 +538,8 @@ static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
 	switch (cmd->opcode) {
 	case MMC_SEND_EXT_CSD:
 	case SD_READ_SINGLE_BLOCK:
+	case MMC_SEND_TUNING_BLOCK:
+	case SD_SEND_TUNING_BLOCK:
 		cmd_reg |= RCAR_MMC_CMD_RD;
 		break;
 	case SD_READ_MULTIPLE_BLOCK:
@@ -911,6 +945,13 @@ static int rcar_mmc_request(const struct device *dev,
 	attempts = cmd->retries + 1;
 
 	while (ret && attempts-- > 0) {
+		if (ret != -ENOTSUP) {
+			rcar_mmc_reset(dev);
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+			rcar_mmc_retune_if_needed(dev, true);
+#endif
+		}
+
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
 							RCAR_MMC_INFO2_CBSY, 0, false, false);
 		if (ret) {
@@ -968,6 +1009,13 @@ static int rcar_mmc_request(const struct device *dev,
 							RCAR_MMC_INFO2_SCLKDIVEN,
 							RCAR_MMC_INFO2_SCLKDIVEN,
 							true, false);
+	}
+
+	if (ret) {
+		rcar_mmc_reset(dev);
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+		rcar_mmc_retune_if_needed(dev, true);
+#endif
 	}
 
 	return ret;
@@ -1607,6 +1655,48 @@ static int rcar_mmc_get_card_present(const struct device *dev)
 	return !!(rcar_mmc_read_reg32(dev, RCAR_MMC_INFO1) & RCAR_MMC_INFO1_CD);
 }
 
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+
+/* JESD84-B51, 6.6.5.1 Sampling Tuning Sequence for HS200 */
+static const uint8_t tun_block_8_bits_bus[] = {
+	0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
+	0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
+	0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
+	0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
+	0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
+	0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
+	0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
+	0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
+	0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
+	0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
+	0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
+	0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
+	0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
+	0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
+	0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
+	0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
+};
+
+/*
+ * In 4 bit mode the same pattern is used as shown above,
+ * but only first 4 bits least significant from every byte is used, examle:
+ *    8-bits pattern: 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00 ...
+ *                       f     f     0     f     f     f     0     0 ...
+ *    4-bits pattern:      0xff        0x0f        0xff        0x00  ...
+ */
+static const uint8_t tun_block_4_bits_bus[] = {
+	0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
+	0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
+	0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb,
+	0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
+	0xff, 0xf0, 0xff, 0xf0, 0x0f, 0xfc, 0xcc, 0x3c,
+	0xcc, 0x33, 0xcc, 0xcf, 0xff, 0xef, 0xff, 0xee,
+	0xff, 0xfd, 0xff, 0xfd, 0xdf, 0xff, 0xbf, 0xff,
+	0xbb, 0xff, 0xf7, 0xff, 0xf7, 0x7f, 0x7b, 0xde,
+};
+
+#define RENESAS_TAPNUM 8
+
 /**
  * @brief run MMC tuning
  *
@@ -1616,19 +1706,258 @@ static int rcar_mmc_get_card_present(const struct device *dev)
  *
  * @param dev MMC device
  *
- * @retval 0 tuning succeeded, card is ready for commands
- * @retval -ENOTSUP: controller does not support tuning
- * @retval -EINVAL: the dev pointer is NULL
+ * @retval 0 tuning succeeded (card is ready for commands), otherwise negative number is returned
  */
 static int rcar_mmc_execute_tuning(const struct device *dev)
 {
+	int ret = -ENOTSUP;
+	const uint8_t *tun_block_ptr;
+	uint8_t tap_idx;
+	uint8_t is_mmc_cmd = false;
+	struct sdhc_command cmd = {0};
+	struct sdhc_data data = {0};
+	struct mmc_rcar_data *dev_data;
+	uint16_t valid_taps = 0;
+	uint16_t smpcmp_bitmask = 0;
+
+	BUILD_ASSERT(sizeof(valid_taps) * 8 >= 2 * RENESAS_TAPNUM);
+	BUILD_ASSERT(sizeof(smpcmp_bitmask) * 8 >= 2 * RENESAS_TAPNUM);
+
 	if (!dev) {
 		return -EINVAL;
 	}
 
-	LOG_ERR("%s: tuning isn't supported yet", dev->name);
-	return -ENOTSUP;
+	dev_data = dev->data;
+	dev_data->can_retune = 0;
+
+	if (dev_data->host_io.timing == SDHC_TIMING_HS200) {
+		cmd.opcode = MMC_SEND_TUNING_BLOCK;
+		is_mmc_cmd = true;
+	} else if (dev_data->host_io.timing != SDHC_TIMING_HS400) {
+		cmd.opcode = SD_SEND_TUNING_BLOCK;
+	} else {
+		LOG_ERR("%s: tuning isn't possible in HS400 mode, it should be done in HS200",
+			dev->name);
+		return -EINVAL;
+	}
+
+	cmd.response_type = SD_RSP_TYPE_R1;
+
+	data.blocks = 1;
+	data.data = dev_data->tuning_buf;
+	if (dev_data->host_io.bus_width == SDHC_BUS_WIDTH4BIT) {
+		data.block_size = sizeof(tun_block_4_bits_bus);
+		tun_block_ptr = tun_block_4_bits_bus;
+	} else if (dev_data->host_io.bus_width == SDHC_BUS_WIDTH8BIT) {
+		data.block_size = sizeof(tun_block_8_bits_bus);
+		tun_block_ptr = tun_block_8_bits_bus;
+	} else {
+		LOG_ERR("%s: don't support tuning for 1-bit bus width", dev->name);
+		return -EINVAL;
+	}
+
+	ret = rcar_mmc_enable_clock(dev, false);
+	if (ret) {
+		return ret;
+	}
+
+	/* enable modes SDR104/HS200/HS400 */
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_DT2FF, 0x300);
+	/* SCC sampling clock operation is enabled */
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_DTCNTL, RENESAS_SDHI_SCC_DTCNTL_TAPEN |
+							   RENESAS_TAPNUM << 16);
+	/* SCC sampling clock is used */
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_CKSEL, RENESAS_SDHI_SCC_CKSEL_DTSEL);
+	/* SCC sampling clock position correction is disabled */
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL, 0);
+	/* cleanup errors */
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSREQ, 0);
+
+	ret = rcar_mmc_enable_clock(dev, true);
+	if (ret) {
+		return ret;
+	}
+
+	/*
+	 * two runs is better for detecting TAP ok cases like next:
+	 *   - one burn: 0b10000011
+	 *   - two burns: 0b1000001110000011
+	 * it is more easly to detect 3 OK taps in a row
+	 */
+	for (tap_idx = 0; tap_idx < 2 * RENESAS_TAPNUM; tap_idx++) {
+		/* clear flags */
+		rcar_mmc_reset_and_mask_irqs(dev);
+		rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TAPSET, tap_idx % RENESAS_TAPNUM);
+		memset(dev_data->tuning_buf, 0, data.block_size);
+		ret = rcar_mmc_request(dev, &cmd, &data);
+		if (ret) {
+			LOG_DBG("%s: received an error (%d) during tuning request",
+				dev->name, ret);
+
+			if (is_mmc_cmd) {
+				struct sdhc_command stop_cmd = {
+					.opcode = SD_STOP_TRANSMISSION,
+					.response_type = SD_RSP_TYPE_R1b,
+				};
+
+				rcar_mmc_request(dev, &stop_cmd, NULL);
+			}
+			continue;
+		}
+
+		smpcmp_bitmask |= !rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_SMPCMP) << tap_idx;
+
+		if (memcmp(tun_block_ptr, dev_data->tuning_buf, data.block_size)) {
+			LOG_DBG("%s: received tuning block doesn't equal to pattert TAP index %u",
+				dev->name, tap_idx);
+			continue;
+		}
+
+		valid_taps |= BIT(tap_idx);
+
+		LOG_DBG("%s: smpcmp_bitmask[%u] 0x%08x", dev->name, tap_idx, smpcmp_bitmask);
+	}
+
+	/* both parts of bitmasks have to be the same */
+	valid_taps &= (valid_taps >> RENESAS_TAPNUM);
+	valid_taps |= (valid_taps << RENESAS_TAPNUM);
+
+	smpcmp_bitmask &= (smpcmp_bitmask >> RENESAS_TAPNUM);
+	smpcmp_bitmask |= (smpcmp_bitmask << RENESAS_TAPNUM);
+
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSREQ, 0);
+
+	if (!valid_taps) {
+		LOG_ERR("%s: there isn't any valid tap during tuning", dev->name);
+		goto reset_scc;
+	}
+
+	/*
+	 * If all of the taps[i] is OK, the sampling clock position is selected by identifying
+	 * the change point of data. Change point of the data can be found in the value of
+	 * SCC_SMPCMP register
+	 */
+	if ((valid_taps >> RENESAS_TAPNUM) == (1 << RENESAS_TAPNUM) - 1) {
+		valid_taps = smpcmp_bitmask;
+	}
+
+	/* do we have 3 set bits in a row at least */
+	if (valid_taps & (valid_taps >> 1) & (valid_taps >> 2)) {
+		uint32_t max_len_range_pos = 0;
+		uint32_t max_bits_in_range = 0;
+		uint32_t pos_of_lsb_set = 0;
+
+		/* all bits are set */
+		if ((valid_taps >> RENESAS_TAPNUM) == (1 << RENESAS_TAPNUM) - 1) {
+			rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TAPSET, 0);
+
+			if (!dev_data->manual_retuning) {
+				rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL, 1);
+			}
+			dev_data->can_retune = 1;
+			return 0;
+		}
+
+		/* searching the longest range of set bits */
+		while (valid_taps) {
+			uint32_t num_bits_in_range;
+			uint32_t rsh = 0;
+
+			rsh = find_lsb_set(valid_taps) - 1;
+			pos_of_lsb_set += rsh;
+
+			/* shift all leading zeros */
+			valid_taps >>= rsh;
+
+			num_bits_in_range = find_lsb_set(~valid_taps) - 1;
+
+			/* shift all leading ones */
+			valid_taps >>= num_bits_in_range;
+
+			if (max_bits_in_range < num_bits_in_range) {
+				max_bits_in_range = num_bits_in_range;
+				max_len_range_pos = pos_of_lsb_set;
+			}
+			pos_of_lsb_set += num_bits_in_range;
+		}
+
+		tap_idx = (max_len_range_pos + max_bits_in_range / 2) % RENESAS_TAPNUM;
+		rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TAPSET, tap_idx);
+
+		LOG_DBG("%s: valid_taps %08x smpcmp_bitmask %08x tap_idx %u",
+			dev->name, valid_taps, smpcmp_bitmask, tap_idx);
+
+		if (!dev_data->manual_retuning) {
+			rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL, 1);
+		}
+		dev_data->can_retune = 1;
+		return 0;
+	}
+
+reset_scc:
+	rcar_mmc_disable_scc(dev);
+	return ret;
 }
+
+/**
+ * @brief Retune SCC in case of error during xref
+ *
+ * @param dev MMC device
+ * @param request_retune a caller requests retune
+ *
+ * @retval 0 tuning succeeded (card is ready for commands) or tuning isn't needed,
+ *         otherwise negative number is returned
+ */
+static int rcar_mmc_retune_if_needed(const struct device *dev, bool request_retune)
+{
+	struct mmc_rcar_data *dev_data = dev->data;
+	int ret = 0;
+	uint32_t reg;
+	bool scc_pos_err = false;
+	uint8_t scc_tapset;
+
+	if (!dev_data->can_retune) {
+		return 0;
+	}
+
+	reg = rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_RVSREQ);
+	if (reg & RENESAS_SDHI_SCC_RVSREQ_ERR) {
+		scc_pos_err = true;
+	}
+
+	scc_tapset = rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_TAPSET);
+
+	LOG_DBG("%s: scc_tapset %08x scc_rvsreq %08x request %d is manual tuning %d",
+		dev->name, scc_tapset, reg, request_retune, dev_data->manual_retuning);
+
+	if (request_retune || (scc_pos_err && !dev_data->manual_retuning)) {
+		return rcar_mmc_execute_tuning(dev);
+	}
+
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSREQ, 0);
+
+	switch (reg & RENESAS_SDHI_SCC_RVSREQ_REQTAP_MASK) {
+	case RENESAS_SDHI_SCC_RVSREQ_REQTAPDOWN:
+		scc_tapset = (scc_tapset - 1) % RENESAS_TAPNUM;
+		break;
+	case RENESAS_SDHI_SCC_RVSREQ_REQTAPUP:
+		scc_tapset = (scc_tapset + 1) % RENESAS_TAPNUM;
+		break;
+	default:
+		ret = -EINVAL;
+		LOG_ERR("%s: can't perform manual tuning SCC_RVSREQ %08x",
+			dev->name, reg);
+		break;
+	}
+
+	if (!ret) {
+		rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TAPSET, scc_tapset);
+	}
+
+	return ret;
+}
+
+#endif /* CONFIG_RCAR_MMC_SCC_SUPPORT */
 
 /**
  * @brief Get MMC controller properties
@@ -1658,7 +1987,9 @@ static int rcar_mmc_get_host_props(const struct device *dev,
 
 static const struct sdhc_driver_api rcar_sdhc_api = {
 	.card_busy = rcar_mmc_card_busy,
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
 	.execute_tuning = rcar_mmc_execute_tuning,
+#endif
 	.get_card_present = rcar_mmc_get_card_present,
 	.get_host_props = rcar_mmc_get_host_props,
 	.request = rcar_mmc_request,
@@ -1735,6 +2066,14 @@ static void rcar_mmc_init_host_props(const struct device *dev)
 	}
 
 	host_caps->high_spd_support = 1;
+#if CONFIG_RCAR_MMC_SCC_SUPPORT
+	host_caps->sdr104_support = cfg->mmc_sdr104_support;
+	host_caps->sdr50_support = cfg->uhs_support;
+	host_caps->ddr50_support = cfg->uhs_support;
+	host_caps->hs200_support = cfg->mmc_hs200_1_8v;
+	/* TODO: add support */
+	host_caps->hs400_support = 0;
+#endif
 
 	host_caps->vol_330_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
 								    3300000, 3300000);
@@ -1742,18 +2081,6 @@ static void rcar_mmc_init_host_props(const struct device *dev)
 								    3000000, 3000000);
 	host_caps->vol_180_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
 								    1800000, 1800000);
-
-	/*
-	 * TODO: it is needed a tuning function for all of below modes,
-	 *       after adding the tuning function get values from config/dts
-	 */
-	host_caps->sdr50_support = 0;
-	host_caps->sdr104_support = 0;
-	host_caps->ddr50_support = 0;
-	host_caps->uhs_2_support = 0;
-
-	host_caps->hs200_support = 0;
-	host_caps->hs400_support = 0;
 }
 
 /**
@@ -1768,6 +2095,7 @@ static int rcar_mmc_disable_scc(const struct device *dev)
 {
 	int ret;
 	uint32_t reg;
+	struct mmc_rcar_data *data = dev->data;
 
 	/* just to be to be sure that the SD clock is disabled */
 	ret = rcar_mmc_enable_clock(dev, false);
@@ -1800,6 +2128,8 @@ static int rcar_mmc_disable_scc(const struct device *dev)
 	reg = rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL);
 	reg &= ~RENESAS_SDHI_SCC_RVSCNTL_RVSEN;
 	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL, reg);
+
+	data->can_retune = 0;
 
 	return 0;
 }
@@ -1868,12 +2198,7 @@ static int rcar_mmc_init_controller_regs(const struct device *dev)
 	rcar_mmc_write_reg32(dev, RCAR_MMC_HOST_MODE, 0);
 	data->width_access_sd_buf0 = 8;
 
-	/*
-	 * disable sampling clock controller
-	 * it is used for uhs/sdr104, hs200 and hs400
-	 *
-	 * TODO: add support of SCC tuning and UHS/HS200/HS400 modes
-	 */
+	/* disable sampling clock controller, it is used for uhs/sdr104, hs200 and hs400 */
 	ret = rcar_mmc_disable_scc(dev);
 	if (ret) {
 		return ret;

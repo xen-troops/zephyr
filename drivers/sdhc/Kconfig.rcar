@@ -20,6 +20,12 @@ config RCAR_MMC_DMA_SUPPORT
 	help
 	  Internal DMA support for Renesas Rcar MMC driver.
 
+config RCAR_MMC_SCC_SUPPORT
+	bool "Support of SCC"
+	default y
+	help
+	  Enable support of Sampling Clock Controller for Renesas Rcar MMC driver.
+
 if RCAR_MMC_DMA_SUPPORT
 
 config SDHC_BUFFER_ALIGNMENT
