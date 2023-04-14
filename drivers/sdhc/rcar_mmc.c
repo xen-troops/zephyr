@@ -17,6 +17,8 @@
 
 #include "rcar_mmc_registers.h"
 
+#define PINCTRL_STATE_UHS PINCTRL_STATE_PRIV_START
+
 /**
  * @note we don't need any locks here, because SDHC subsystem cares about it
  */
@@ -1035,14 +1037,8 @@ rcar_mmc_get_timing_str(enum sdhc_timing_mode timing)
  *
  * @retval 0 I/O was configured correctly
  * @retval -ENOTSUP: controller does not support these I/O settings
- *
- * @todo configure pin voltage here, looks like MMC controller (GEN3)
- *       has access for both 1.8 and 3.3 voltages, but dataX/CMD pins
- *       work with 3.3V by default. According to documentation, we
- *       can configure it to work with 1.8V, look at POCCTRL0 reg.
- *       I belive that we need Renesas Regulator driver for that.
  */
-static int rcar_mmc_change_voltage(struct sdhc_io *host_io,
+static int rcar_mmc_change_voltage(const struct mmc_rcar_cfg *cfg, struct sdhc_io *host_io,
 	struct sdhc_io *ios)
 {
 	int ret = 0;
@@ -1054,8 +1050,10 @@ static int rcar_mmc_change_voltage(struct sdhc_io *host_io,
 
 	switch (ios->signal_voltage) {
 	case SD_VOL_3_3_V:
+		ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
 		break;
 	case SD_VOL_1_8_V:
+		ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_UHS);
 		break;
 	case SD_VOL_3_0_V:
 	case SD_VOL_1_2_V:
@@ -1065,7 +1063,10 @@ static int rcar_mmc_change_voltage(struct sdhc_io *host_io,
 		return ret;
 	}
 
-	host_io->signal_voltage = ios->signal_voltage;
+	if (!ret) {
+		host_io->signal_voltage = ios->signal_voltage;
+	}
+
 	return ret;
 }
 
@@ -1380,7 +1381,7 @@ static int rcar_mmc_set_timings(const struct device *dev,
 	}
 
 	ios->signal_voltage = new_voltage;
-	if (rcar_mmc_change_voltage(host_io, ios)) {
+	if (rcar_mmc_change_voltage(dev->config, host_io, ios)) {
 		return -ENOTSUP;
 	}
 
@@ -1535,7 +1536,7 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 		host_io->driver_type = ios->driver_type;
 	}
 
-	ret = rcar_mmc_change_voltage(host_io, ios);
+	ret = rcar_mmc_change_voltage(dev->config, host_io, ios);
 	if (ret) {
 		LOG_ERR("SDHC I/O: can't change voltage! error %d old %d new %d",
 			ret, host_io->signal_voltage, ios->signal_voltage);
@@ -1918,16 +1919,6 @@ static int rcar_mmc_init(const struct device *dev)
 		ret = -ENODEV;
 		goto exit_unmap;
 	}
-
-	/*
-	 * TODO: configure pin voltage here, looks like MMC controller (GEN3)
-	 *       has access for both 1.8 and 3.3 voltages, but dataX/CMD pins
-	 *       work with 3.3V by default. According to documentation, we
-	 *       can configure it to work with 1.8V, look at POCCTRL0 reg.
-	 *       I belive that we need Renesas Regulator driver for that.
-	 *
-	 * note: u-boot already configured this pin (dataX/cmd) as 1.8V IO.
-	 */
 
 	ret = rcar_mmc_init_start_clk(cfg);
 	if (ret < 0) {
