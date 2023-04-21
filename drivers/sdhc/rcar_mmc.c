@@ -694,6 +694,7 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	uint32_t info2_poll_flag = is_read ? RCAR_MMC_INFO2_BRE : RCAR_MMC_INFO2_BWE;
 	uint8_t sd_buf0_size = dev_data->width_access_sd_buf0;
 	uint16_t aligned_block_size = ROUND_UP(data->block_size, sd_buf0_size);
+	uint32_t cmd_reg = 0;
 
 	/*
 	 * note: below code should work for all possible block sizes, but
@@ -704,6 +705,63 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	    (data->block_size < dev_data->width_access_sd_buf0)) {
 		LOG_ERR("%s: block size (%u) less or not align on SD BUF0 access width (%hhu)",
 			dev->name, data->block_size, dev_data->width_access_sd_buf0);
+		return -EINVAL;
+	}
+
+	/*
+	 * JEDEC Standard No. 84-B51
+	 * 6.6.24 Dual Data Rate mode operation:
+	 * Therefore, all single or multiple block data transfer read or write will operate on
+	 * a fixed block size of 512 bytes while the Device remains in dual data rate.
+	 *
+	 * Physical Layer Specification Version 3.01
+	 * 4.12.6 Timing Changes in DDR50 Mode
+	 * 4.12.6.2 Protocol Principles
+	 * * Read and Write data block length size is always 512 bytes (same as SDHC).
+	 */
+	if (dev_data->ddr_mode && data->block_size != 512) {
+		LOG_ERR("%s: block size (%u) isn't equal to 512 in DDR mode",
+			dev->name, data->block_size);
+		return -EINVAL;
+	}
+
+	/*
+	 * note: the next restrictions we have according to description of
+	 *       transfer data length register from R-Car S4 series User's Manual
+	 */
+	if (data->block_size > 512 || data->block_size == 0) {
+		LOG_ERR("%s: block size (%u) must not be bigger than 512 bytes and equal to zero",
+			dev->name, data->block_size);
+		return -EINVAL;
+	}
+
+	cmd_reg = rcar_mmc_read_reg32(dev, RCAR_MMC_CMD);
+	if (cmd_reg & RCAR_MMC_CMD_MULTI) {
+		/* CMD12 is automatically issued at multiple block transfer */
+		if (!(cmd_reg & RCAR_MMC_CMD_NOSTOP) && data->block_size != 512) {
+			LOG_ERR("%s: illegal block size (%u) for multi-block xref with CMD12",
+				dev->name, data->block_size);
+			return -EINVAL;
+		}
+
+		switch (data->block_size) {
+		case 32:
+		case 64:
+		case 128:
+		case 256:
+		case 512:
+			break;
+		default:
+			LOG_ERR("%s: illegal block size (%u) for multi-block xref without CMD12",
+				dev->name, data->block_size);
+			return -EINVAL;
+		}
+
+	}
+
+	if (data->block_size == 1 && dev_data->host_io.bus_width == SDHC_BUS_WIDTH8BIT) {
+		LOG_ERR("%s: block size can't be equal to 1 with 8-bits bus width",
+			dev->name);
 		return -EINVAL;
 	}
 
