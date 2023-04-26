@@ -1109,7 +1109,7 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 	}
 
 	divisor = round_up_next_pwr_of_2(divisor);
-	if (divisor == 0) {
+	if (divisor == 1) {
 		divisor = RCAR_MMC_CLKCTL_RCAR_DIV1;
 	} else {
 		divisor >>= 2;
