@@ -13,6 +13,7 @@
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/cache.h>
+#include <zephyr/drivers/regulator.h>
 #include <soc.h>
 
 #include "rcar_mmc_registers.h"
@@ -57,6 +58,8 @@ struct mmc_rcar_cfg {
 	struct rcar_cpg_clk cpg_clk;
 	const struct device *cpg_dev;
 	const struct pinctrl_dev_config *pcfg;
+	const struct device *regulator_vqmmc;
+	const struct device *regulator_vmmc;
 
 	uint32_t max_frequency;
 
@@ -1050,9 +1053,19 @@ static int rcar_mmc_change_voltage(const struct mmc_rcar_cfg *cfg, struct sdhc_i
 
 	switch (ios->signal_voltage) {
 	case SD_VOL_3_3_V:
+		ret = regulator_set_voltage(cfg->regulator_vqmmc, 3300000, 3300000);
+		if (ret) {
+			break;
+		}
+
 		ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
 		break;
 	case SD_VOL_1_8_V:
+		ret = regulator_set_voltage(cfg->regulator_vqmmc, 1800000, 1800000);
+		if (ret) {
+			break;
+		}
+
 		ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_UHS);
 		break;
 	case SD_VOL_3_0_V:
@@ -1484,15 +1497,36 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 
 	/* Set card power */
 	if (ios->power_mode && host_io->power_mode != ios->power_mode) {
-		/*
-		 * note: power is always on for eMMC cards,
-		 *       so enable/disable clock instead
-		 */
+		const struct mmc_rcar_cfg *cfg = dev->config;
+
 		switch (ios->power_mode) {
 		case SDHC_POWER_ON:
+			ret = regulator_enable(cfg->regulator_vmmc);
+			if (ret) {
+				break;
+			}
+
+			k_msleep(data->props.power_delay);
+
+			ret = regulator_enable(cfg->regulator_vqmmc);
+			if (ret) {
+				break;
+			}
+
+			k_msleep(data->props.power_delay);
 			ret = rcar_mmc_enable_clock(dev, true);
 			break;
 		case SDHC_POWER_OFF:
+			ret = regulator_disable(cfg->regulator_vqmmc);
+			if (ret) {
+				break;
+			}
+
+			ret = regulator_disable(cfg->regulator_vmmc);
+			if (ret) {
+				break;
+			}
+
 			ret = rcar_mmc_enable_clock(dev, false);
 			break;
 		default:
@@ -1702,9 +1736,12 @@ static void rcar_mmc_init_host_props(const struct device *dev)
 
 	host_caps->high_spd_support = 1;
 
-	host_caps->vol_330_support = 1;
-	host_caps->vol_300_support = 0;
-	host_caps->vol_180_support = 1;
+	host_caps->vol_330_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
+								    3300000, 3300000);
+	host_caps->vol_300_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
+								    3000000, 3000000);
+	host_caps->vol_180_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
+								    1800000, 1800000);
 
 	/*
 	 * TODO: it is needed a tuning function for all of below modes,
@@ -1990,6 +2027,8 @@ exit_unmap:
 		.cpg_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module), \
 		.cpg_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain), \
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \
+		.regulator_vqmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vqmmc_supply)), \
+		.regulator_vmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vmmc_supply)), \
 		.max_frequency = DT_INST_PROP(n, max_frequency), \
 		.non_removable = DT_INST_PROP(n, non_removable), \
 		.mmc_hs200_1_8v = DT_INST_PROP(n, mmc_hs200_1_8v), \
