@@ -42,6 +42,19 @@ properties:
     type: phandle-array
     description: Power pin
 
+  vmmc-supply:
+    type: phandle
+    description:
+      Supply for the card power
+
+  vqmmc-supply:
+    type: phandle
+    description:
+      Supply for the bus IO line power, such as a level shifter.
+      If the level shifter is controlled by a GPIO line, this shall
+      be modeled as a "regulator-fixed" with a GPIO line for
+      switching the level shifter on/off.
+
   bus-width:
     type: int
     default: 1
