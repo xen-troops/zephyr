@@ -175,6 +175,9 @@
 #define RCAR_MMC_DMA_MODE_ADDR_INC	BIT(0)	/* 1: address inc, 0: fixed */
 #define RCAR_MMC_DMA_CTL		0x828
 #define RCAR_MMC_DMA_CTL_START		BIT(0)	/* start DMA (auto cleared) */
+#define RCAR_MMC_DMA_RST		0x830
+#define RCAR_MMC_DMA_RST_DTRAN0		BIT(8)
+#define RCAR_MMC_DMA_RST_DTRAN1		BIT(9)
 #define RCAR_MMC_DMA_INFO1		0x840
 #define RCAR_MMC_DMA_INFO1_END_RD2	BIT(20)	/* DMA from device is complete (uniphier) */
 #define RCAR_MMC_DMA_INFO1_END_RD	BIT(17)	/* DMA from device is complete (renesas) */
