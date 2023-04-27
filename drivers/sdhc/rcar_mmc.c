@@ -243,6 +243,24 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 }
 
 /**
+ * @brief reset DMA MMC controller
+ *
+ * Used when the DMA MMC controller has encountered an error.
+ *
+ * @param dev MMC controller device
+ * @retval none
+ */
+static inline void rcar_mmc_reset_dma(const struct device *dev)
+{
+	uint32_t reg = RCAR_MMC_DMA_RST_DTRAN0 | RCAR_MMC_DMA_RST_DTRAN1;
+
+	rcar_mmc_write_reg32(dev, RCAR_MMC_EXTMODE, 0);
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_RST, ~reg);
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_RST, ~0);
+	rcar_mmc_write_reg32(dev, RCAR_MMC_EXTMODE, 1);
+}
+
+/**
  * @brief reset MMC controller state
  *
  * Used when the MMC has encountered an error. Resetting the MMC controller
@@ -308,6 +326,9 @@ static int rcar_mmc_reset(const struct device *dev)
 	 * note: DMA reset can be triggered only in case of error in
 	 * DMA Info2 otherwise the SDIP will not accurately operate
 	 */
+	if (data->dma_support) {
+		rcar_mmc_reset_dma(dev);
+	}
 
 	/* note: be careful soft reset stops SDCLK */
 	if (data->restore_cfg_after_reset) {
@@ -590,6 +611,14 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 		if (sys_cache_data_invd_range(data->data, data->blocks * data->block_size) < 0) {
 			LOG_ERR("%s: can't invalidate data cache after read", dev->name);
 		}
+	}
+
+	/* in case when we get to here and there wasn't IRQ trigger */
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1_MASK, 0xfffffeff);
+	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK, ~0);
+
+	if (ret == -EIO) {
+		rcar_mmc_reset_dma(dev);
 	}
 
 	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_EXTMODE);
