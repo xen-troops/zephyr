@@ -293,12 +293,6 @@ static int rcar_mmc_reset(const struct device *dev)
 
 	data = dev->data;
 
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false, false);
-	if (ret) {
-		return -ETIMEDOUT;
-	}
-
 	/*
 	 * soft reset of the host
 	 */
