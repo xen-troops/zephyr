@@ -1603,7 +1603,7 @@ static const struct sdhc_driver_api rcar_sdhc_api = {
 };
 
 /**
- * @brief Start SD-IF2 clock at 200MHz
+ * @brief Start SD-IF clock at max frequency configured in dts
  *
  * @param cfg The Renesas MMC driver configuration
  *
