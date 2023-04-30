@@ -1189,7 +1189,7 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 
 	host_io->clock = ios->clock;
 
-	LOG_INF("%s: set clock rate to %d",
+	LOG_DBG("%s: set clock rate to %d",
 		dev->name, ios->clock);
 
 	return 0;
@@ -1271,7 +1271,7 @@ static int rcar_mmc_set_bus_width(const struct device *dev,
 
 	host_io->bus_width = ios->bus_width;
 
-	LOG_INF("%s: set bus-width to %d", dev->name, host_io->bus_width);
+	LOG_DBG("%s: set bus-width to %d", dev->name, host_io->bus_width);
 	return 0;
 }
 
