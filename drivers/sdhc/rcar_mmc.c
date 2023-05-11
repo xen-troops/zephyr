@@ -29,6 +29,7 @@ LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 #define MMC_POLL_FLAGS_TIMEOUT_US 100000
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
 #define MMC_DMA_RW_ONE_BLOCK_US 100
+#define MMC_BUS_CLOCK_FREQ 800000000
 
 #if CONFIG_RCAR_MMC_DMA_SUPPORT
 #define ALIGN_BUF_DMA __aligned(CONFIG_SDHC_BUFFER_ALIGNMENT)
@@ -68,6 +69,7 @@ struct mmc_rcar_data {
 struct mmc_rcar_cfg {
 	DEVICE_MMIO_ROM; /* Must be first */
 	struct rcar_cpg_clk cpg_clk;
+	struct rcar_cpg_clk bus_clk;
 	const struct device *cpg_dev;
 	const struct pinctrl_dev_config *pcfg;
 	const struct device *regulator_vqmmc;
@@ -2010,6 +2012,11 @@ static int rcar_mmc_init_start_clk(const struct mmc_rcar_cfg *cfg)
 	const struct device *cpg_dev = cfg->cpg_dev;
 	uintptr_t rate = cfg->max_frequency;
 
+	ret = clock_control_on(cpg_dev, (clock_control_subsys_t *)&cfg->bus_clk);
+	if (ret < 0) {
+		return ret;
+	}
+
 	ret = clock_control_on(cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk);
 	if (ret < 0) {
 		return ret;
@@ -2021,6 +2028,9 @@ static int rcar_mmc_init_start_clk(const struct mmc_rcar_cfg *cfg)
 		clock_control_off(cpg_dev, (clock_control_subsys_t *)&cfg->cpg_clk);
 	}
 
+	rate = MMC_BUS_CLOCK_FREQ;
+	ret = clock_control_set_rate(cpg_dev, (clock_control_subsys_t *)&cfg->bus_clk,
+				     (clock_control_subsys_rate_t)rate);
 	/* SD spec recommends at least 1 ms of delay after start of clock */
 	k_msleep(1);
 
@@ -2351,6 +2361,8 @@ exit_unmap:
 		.cpg_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)), \
 		.cpg_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module), \
 		.cpg_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain), \
+		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module), \
+		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain), \
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \
 		.regulator_vqmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vqmmc_supply)), \
 		.regulator_vmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vmmc_supply)), \

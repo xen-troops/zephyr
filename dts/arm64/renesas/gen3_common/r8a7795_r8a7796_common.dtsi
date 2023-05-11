@@ -80,7 +80,7 @@
 			vqmmc-supply = <&reg_1p8v>;
 			interrupts = <GIC_SPI 167 IRQ_TYPE_LEVEL
 				      IRQ_DEFAULT_PRIORITY>;
-			clocks = <&cpg CPG_MOD 312>;
+			clocks = <&cpg CPG_MOD 312>, <&cpg CPG_CORE R8A7795_CLK_SD2H>;
 			max-frequency = <200000000>;
 			status = "disabled";
 		};
