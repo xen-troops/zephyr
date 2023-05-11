@@ -1041,7 +1041,7 @@ rcar_mmc_get_signal_voltage_str(enum sd_voltage voltage)
 		[SD_VOL_1_2_V] = "1.2V",
 	};
 
-	if (voltage > -1 && voltage < ARRAY_SIZE(sig_vol_str)) {
+	if (voltage >= 0 && voltage < ARRAY_SIZE(sig_vol_str)) {
 		return sig_vol_str[voltage];
 	} else {
 		return "Unknown";
@@ -1072,7 +1072,7 @@ rcar_mmc_get_timing_str(enum sdhc_timing_mode timing)
 		[SDHC_TIMING_HS400] = "HS400",
 	};
 
-	if (timing > -1 && timing < ARRAY_SIZE(timing_str)) {
+	if (timing >= 0 && timing < ARRAY_SIZE(timing_str)) {
 		return timing_str[timing];
 	} else {
 		return "Unknown";
