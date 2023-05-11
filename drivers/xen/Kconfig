@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2022 EPAM Systems
 
-if SOC_XENVM
+if SOC_XENVM || SHIELD_XEN_DOM0
 
 menu "Xen drivers"
 
@@ -28,4 +28,4 @@ config XEN_GRANT_TABLE_INIT_PRIORITY
 
 endmenu
 
-endif # SOC_XENVM
+endif # SOC_XENVM || SHIELD_XEN_DOM0
