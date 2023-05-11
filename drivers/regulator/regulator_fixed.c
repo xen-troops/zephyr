@@ -136,7 +136,7 @@ static int regulator_fixed_init(const struct device *dev)
 		.common = REGULATOR_DT_INST_COMMON_CONFIG_INIT(inst),          \
 		.startup_delay_us = DT_INST_PROP(inst, startup_delay_us),      \
 		.off_on_delay_us = DT_INST_PROP(inst, off_on_delay_us),        \
-		.enable = GPIO_DT_SPEC_INST_GET_OR(inst, enable_gpio, {0}),    \
+		.enable = GPIO_DT_SPEC_INST_GET_OR(inst, enable_gpios, {0}),    \
 	};                                                                     \
                                                                                \
 	DEVICE_DT_INST_DEFINE(inst, regulator_fixed_init, NULL, &data##inst,   \
