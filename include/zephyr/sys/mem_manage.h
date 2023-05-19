@@ -141,15 +141,15 @@ static inline uintptr_t z_mem_phys_addr(void *virt)
 	uintptr_t addr = (uintptr_t)virt;
 
 #ifdef CONFIG_MMU
-	__ASSERT((addr >= CONFIG_KERNEL_VM_BASE) &&
-		 (addr < (CONFIG_KERNEL_VM_BASE +
-			  (CONFIG_KERNEL_VM_SIZE))),
+	__ASSERT((addr >= (uintptr_t)CONFIG_KERNEL_VM_BASE) &&
+		 (addr < ((uintptr_t)CONFIG_KERNEL_VM_BASE +
+			  ((uintptr_t)CONFIG_KERNEL_VM_SIZE))),
 		 "address %p not in permanent mappings", virt);
 #else
 	/* Should be identity-mapped */
-	__ASSERT((addr >= CONFIG_SRAM_BASE_ADDRESS) &&
-		 (addr < (CONFIG_SRAM_BASE_ADDRESS +
-			  (CONFIG_SRAM_SIZE * 1024UL))),
+	__ASSERT((addr >= (uintptr_t)CONFIG_SRAM_BASE_ADDRESS) &&
+		 (addr < ((uintptr_t)CONFIG_SRAM_BASE_ADDRESS +
+			  ((uintptr_t)CONFIG_SRAM_SIZE * 1024UL))),
 		 "physical address 0x%lx not in RAM",
 		 (unsigned long)addr);
 #endif /* CONFIG_MMU */
