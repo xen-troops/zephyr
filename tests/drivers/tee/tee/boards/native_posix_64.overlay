@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/ {
+	firmware {
+		 tee {
+		       compatible = "test,tee";
+		       method = "smc";
+		       status = "okay";
+		 };
+  	};
+};
