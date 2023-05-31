@@ -373,7 +373,9 @@ static int rcar_mmc_reset(const struct device *dev)
 
 #ifdef CONFIG_RCAR_MMC_SCC_SUPPORT
 		/* tune if this reset isn't invoked during tuning */
-		if (can_retune && (ios.timing == SDHC_TIMING_HS200)) {
+		if (can_retune && (ios.timing == SDHC_TIMING_SDR50 ||
+				   ios.timing == SDHC_TIMING_SDR104 ||
+				   ios.timing == SDHC_TIMING_HS200)) {
 			ret = rcar_mmc_execute_tuning(dev);
 		}
 #endif
@@ -1407,6 +1409,7 @@ static int rcar_mmc_set_timings(const struct device *dev, struct sdhc_io *ios)
 		break;
 	case SDHC_TIMING_SDR12:
 	case SDHC_TIMING_SDR25:
+	case SDHC_TIMING_SDR50:
 		break;
 	case SDHC_TIMING_SDR104:
 		if (!data->props.host_caps.sdr104_support) {
@@ -2075,7 +2078,8 @@ static void rcar_mmc_init_host_props(const struct device *dev)
 #ifdef CONFIG_RCAR_MMC_SCC_SUPPORT
 	host_caps->sdr104_support = cfg->mmc_sdr104_support;
 	host_caps->sdr50_support = cfg->uhs_support;
-	host_caps->ddr50_support = cfg->uhs_support;
+	/* neither Linux nor U-boot support DDR50 mode, that's why we don't support it too */
+	host_caps->ddr50_support = 0;
 	host_caps->hs200_support = cfg->mmc_hs200_1_8v;
 	/* TODO: add support */
 	host_caps->hs400_support = 0;
