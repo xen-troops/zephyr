@@ -27,7 +27,6 @@ LOG_MODULE_REGISTER(rcar_mmc, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define MMC_POLL_FLAGS_TIMEOUT_US 100000
 #define MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US 1
-#define MMC_DMA_RW_ONE_BLOCK_US 100
 #define MMC_BUS_CLOCK_FREQ 800000000
 
 #ifdef CONFIG_RCAR_MMC_DMA_SUPPORT
@@ -226,6 +225,7 @@ static int rcar_mmc_check_errors(const struct device *dev)
  * @param state state of flag(s) when we should stop polling
  * @param check_errors call @ref rcar_mmc_check_errors function or not
  * @param check_dma_errors check if there are DMA errors inside info2
+ * @param timeout_us timeout in microseconds how long we should poll flag(s)
  *
  * @retval 0 poll of flag(s) was successful
  * @retval -ETIMEDOUT: timed out while tx/rx
@@ -234,13 +234,12 @@ static int rcar_mmc_check_errors(const struct device *dev)
  */
 static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 	unsigned int reg, uint32_t flag, uint32_t state, bool check_errors,
-	bool check_dma_errors)
+	bool check_dma_errors, int64_t timeout_us)
 {
-	int remain_us = MMC_POLL_FLAGS_TIMEOUT_US;
 	int ret;
 
 	while ((rcar_mmc_read_reg32(dev, reg) & flag) != state) {
-		if (remain_us < 0) {
+		if (timeout_us < 0) {
 			LOG_DBG("timeout error during polling flag(s) 0x%08x in reg 0x%08x",
 				flag, reg);
 			return -ETIMEDOUT;
@@ -260,7 +259,7 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 		}
 
 		k_usleep(MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US);
-		remain_us -= MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US;
+		timeout_us -= MMC_POLL_FLAGS_ONE_CYCLE_TIMEOUT_US;
 	}
 
 	return 0;
@@ -421,7 +420,8 @@ static int rcar_mmc_enable_clock(const struct device *dev, bool enable)
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false, false);
+						RCAR_MMC_INFO2_CBSY, 0, false, false,
+						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -630,9 +630,7 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO1_MASK, reg);
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_CTL, RCAR_MMC_DMA_CTL_START);
 
-	ret = k_sem_take(&dev_data->irq_xref_fin,
-			 K_USEC(MMC_POLL_FLAGS_TIMEOUT_US +
-				MMC_DMA_RW_ONE_BLOCK_US * data->blocks));
+	ret = k_sem_take(&dev_data->irq_xref_fin, K_MSEC(data->timeout_ms));
 	if (ret < 0) {
 		LOG_ERR("%s: interrupt signal timeout error %d", dev->name, ret);
 	}
@@ -646,7 +644,8 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 #else
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_CTL, RCAR_MMC_DMA_CTL_START);
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_DMA_INFO1, dma_info1_poll_flag,
-						dma_info1_poll_flag, false, true);
+						dma_info1_poll_flag, false, true,
+						data->timeout_ms * 1000LL);
 #endif
 
 	if (is_read) {
@@ -760,6 +759,7 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	uint8_t sd_buf0_size = dev_data->width_access_sd_buf0;
 	uint16_t aligned_block_size = ROUND_UP(data->block_size, sd_buf0_size);
 	uint32_t cmd_reg = 0;
+	int64_t remaining_timeout_us = data->timeout_ms * 1000LL;
 
 	/*
 	 * note: below code should work for all possible block sizes, but
@@ -834,10 +834,12 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 		uint8_t *buf = (uint8_t *)data->data + (block * data->block_size);
 		uint32_t info2_reg;
 		uint16_t w_off; /* word offset in a block */
+		uint64_t start_block_xref_us = k_ticks_to_us_ceil64(k_uptime_ticks());
 
 		/* wait until the buffer is filled with data */
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						info2_poll_flag, info2_poll_flag, true, false);
+							info2_poll_flag, info2_poll_flag,
+							true, false, remaining_timeout_us);
 		if (ret) {
 			return ret;
 		}
@@ -858,6 +860,12 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 				memcpy(&buf0, buf + w_off, copy_size);
 				rcar_mmc_write_buf0(dev, buf0);
 			}
+		}
+
+		remaining_timeout_us -= k_ticks_to_us_ceil64(k_uptime_ticks()) -
+					start_block_xref_us;
+		if (remaining_timeout_us < 0) {
+			return -ETIMEDOUT;
 		}
 	}
 
@@ -902,7 +910,8 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 	}
 
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-					RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true, false);
+						RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true, false,
+						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return ret;
 	}
@@ -956,7 +965,8 @@ static int rcar_mmc_request(const struct device *dev,
 		}
 
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-							RCAR_MMC_INFO2_CBSY, 0, false, false);
+							RCAR_MMC_INFO2_CBSY, 0, false, false,
+							MMC_POLL_FLAGS_TIMEOUT_US);
 		if (ret) {
 			ret = -EBUSY;
 			continue;
@@ -988,7 +998,8 @@ static int rcar_mmc_request(const struct device *dev,
 
 		/* wait until response end flag is set or errors occur */
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-					RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false);
+					RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false,
+					cmd->timeout_ms * 1000LL);
 		if (ret) {
 			continue;
 		}
@@ -1011,7 +1022,7 @@ static int rcar_mmc_request(const struct device *dev,
 		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
 							RCAR_MMC_INFO2_SCLKDIVEN,
 							RCAR_MMC_INFO2_SCLKDIVEN,
-							true, false);
+							true, false, MMC_POLL_FLAGS_TIMEOUT_US);
 	}
 
 	if (ret) {
@@ -1225,7 +1236,8 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false, false);
+						RCAR_MMC_INFO2_CBSY, 0, false, false,
+						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1311,7 +1323,8 @@ static int rcar_mmc_set_bus_width(const struct device *dev,
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false, false);
+						RCAR_MMC_INFO2_CBSY, 0, false, false,
+						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1349,7 +1362,8 @@ static int rcar_mmc_set_ddr_mode(const struct device *dev)
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
 	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-				RCAR_MMC_INFO2_CBSY, 0, false, false);
+						RCAR_MMC_INFO2_CBSY, 0, false, false,
+						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1746,9 +1760,11 @@ static int rcar_mmc_execute_tuning(const struct device *dev)
 	}
 
 	cmd.response_type = SD_RSP_TYPE_R1;
+	cmd.timeout_ms = CONFIG_SD_CMD_TIMEOUT;
 
 	data.blocks = 1;
 	data.data = dev_data->tuning_buf;
+	data.timeout_ms = CONFIG_SD_DATA_TIMEOUT;
 	if (dev_data->host_io.bus_width == SDHC_BUS_WIDTH4BIT) {
 		data.block_size = sizeof(tun_block_4_bits_bus);
 		tun_block_ptr = tun_block_4_bits_bus;
@@ -1802,6 +1818,7 @@ static int rcar_mmc_execute_tuning(const struct device *dev)
 				struct sdhc_command stop_cmd = {
 					.opcode = SD_STOP_TRANSMISSION,
 					.response_type = SD_RSP_TYPE_R1b,
+					.timeout_ms = CONFIG_SD_CMD_TIMEOUT,
 				};
 
 				rcar_mmc_request(dev, &stop_cmd, NULL);
