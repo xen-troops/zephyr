@@ -103,8 +103,7 @@ static int rcar_mmc_disable_scc(const struct device *dev);
  *
  * @retval register value
  */
-static uint32_t rcar_mmc_read_reg32(const struct device *dev,
-	uint32_t reg)
+static uint32_t rcar_mmc_read_reg32(const struct device *dev, uint32_t reg)
 {
 	return sys_read32(DEVICE_MMIO_GET(dev) + reg);
 }
@@ -120,8 +119,7 @@ static uint32_t rcar_mmc_read_reg32(const struct device *dev,
  *
  * @retval none
  */
-static void rcar_mmc_write_reg32(const struct device *dev,
-	uint32_t reg, uint32_t val)
+static void rcar_mmc_write_reg32(const struct device *dev, uint32_t reg, uint32_t val)
 {
 	sys_write32(val, DEVICE_MMIO_GET(dev) + reg);
 }
@@ -206,7 +204,7 @@ static int rcar_mmc_check_errors(const struct device *dev)
 		return -EILSEQ;
 	}
 
-	if (info2 & (RCAR_MMC_INFO2_ERR_ILA | RCAR_MMC_INFO2_ERR_ILR |  RCAR_MMC_INFO2_ERR_ILW)) {
+	if (info2 & (RCAR_MMC_INFO2_ERR_ILA | RCAR_MMC_INFO2_ERR_ILR | RCAR_MMC_INFO2_ERR_ILW)) {
 		LOG_DBG("illegal access 0x%08x", info2);
 		return -EIO;
 	}
@@ -232,16 +230,16 @@ static int rcar_mmc_check_errors(const struct device *dev)
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
-	unsigned int reg, uint32_t flag, uint32_t state, bool check_errors,
-	bool check_dma_errors, int64_t timeout_us)
+static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev, unsigned int reg,
+					     uint32_t flag, uint32_t state, bool check_errors,
+					     bool check_dma_errors, int64_t timeout_us)
 {
 	int ret;
 
 	while ((rcar_mmc_read_reg32(dev, reg) & flag) != state) {
 		if (timeout_us < 0) {
-			LOG_DBG("timeout error during polling flag(s) 0x%08x in reg 0x%08x",
-				flag, reg);
+			LOG_DBG("timeout error during polling flag(s) 0x%08x in reg 0x%08x", flag,
+				reg);
 			return -ETIMEDOUT;
 		}
 
@@ -253,8 +251,8 @@ static int rcar_mmc_poll_reg_flags_check_err(const struct device *dev,
 		}
 
 		if (check_dma_errors && rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2)) {
-			LOG_DBG("%s: an error occurs on the DMAC channel #%u",
-				dev->name, (reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
+			LOG_DBG("%s: an error occurs on the DMAC channel #%u", dev->name,
+				(reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
 			return -EIO;
 		}
 
@@ -419,9 +417,8 @@ static int rcar_mmc_enable_clock(const struct device *dev, bool enable)
 	 * Do not change the values of these bits
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						RCAR_MMC_INFO2_CBSY, 0, false, false,
-						MMC_POLL_FLAGS_TIMEOUT_US);
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CBSY, 0, false,
+						false, MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -472,13 +469,11 @@ static int32_t rcar_mmc_convert_sd_to_mmc_resp(uint32_t response_type)
 		mmc_resp = RCAR_MMC_CMD_RSP_R3;
 		break;
 	default:
-		LOG_ERR("unknown response type 0x%08x",
-			response_type);
+		LOG_ERR("unknown response type 0x%08x", response_type);
 		return -EINVAL;
 	}
 
-	__ASSERT((int32_t)mmc_resp >= 0,
-		"%s: converted response shouldn't be negative", __func__);
+	__ASSERT((int32_t)mmc_resp >= 0, "%s: converted response shouldn't be negative", __func__);
 
 	return mmc_resp;
 }
@@ -496,8 +491,8 @@ static int32_t rcar_mmc_convert_sd_to_mmc_resp(uint32_t response_type)
  *
  * @retval none
  */
-static void rcar_mmc_extract_resp(const struct device *dev,
-	struct sdhc_command *cmd, uint32_t response_type)
+static void rcar_mmc_extract_resp(const struct device *dev, struct sdhc_command *cmd,
+				  uint32_t response_type)
 {
 	if (response_type == SD_RSP_TYPE_R2) {
 		uint32_t rsp_127_104 = rcar_mmc_read_reg32(dev, RCAR_MMC_RSP76);
@@ -506,17 +501,16 @@ static void rcar_mmc_extract_resp(const struct device *dev,
 		uint32_t rsp_39_8 = rcar_mmc_read_reg32(dev, RCAR_MMC_RSP10);
 
 		cmd->response[0] = (rsp_39_8 & 0xffffff) << 8;
-		cmd->response[1] = ((rsp_71_40 & 0x00ffffff) << 8) |
-				((rsp_39_8 & 0xff000000) >> 24);
-		cmd->response[2] = ((rsp_103_72 & 0x00ffffff) << 8) |
-				((rsp_71_40 & 0xff000000) >> 24);
-		cmd->response[3] = ((rsp_127_104 & 0x00ffffff) << 8) |
-				((rsp_103_72 & 0xff000000) >> 24);
+		cmd->response[1] =
+			((rsp_71_40 & 0x00ffffff) << 8) | ((rsp_39_8 & 0xff000000) >> 24);
+		cmd->response[2] =
+			((rsp_103_72 & 0x00ffffff) << 8) | ((rsp_71_40 & 0xff000000) >> 24);
+		cmd->response[3] =
+			((rsp_127_104 & 0x00ffffff) << 8) | ((rsp_103_72 & 0xff000000) >> 24);
 
 		LOG_DBG("Response 2\n\t[0]: 0x%08x\n\t[1]: 0x%08x"
-				"\n\t[2]: 0x%08x\n\t[3]: 0x%08x",
-			cmd->response[0], cmd->response[1],
-			cmd->response[2], cmd->response[3]);
+			"\n\t[2]: 0x%08x\n\t[3]: 0x%08x",
+			cmd->response[0], cmd->response[1], cmd->response[2], cmd->response[3]);
 	} else {
 		cmd->response[0] = rcar_mmc_read_reg32(dev, RCAR_MMC_RSP10);
 		LOG_DBG("Response %u\n\t[0]: 0x%08x", response_type, cmd->response[0]);
@@ -533,8 +527,7 @@ static void rcar_mmc_extract_resp(const struct device *dev,
  *
  * @retval partial configuration of CMD register
  */
-static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
-	struct sdhc_data *data)
+static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd, struct sdhc_data *data)
 {
 	uint32_t cmd_reg = RCAR_MMC_CMD_DATA;
 
@@ -582,9 +575,7 @@ static uint32_t rcar_mmc_gen_data_cmd(struct sdhc_command *cmd,
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
-	struct sdhc_data *data,
-	bool is_read)
+static int rcar_mmc_dma_rx_tx_data(const struct device *dev, struct sdhc_data *data, bool is_read)
 {
 	uintptr_t dma_addr;
 	uint32_t reg;
@@ -596,8 +587,7 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 
 	ret = sys_cache_data_flush_range(data->data, data->blocks * data->block_size);
 	if (ret < 0) {
-		LOG_ERR("%s: can't invalidate data cache before write",
-			dev->name);
+		LOG_ERR("%s: can't invalidate data cache before write", dev->name);
 		return ret;
 	}
 
@@ -621,9 +611,9 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_ADDR_H, 0);
 
 #ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
-	rcar_mmc_write_reg32(dev, RCAR_MMC_DMA_INFO2_MASK,
-		(uint32_t)(is_read ? (~RCAR_MMC_DMA_INFO2_ERR_RD) :
-				     (~RCAR_MMC_DMA_INFO2_ERR_WR)));
+	rcar_mmc_write_reg32(
+		dev, RCAR_MMC_DMA_INFO2_MASK,
+		(uint32_t)(is_read ? (~RCAR_MMC_DMA_INFO2_ERR_RD) : (~RCAR_MMC_DMA_INFO2_ERR_WR)));
 
 	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO1_MASK);
 	reg &= ~dma_info1_poll_flag;
@@ -637,8 +627,8 @@ static int rcar_mmc_dma_rx_tx_data(const struct device *dev,
 
 	reg = rcar_mmc_read_reg32(dev, RCAR_MMC_DMA_INFO2);
 	if (reg) {
-		LOG_ERR("%s: an error occurs on the DMAC channel #%u",
-			dev->name, (reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
+		LOG_ERR("%s: an error occurs on the DMAC channel #%u", dev->name,
+			(reg & RCAR_MMC_DMA_INFO2_ERR_RD) ? 1U : 0U);
 		ret = -EIO;
 	}
 #else
@@ -748,9 +738,8 @@ static inline void rcar_mmc_write_buf0(const struct device *dev, uint64_t val)
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
-	struct sdhc_data *data,
-	bool is_read)
+static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev, struct sdhc_data *data,
+				      bool is_read)
 {
 	struct mmc_rcar_data *dev_data = dev->data;
 	uint32_t block;
@@ -785,8 +774,8 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 	 * * Read and Write data block length size is always 512 bytes (same as SDHC).
 	 */
 	if (dev_data->ddr_mode && data->block_size != 512) {
-		LOG_ERR("%s: block size (%u) isn't equal to 512 in DDR mode",
-			dev->name, data->block_size);
+		LOG_ERR("%s: block size (%u) isn't equal to 512 in DDR mode", dev->name,
+			data->block_size);
 		return -EINVAL;
 	}
 
@@ -821,12 +810,10 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 				dev->name, data->block_size);
 			return -EINVAL;
 		}
-
 	}
 
 	if (data->block_size == 1 && dev_data->host_io.bus_width == SDHC_BUS_WIDTH8BIT) {
-		LOG_ERR("%s: block size can't be equal to 1 with 8-bits bus width",
-			dev->name);
+		LOG_ERR("%s: block size can't be equal to 1 with 8-bits bus width", dev->name);
 		return -EINVAL;
 	}
 
@@ -837,9 +824,9 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 		uint64_t start_block_xref_us = k_ticks_to_us_ceil64(k_uptime_ticks());
 
 		/* wait until the buffer is filled with data */
-		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-							info2_poll_flag, info2_poll_flag,
-							true, false, remaining_timeout_us);
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, info2_poll_flag,
+							info2_poll_flag, true, false,
+							remaining_timeout_us);
 		if (ret) {
 			return ret;
 		}
@@ -862,8 +849,8 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
 			}
 		}
 
-		remaining_timeout_us -= k_ticks_to_us_ceil64(k_uptime_ticks()) -
-					start_block_xref_us;
+		remaining_timeout_us -=
+			k_ticks_to_us_ceil64(k_uptime_ticks()) - start_block_xref_us;
 		if (remaining_timeout_us < 0) {
 			return -ETIMEDOUT;
 		}
@@ -889,16 +876,13 @@ static int rcar_mmc_sd_buf_rx_tx_data(const struct device *dev,
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_rx_tx_data(const struct device *dev,
-	struct sdhc_data *data,
-	bool is_read)
+static int rcar_mmc_rx_tx_data(const struct device *dev, struct sdhc_data *data, bool is_read)
 {
 	struct mmc_rcar_data *dev_data = dev->data;
 	uint32_t info1_reg;
 	int ret = 0;
 
-	if (dev_data->dma_support &&
-	    ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0) &&
+	if (dev_data->dma_support && ((uintptr_t)data->data % CONFIG_SDHC_BUFFER_ALIGNMENT == 0) &&
 	    !(z_mem_phys_addr(data->data) >> 32)) {
 		ret = rcar_mmc_dma_rx_tx_data(dev, data, is_read);
 	} else {
@@ -909,8 +893,8 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
 		return ret;
 	}
 
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-						RCAR_MMC_INFO1_CMP, RCAR_MMC_INFO1_CMP, true, false,
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1, RCAR_MMC_INFO1_CMP,
+						RCAR_MMC_INFO1_CMP, true, false,
 						MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return ret;
@@ -939,9 +923,8 @@ static int rcar_mmc_rx_tx_data(const struct device *dev,
  * @retval -EIO: I/O error
  * @retval -EILSEQ: communication out of sync
  */
-static int rcar_mmc_request(const struct device *dev,
-	struct sdhc_command *cmd,
-	struct sdhc_data *data)
+static int rcar_mmc_request(const struct device *dev, struct sdhc_command *cmd,
+			    struct sdhc_data *data)
 {
 	int ret = -ENOTSUP;
 	uint32_t reg;
@@ -964,9 +947,8 @@ static int rcar_mmc_request(const struct device *dev,
 #endif
 		}
 
-		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-							RCAR_MMC_INFO2_CBSY, 0, false, false,
-							MMC_POLL_FLAGS_TIMEOUT_US);
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CBSY, 0,
+							false, false, MMC_POLL_FLAGS_TIMEOUT_US);
 		if (ret) {
 			ret = -EBUSY;
 			continue;
@@ -997,9 +979,9 @@ static int rcar_mmc_request(const struct device *dev,
 		rcar_mmc_write_reg32(dev, RCAR_MMC_CMD, reg);
 
 		/* wait until response end flag is set or errors occur */
-		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1,
-					RCAR_MMC_INFO1_RSP, RCAR_MMC_INFO1_RSP, true, false,
-					cmd->timeout_ms * 1000LL);
+		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO1, RCAR_MMC_INFO1_RSP,
+							RCAR_MMC_INFO1_RSP, true, false,
+							cmd->timeout_ms * 1000LL);
 		if (ret) {
 			continue;
 		}
@@ -1019,10 +1001,9 @@ static int rcar_mmc_request(const struct device *dev,
 		}
 
 		/* wait until the SD bus (CMD, DAT) is free or errors occur */
-		ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-							RCAR_MMC_INFO2_SCLKDIVEN,
-							RCAR_MMC_INFO2_SCLKDIVEN,
-							true, false, MMC_POLL_FLAGS_TIMEOUT_US);
+		ret = rcar_mmc_poll_reg_flags_check_err(
+			dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_SCLKDIVEN, RCAR_MMC_INFO2_SCLKDIVEN,
+			true, false, MMC_POLL_FLAGS_TIMEOUT_US);
 	}
 
 	if (ret) {
@@ -1042,15 +1023,11 @@ static int rcar_mmc_request(const struct device *dev,
  *
  * @retval pointer to string that represents voltage
  */
-static inline const char * const
-rcar_mmc_get_signal_voltage_str(enum sd_voltage voltage)
+static inline const char *const rcar_mmc_get_signal_voltage_str(enum sd_voltage voltage)
 {
-	static const char * const sig_vol_str[] = {
-		[0] = "Unset",
-		[SD_VOL_3_3_V] = "3.3V",
-		[SD_VOL_3_0_V] = "3.0V",
-		[SD_VOL_1_8_V] = "1.8V",
-		[SD_VOL_1_2_V] = "1.2V",
+	static const char *const sig_vol_str[] = {
+		[0] = "Unset",		 [SD_VOL_3_3_V] = "3.3V", [SD_VOL_3_0_V] = "3.0V",
+		[SD_VOL_1_8_V] = "1.8V", [SD_VOL_1_2_V] = "1.2V",
 	};
 
 	if (voltage >= 0 && voltage < ARRAY_SIZE(sig_vol_str)) {
@@ -1067,10 +1044,9 @@ rcar_mmc_get_signal_voltage_str(enum sd_voltage voltage)
  *
  * @retval pointer to string that represents timing
  */
-static inline const char * const
-rcar_mmc_get_timing_str(enum sdhc_timing_mode timing)
+static inline const char *const rcar_mmc_get_timing_str(enum sdhc_timing_mode timing)
 {
-	static const char * const timing_str[] = {
+	static const char *const timing_str[] = {
 		[0] = "Unset",
 		[SDHC_TIMING_LEGACY] = "LEGACY",
 		[SDHC_TIMING_HS] = "HS",
@@ -1104,7 +1080,7 @@ rcar_mmc_get_timing_str(enum sdhc_timing_mode timing)
  * @retval -ENOTSUP: controller does not support these I/O settings
  */
 static int rcar_mmc_change_voltage(const struct mmc_rcar_cfg *cfg, struct sdhc_io *host_io,
-	struct sdhc_io *ios)
+				   struct sdhc_io *ios)
 {
 	int ret = 0;
 
@@ -1176,8 +1152,7 @@ static inline uint32_t round_up_next_pwr_of_2(uint32_t val)
  * @retval -ENOTSUP: controller does not support these I/O settings
  * @retval -ETIMEDOUT: card busy flag is set during long time
  */
-static int rcar_mmc_set_clk_rate(const struct device *dev,
-	struct sdhc_io *ios)
+static int rcar_mmc_set_clk_rate(const struct device *dev, struct sdhc_io *ios)
 {
 	int ret = 0;
 	uint32_t divisor;
@@ -1194,10 +1169,9 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 		return rcar_mmc_enable_clock(dev, false);
 	}
 
-	if (ios->clock > data->props.f_max ||
-	    ios->clock < data->props.f_min) {
-		LOG_ERR("SDHC I/O: clock (%d) isn't in range %d - %d Hz",
-			ios->clock, data->props.f_min, data->props.f_max);
+	if (ios->clock > data->props.f_max || ios->clock < data->props.f_min) {
+		LOG_ERR("SDHC I/O: clock (%d) isn't in range %d - %d Hz", ios->clock,
+			data->props.f_min, data->props.f_max);
 		return -EINVAL;
 	}
 
@@ -1235,9 +1209,8 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 	 * Do not change the values of these bits
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						RCAR_MMC_INFO2_CBSY, 0, false, false,
-						MMC_POLL_FLAGS_TIMEOUT_US);
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CBSY, 0, false,
+						false, MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1253,8 +1226,7 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
 
 	host_io->clock = ios->clock;
 
-	LOG_DBG("%s: set clock rate to %d",
-		dev->name, ios->clock);
+	LOG_DBG("%s: set clock rate to %d", dev->name, ios->clock);
 
 	return 0;
 }
@@ -1276,8 +1248,7 @@ static int rcar_mmc_set_clk_rate(const struct device *dev,
  * @retval -ENOTSUP: controller does not support these I/O settings
  * @retval -ETIMEDOUT: card busy flag is set during long time
  */
-static int rcar_mmc_set_bus_width(const struct device *dev,
-	struct sdhc_io *ios)
+static int rcar_mmc_set_bus_width(const struct device *dev, struct sdhc_io *ios)
 {
 	int ret = 0;
 	uint32_t mmc_option_reg;
@@ -1322,9 +1293,8 @@ static int rcar_mmc_set_bus_width(const struct device *dev,
 	 * Do not change the values of these bits
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						RCAR_MMC_INFO2_CBSY, 0, false, false,
-						MMC_POLL_FLAGS_TIMEOUT_US);
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CBSY, 0, false,
+						false, MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1361,9 +1331,8 @@ static int rcar_mmc_set_ddr_mode(const struct device *dev)
 	 * Do not change the values of these bits
 	 * when the CBSY bit in SD_INFO2 is 1
 	 */
-	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2,
-						RCAR_MMC_INFO2_CBSY, 0, false, false,
-						MMC_POLL_FLAGS_TIMEOUT_US);
+	ret = rcar_mmc_poll_reg_flags_check_err(dev, RCAR_MMC_INFO2, RCAR_MMC_INFO2_CBSY, 0, false,
+						false, MMC_POLL_FLAGS_TIMEOUT_US);
 	if (ret) {
 		return -ETIMEDOUT;
 	}
@@ -1396,8 +1365,7 @@ static int rcar_mmc_set_ddr_mode(const struct device *dev)
  * @retval -ENOTSUP: controller does not support these I/O settings
  * @retval -ETIMEDOUT: card busy flag is set during long time
  */
-static int rcar_mmc_set_timings(const struct device *dev,
-	struct sdhc_io *ios)
+static int rcar_mmc_set_timings(const struct device *dev, struct sdhc_io *ios)
 {
 	int ret;
 	struct mmc_rcar_data *data = dev->data;
@@ -1503,18 +1471,15 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 
 	LOG_DBG("SDHC I/O: bus width %d, clock %dHz, card power %s, "
 		"timing %s, voltage %s",
-		ios->bus_width,
-		ios->clock,
-		ios->power_mode == SDHC_POWER_ON ? "ON" : "OFF",
+		ios->bus_width, ios->clock, ios->power_mode == SDHC_POWER_ON ? "ON" : "OFF",
 		rcar_mmc_get_timing_str(ios->timing),
-		rcar_mmc_get_signal_voltage_str(ios->signal_voltage)
-		);
+		rcar_mmc_get_signal_voltage_str(ios->signal_voltage));
 
 	/* Set host clock */
 	ret = rcar_mmc_set_clk_rate(dev, ios);
 	if (ret) {
-		LOG_ERR("SDHC I/O: can't change clock rate error %d old %d new %d",
-			ret, host_io->clock, ios->clock);
+		LOG_ERR("SDHC I/O: can't change clock rate error %d old %d new %d", ret,
+			host_io->clock, ios->clock);
 		return ret;
 	}
 
@@ -1555,8 +1520,7 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 	 * SDHC subsystem doesn't support any bus mode except push-pull.
 	 */
 	if (ios->bus_mode != SDHC_BUSMODE_PUSHPULL) {
-		LOG_ERR("SDHC I/O: not supported bus mode %d",
-			ios->bus_mode);
+		LOG_ERR("SDHC I/O: not supported bus mode %d", ios->bus_mode);
 		return -ENOTSUP;
 	}
 	host_io->bus_mode = ios->bus_mode;
@@ -1596,8 +1560,7 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 			ret = rcar_mmc_enable_clock(dev, false);
 			break;
 		default:
-			LOG_ERR("SDHC I/O: not supported power mode %d",
-				ios->power_mode);
+			LOG_ERR("SDHC I/O: not supported power mode %d", ios->power_mode);
 			return -ENOTSUP;
 		}
 
@@ -1609,15 +1572,15 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 
 	ret = rcar_mmc_set_bus_width(dev, ios);
 	if (ret) {
-		LOG_ERR("SDHC I/O: can't change bus width error %d old %d new %d",
-			ret, host_io->bus_width, ios->bus_width);
+		LOG_ERR("SDHC I/O: can't change bus width error %d old %d new %d", ret,
+			host_io->bus_width, ios->bus_width);
 		return ret;
 	}
 
 	ret = rcar_mmc_set_timings(dev, ios);
 	if (ret) {
-		LOG_ERR("SDHC I/O: can't change timing error %d old %d new %d",
-			ret, host_io->timing, ios->timing);
+		LOG_ERR("SDHC I/O: can't change timing error %d old %d new %d", ret,
+			host_io->timing, ios->timing);
 		return ret;
 	}
 
@@ -1629,8 +1592,7 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 		case SD_DRIVER_TYPE_C:
 		case SD_DRIVER_TYPE_D:
 		default:
-			LOG_ERR("SDHC I/O: not supported driver type %d",
-				ios->driver_type);
+			LOG_ERR("SDHC I/O: not supported driver type %d", ios->driver_type);
 			return -ENOTSUP;
 		}
 		host_io->driver_type = ios->driver_type;
@@ -1638,8 +1600,8 @@ static int rcar_mmc_set_io(const struct device *dev, struct sdhc_io *ios)
 
 	ret = rcar_mmc_change_voltage(dev->config, host_io, ios);
 	if (ret) {
-		LOG_ERR("SDHC I/O: can't change voltage! error %d old %d new %d",
-			ret, host_io->signal_voltage, ios->signal_voltage);
+		LOG_ERR("SDHC I/O: can't change voltage! error %d old %d new %d", ret,
+			host_io->signal_voltage, ios->signal_voltage);
 		return ret;
 	}
 
@@ -1784,8 +1746,8 @@ static int rcar_mmc_execute_tuning(const struct device *dev)
 	/* enable modes SDR104/HS200/HS400 */
 	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_DT2FF, 0x300);
 	/* SCC sampling clock operation is enabled */
-	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_DTCNTL, RENESAS_SDHI_SCC_DTCNTL_TAPEN |
-							   RENESAS_TAPNUM << 16);
+	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_DTCNTL,
+			     RENESAS_SDHI_SCC_DTCNTL_TAPEN | RENESAS_TAPNUM << 16);
 	/* SCC sampling clock is used */
 	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_CKSEL, RENESAS_SDHI_SCC_CKSEL_DTSEL);
 	/* SCC sampling clock position correction is disabled */
@@ -1811,8 +1773,7 @@ static int rcar_mmc_execute_tuning(const struct device *dev)
 		memset(dev_data->tuning_buf, 0, data.block_size);
 		ret = rcar_mmc_request(dev, &cmd, &data);
 		if (ret) {
-			LOG_DBG("%s: received an error (%d) during tuning request",
-				dev->name, ret);
+			LOG_DBG("%s: received an error (%d) during tuning request", dev->name, ret);
 
 			if (is_mmc_cmd) {
 				struct sdhc_command stop_cmd = {
@@ -1905,8 +1866,8 @@ static int rcar_mmc_execute_tuning(const struct device *dev)
 		tap_idx = (max_len_range_pos + max_bits_in_range / 2) % RENESAS_TAPNUM;
 		rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TAPSET, tap_idx);
 
-		LOG_DBG("%s: valid_taps %08x smpcmp_bitmask %08x tap_idx %u",
-			dev->name, valid_taps, smpcmp_bitmask, tap_idx);
+		LOG_DBG("%s: valid_taps %08x smpcmp_bitmask %08x tap_idx %u", dev->name, valid_taps,
+			smpcmp_bitmask, tap_idx);
 
 		if (!dev_data->manual_retuning) {
 			rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_RVSCNTL, 1);
@@ -1948,8 +1909,8 @@ static int rcar_mmc_retune_if_needed(const struct device *dev, bool request_retu
 
 	scc_tapset = rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_TAPSET);
 
-	LOG_DBG("%s: scc_tapset %08x scc_rvsreq %08x request %d is manual tuning %d",
-		dev->name, scc_tapset, reg, request_retune, dev_data->manual_retuning);
+	LOG_DBG("%s: scc_tapset %08x scc_rvsreq %08x request %d is manual tuning %d", dev->name,
+		scc_tapset, reg, request_retune, dev_data->manual_retuning);
 
 	if (request_retune || (scc_pos_err && !dev_data->manual_retuning)) {
 		return rcar_mmc_execute_tuning(dev);
@@ -1966,8 +1927,7 @@ static int rcar_mmc_retune_if_needed(const struct device *dev, bool request_retu
 		break;
 	default:
 		ret = -EINVAL;
-		LOG_ERR("%s: can't perform manual tuning SCC_RVSREQ %08x",
-			dev->name, reg);
+		LOG_ERR("%s: can't perform manual tuning SCC_RVSREQ %08x", dev->name, reg);
 		break;
 	}
 
@@ -1992,8 +1952,7 @@ static int rcar_mmc_retune_if_needed(const struct device *dev, bool request_retu
  * @retval 0 function succeeded.
  * @retval -EINVAL: some of pointers provided to the function are NULL
  */
-static int rcar_mmc_get_host_props(const struct device *dev,
-	struct sdhc_host_props *props)
+static int rcar_mmc_get_host_props(const struct device *dev, struct sdhc_host_props *props)
 {
 	struct mmc_rcar_data *data;
 
@@ -2104,12 +2063,12 @@ static void rcar_mmc_init_host_props(const struct device *dev)
 	host_caps->hs400_support = 0;
 #endif
 
-	host_caps->vol_330_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
-								    3300000, 3300000);
-	host_caps->vol_300_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
-								    3000000, 3000000);
-	host_caps->vol_180_support = regulator_is_supported_voltage(cfg->regulator_vqmmc,
-								    1800000, 1800000);
+	host_caps->vol_330_support =
+		regulator_is_supported_voltage(cfg->regulator_vqmmc, 3300000, 3300000);
+	host_caps->vol_300_support =
+		regulator_is_supported_voltage(cfg->regulator_vqmmc, 3000000, 3000000);
+	host_caps->vol_180_support =
+		regulator_is_supported_voltage(cfg->regulator_vqmmc, 1800000, 1800000);
 }
 
 /**
@@ -2144,8 +2103,7 @@ static int rcar_mmc_disable_scc(const struct device *dev)
 
 	/* disable hs400 mode & data output timing */
 	reg = rcar_mmc_read_reg32(dev, RENESAS_SDHI_SCC_TMPPORT2);
-	reg &= ~(RENESAS_SDHI_SCC_TMPPORT2_HS400EN |
-			 RENESAS_SDHI_SCC_TMPPORT2_HS400OSEL);
+	reg &= ~(RENESAS_SDHI_SCC_TMPPORT2_HS400EN | RENESAS_SDHI_SCC_TMPPORT2_HS400OSEL);
 	rcar_mmc_write_reg32(dev, RENESAS_SDHI_SCC_TMPPORT2, reg);
 
 	ret = rcar_mmc_enable_clock(dev, true);
@@ -2291,8 +2249,7 @@ static int rcar_mmc_init(const struct device *dev)
 	}
 
 	if (unlikely(dev->data == NULL)) {
-		LOG_ERR("%s: there isn't data instance inside device structure",
-			dev->name);
+		LOG_ERR("%s: there isn't data instance inside device structure", dev->name);
 		return -EFAULT;
 	}
 
@@ -2340,8 +2297,7 @@ static int rcar_mmc_init(const struct device *dev)
 	cfg->irq_config_func(dev);
 #endif /* CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT */
 
-	LOG_INF("%s: initialize driver, MMC version 0x%hhx",
-		dev->name, data->ver);
+	LOG_INF("%s: initialize driver, MMC version 0x%hhx", dev->name, data->ver);
 
 	return 0;
 
@@ -2356,50 +2312,42 @@ exit_unmap:
 }
 
 #ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
-#define RCAR_MMC_CONFIG_FUNC(n) \
-	static void irq_config_func_##n(const struct device *dev) \
-	{ \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), \
-			    rcar_mmc_irq_handler, DEVICE_DT_INST_GET(n), \
-			    DT_INST_IRQ(n, flags)); \
-		irq_enable(DT_INST_IRQN(n)); \
+#define RCAR_MMC_CONFIG_FUNC(n)                                                                    \
+	static void irq_config_func_##n(const struct device *dev)                                  \
+	{                                                                                          \
+		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), rcar_mmc_irq_handler,       \
+			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));                         \
+		irq_enable(DT_INST_IRQN(n));                                                       \
 	}
-#define RCAR_MMC_IRQ_CFG_FUNC_INIT(n) \
-	.irq_config_func = irq_config_func_##n,
+#define RCAR_MMC_IRQ_CFG_FUNC_INIT(n) .irq_config_func = irq_config_func_##n,
 #else
 #define RCAR_MMC_IRQ_CFG_FUNC_INIT(n)
 #define RCAR_MMC_CONFIG_FUNC(n)
 #endif
 
-#define MMC_RCAR_INIT(n) \
-	static struct mmc_rcar_data mmc_rcar_data_##n; \
-	PINCTRL_DT_INST_DEFINE(n);	\
-	RCAR_MMC_CONFIG_FUNC(n); \
-	static const struct mmc_rcar_cfg mmc_rcar_cfg_##n = { \
-		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)), \
-		.cpg_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)), \
-		.cpg_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module), \
-		.cpg_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain), \
-		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module), \
-		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain), \
-		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \
-		.regulator_vqmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vqmmc_supply)), \
-		.regulator_vmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vmmc_supply)), \
-		.max_frequency = DT_INST_PROP(n, max_frequency), \
-		.non_removable = DT_INST_PROP(n, non_removable), \
-		.mmc_hs200_1_8v = DT_INST_PROP(n, mmc_hs200_1_8v), \
-		.mmc_hs400_1_8v = DT_INST_PROP(n, mmc_hs400_1_8v), \
-		.mmc_sdr104_support = DT_INST_PROP(n, mmc_sdr104_support), \
-		.uhs_support = 1, \
-		.bus_width = DT_INST_PROP(n, bus_width), \
-		RCAR_MMC_IRQ_CFG_FUNC_INIT(n) \
-	}; \
-	DEVICE_DT_INST_DEFINE(n, \
-				rcar_mmc_init, \
-				NULL, \
-				&mmc_rcar_data_##n, \
-				&mmc_rcar_cfg_##n, \
-				POST_KERNEL, CONFIG_SDHC_INIT_PRIORITY, \
-				&rcar_sdhc_api);
+#define MMC_RCAR_INIT(n)                                                                           \
+	static struct mmc_rcar_data mmc_rcar_data_##n;                                             \
+	PINCTRL_DT_INST_DEFINE(n);                                                                 \
+	RCAR_MMC_CONFIG_FUNC(n);                                                                   \
+	static const struct mmc_rcar_cfg mmc_rcar_cfg_##n = {                                      \
+		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),                                              \
+		.cpg_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)),                                  \
+		.cpg_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),                        \
+		.cpg_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),                        \
+		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),                        \
+		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),                        \
+		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),                                         \
+		.regulator_vqmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vqmmc_supply)),        \
+		.regulator_vmmc = DEVICE_DT_GET(DT_PHANDLE(DT_DRV_INST(n), vmmc_supply)),          \
+		.max_frequency = DT_INST_PROP(n, max_frequency),                                   \
+		.non_removable = DT_INST_PROP(n, non_removable),                                   \
+		.mmc_hs200_1_8v = DT_INST_PROP(n, mmc_hs200_1_8v),                                 \
+		.mmc_hs400_1_8v = DT_INST_PROP(n, mmc_hs400_1_8v),                                 \
+		.mmc_sdr104_support = DT_INST_PROP(n, mmc_sdr104_support),                         \
+		.uhs_support = 1,                                                                  \
+		.bus_width = DT_INST_PROP(n, bus_width),                                           \
+		RCAR_MMC_IRQ_CFG_FUNC_INIT(n)};                                                    \
+	DEVICE_DT_INST_DEFINE(n, rcar_mmc_init, NULL, &mmc_rcar_data_##n, &mmc_rcar_cfg_##n,       \
+			      POST_KERNEL, CONFIG_SDHC_INIT_PRIORITY, &rcar_sdhc_api);
 
 DT_INST_FOREACH_STATUS_OKAY(MMC_RCAR_INIT)
