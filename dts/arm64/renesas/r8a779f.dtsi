@@ -8,6 +8,7 @@
 #include <arm64/armv8-a.dtsi>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
+#include <zephyr/dt-bindings/clock/r8a779f_cpg_mssr.h>
 
 / {
 	compatible = "renesas,r8a779f";
@@ -94,7 +95,7 @@
 			vqmmc-supply = <&reg_1p8v>;
 			interrupts = <GIC_SPI 236 IRQ_TYPE_LEVEL
 				      IRQ_DEFAULT_PRIORITY>;
-			clocks = <&cpg CPG_MOD 706>;
+			clocks = <&cpg CPG_MOD 706>, <&cpg CPG_CORE R8A779F_CLK_SDH>;
 			max-frequency = <200000000>;
 			status = "disabled";
 		};
