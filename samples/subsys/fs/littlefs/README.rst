@@ -77,7 +77,7 @@ Block device (e.g. SD card)
 ---------------------------
 
 This example has been devised and initially tested on :ref:`Nucleo H743ZI <nucleo_h743zi_board>`
-board. It can be also run on any other board with SD card connected to it.
+board. It can be also run on any other board with SD/MMC card connected to it.
 
 To build the test:
 
@@ -88,7 +88,7 @@ To build the test:
    :gen-args: -DCONF_FILE=prj_blk.conf
    :compact:
 
-One can also set ``CONFIG_SDMMC_VOLUME_NAME`` to provide the mount point name
+One can also set ``CONFIG_SDMMC_VOLUME_NAME`` or ``CONFIG_MMC_VOLUME_NAME`` (in case of MMC) to provide the mount point name
 for `littlefs` file system block device.
 
 
