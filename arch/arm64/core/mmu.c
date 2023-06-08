@@ -806,6 +806,73 @@ static uint64_t get_tcr(int el)
 	return tcr;
 }
 
+#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
+
+static int flush_inv_mapped_pages(int (*cache_op)(void *, size_t), uint64_t *pte, int level,
+				  uintptr_t base)
+{
+	int ret = 0;
+	uint64_t level_size = BIT(LEVEL_TO_VA_SIZE_SHIFT(level));
+
+	for (unsigned int i = 0; i < Ln_XLAT_NUM_ENTRIES; i++) {
+		uintptr_t end, va = base + i * level_size;
+		uint8_t mem_type;
+
+		if (is_free_desc(pte[i])) {
+			continue;
+		}
+
+		if (is_table_desc(pte[i], level)) {
+			/* Move to the next translation table level */
+			ret = flush_inv_mapped_pages(cache_op, pte_desc_table(pte[i]),
+						     level + 1, va);
+			if (ret) {
+				break;
+			}
+			continue;
+		}
+
+		/*
+		 * From this point, this must be a leaf.
+		 * Start excluding non memory mappings
+		 */
+		mem_type = (pte[i] >> 2) & MT_TYPE_MASK;
+		if ((mem_type != MT_NORMAL) && (mem_type != MT_NORMAL_NC)) {
+			continue;
+		}
+
+		end = va + level_size - 1;
+
+		ret = cache_op(UINT_TO_POINTER(va), end - va);
+		if (ret) {
+			break;
+		}
+
+		MMU_DEBUG("Flush/inv PTE %p at level %d: %lx-%lx\n",
+			  pte, level, va, end);
+	}
+
+	return ret;
+}
+
+int flush_inv_mapped_tbls(int (*cache_op)(void *, size_t))
+{
+	int ret;
+	k_spinlock_key_t key;
+	uint64_t *base_xlat_table = pte_desc_table(read_ttbr0_el1());
+
+	if (!base_xlat_table) {
+		return -EINVAL;
+	}
+
+	key = k_spin_lock(&xlat_lock);
+	ret = flush_inv_mapped_pages(cache_op, base_xlat_table, BASE_XLAT_LEVEL, 0);
+	k_spin_unlock(&xlat_lock, key);
+
+	return ret;
+}
+#endif
+
 static void enable_mmu_el1(struct arm_mmu_ptables *ptables, unsigned int flags)
 {
 	ARG_UNUSED(flags);
@@ -820,12 +887,7 @@ static void enable_mmu_el1(struct arm_mmu_ptables *ptables, unsigned int flags)
 	isb();
 
 	/* Invalidate all data caches before enable them */
-#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
-	/* todo: find more optimal solution */
-	sys_cache_data_invd_range((void *)CONFIG_KERNEL_VM_BASE, CONFIG_KERNEL_VM_SIZE);
-#else
 	sys_cache_data_invd_all();
-#endif
 
 	/* Enable the MMU and data cache */
 	val = read_sctlr_el1();

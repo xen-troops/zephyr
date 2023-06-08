@@ -28,19 +28,35 @@ extern int arm64_dcache_all(int op);
 
 extern size_t arch_dcache_line_size_get(void);
 
+#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
+extern int flush_inv_mapped_tbls(int (*cache_op)(void *, size_t));
+#endif
+
 int ALWAYS_INLINE arch_dcache_flush_all(void)
 {
+#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
+	return flush_inv_mapped_tbls(arch_dcache_flush_range);
+#else
 	return arm64_dcache_all(K_CACHE_WB);
+#endif
 }
 
 int ALWAYS_INLINE arch_dcache_invd_all(void)
 {
+#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
+	return flush_inv_mapped_tbls(arch_dcache_invd_range);
+#else
 	return arm64_dcache_all(K_CACHE_INVD);
+#endif
 }
 
 int ALWAYS_INLINE arch_dcache_flush_and_invd_all(void)
 {
+#ifdef CONFIG_DT_HAS_XEN_XEN_ENABLED
+	return flush_inv_mapped_tbls(arch_dcache_flush_and_invd_range);
+#else
 	return arm64_dcache_all(K_CACHE_WB_INVD);
+#endif
 }
 
 int ALWAYS_INLINE arch_dcache_flush_range(void *addr, size_t size)
