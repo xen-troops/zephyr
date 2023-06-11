@@ -2248,6 +2248,14 @@ static int rcar_mmc_init(const struct device *dev)
 		return -EFAULT;
 	}
 
+#ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
+	ret = k_sem_init(&data->irq_xref_fin, 0, 1);
+	if (ret) {
+		LOG_ERR("%s: can't init semaphore", dev->name);
+		return ret;
+	}
+#endif
+
 	if (unlikely(dev->data == NULL)) {
 		LOG_ERR("%s: there isn't data instance inside device structure", dev->name);
 		return -EFAULT;
@@ -2289,11 +2297,6 @@ static int rcar_mmc_init(const struct device *dev)
 	}
 
 #ifdef CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT
-	ret = k_sem_init(&data->irq_xref_fin, 0, 1);
-	if (ret) {
-		LOG_ERR("%s: can't init semaphore", dev->name);
-		goto exit_disable_clk;
-	}
 	cfg->irq_config_func(dev);
 #endif /* CONFIG_RCAR_MMC_DMA_IRQ_DRIVEN_SUPPORT */
 
