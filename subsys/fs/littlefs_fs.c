@@ -856,7 +856,7 @@ static int littlefs_init_cfg(struct fs_littlefs *fs, int flags)
 	return 0;
 }
 
-static int littlefs_init_fs(struct fs_littlefs *fs, int dev_id, int flags)
+static int littlefs_init_fs(struct fs_littlefs *fs, uintptr_t dev_id, int flags)
 {
 	int ret = 0;
 
