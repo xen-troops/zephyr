@@ -20,6 +20,12 @@
 #include <optee_msg.h>
 #include <optee_smc.h>
 
+/*
+ * TODO: Test shm_register/shm_register API to work with huge
+ * buffers (more than 512K) to ensure that optee_construct_page_list
+ * builds correct page list.
+ */
+
 #define TEE_OPTEE_CAP_TZ BIT(0)
 
 typedef void (*smc_cb_t)(unsigned long a0, unsigned long a1, unsigned long a2, unsigned long a3,
@@ -283,34 +289,44 @@ ZTEST(optee_test_suite, test_reg_unreg)
 	struct tee_shm *shm = NULL;
 	const struct device *const dev = DEVICE_DT_GET_ONE(linaro_optee_tz);
 
+	t_call.num = 0;
+	t_call.smc_cb = normal_call;
 	zassert_not_null(dev, "Unable to get dev");
 
 	/* Fail pass */
 	ret = tee_shm_register(dev, &addr, 1, 0, NULL);
 	zassert_equal(ret, -EINVAL, "tee_shm_register failed with code %d", ret);
+	t_call.num = 0;
 
 	ret = tee_shm_register(dev, NULL, 1, 0, &shm);
 	zassert_equal(ret, -ENOMEM, "tee_shm_register failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_register(dev, &addr, 1, 0, NULL);
 	zassert_equal(ret, -EINVAL, "tee_shm_register failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_register(dev, &addr, 0, 0, &shm);
 	zassert_equal(ret, 0, "tee_shm_register failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_unregister(dev, NULL);
 	zassert_equal(ret, -EINVAL, "tee_shm_unregister failed with code %d", ret);
 
 	/* Happy pass */
+	t_call.num = 0;
 	ret = tee_shm_register(dev, &addr, 1, 0, &shm);
 	zassert_ok(ret, "tee_shm_register failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_unregister(dev, shm);
 	zassert_ok(ret, "tee_shm_unregister failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_alloc(dev, 1, 0, &shm);
 	zassert_ok(ret, "tee_shm_alloc failed with code %d", ret);
 
+	t_call.num = 0;
 	ret = tee_shm_free(dev, shm);
 	zassert_ok(ret, "tee_shm_free failed with code %d", ret);
 }
