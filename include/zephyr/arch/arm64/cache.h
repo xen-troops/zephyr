@@ -24,23 +24,21 @@ extern "C" {
 #if defined(CONFIG_DCACHE)
 
 extern int arm64_dcache_range(void *addr, size_t size, int op);
-extern int arm64_dcache_all(int op);
-
 extern size_t arch_dcache_line_size_get(void);
 
 int ALWAYS_INLINE arch_dcache_flush_all(void)
 {
-	return arm64_dcache_all(K_CACHE_WB);
+	return -ENOTSUP;
 }
 
 int ALWAYS_INLINE arch_dcache_invd_all(void)
 {
-	return arm64_dcache_all(K_CACHE_INVD);
+	return -ENOTSUP;
 }
 
 int ALWAYS_INLINE arch_dcache_flush_and_invd_all(void)
 {
-	return arm64_dcache_all(K_CACHE_WB_INVD);
+	return -ENOTSUP;
 }
 
 int ALWAYS_INLINE arch_dcache_flush_range(void *addr, size_t size)
