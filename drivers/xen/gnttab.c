@@ -35,12 +35,15 @@ LOG_MODULE_REGISTER(xen_gnttab);
 /* Timeout for grant table ops retrying */
 #define GOP_RETRY_DELAY 200
 
+#define GNTTAB_SIZE DT_REG_SIZE_BY_IDX(DT_INST(0, xen_xen), 0)
+BUILD_ASSERT(!(GNTTAB_SIZE % XEN_PAGE_SIZE), "Size of gnttab have to be aligned on XEN_PAGE_SIZE");
+
 /* NR_GRANT_FRAMES must be less than or equal to that configured in Xen */
-#define NR_GRANT_FRAMES			1
+#define NR_GRANT_FRAMES (GNTTAB_SIZE / XEN_PAGE_SIZE)
 #define NR_GRANT_ENTRIES \
 	(NR_GRANT_FRAMES * XEN_PAGE_SIZE / sizeof(grant_entry_v1_t))
 
-BUILD_ASSERT(DT_REG_SIZE_BY_IDX(DT_INST(0, xen_xen), 0) <= CONFIG_KERNEL_VM_SIZE);
+BUILD_ASSERT(GNTTAB_SIZE <= CONFIG_KERNEL_VM_SIZE);
 DEVICE_MMIO_TOPLEVEL_STATIC(grant_tables, DT_INST(0, xen_xen));
 
 static struct gnttab {
@@ -331,9 +334,6 @@ static int gnttab_init(const struct device *d)
 		put_free_entry(gref);
 	}
 
-	DEVICE_MMIO_TOPLEVEL_MAP(grant_tables, K_MEM_CACHE_WB | K_MEM_PERM_RW);
-	gnttab.table = (grant_entry_v1_t *)DEVICE_MMIO_TOPLEVEL_GET(grant_tables);
-
 	for (i = 0; i < NR_GRANT_FRAMES; i++) {
 		xatp.domid = DOMID_SELF;
 		xatp.size = 0;
@@ -350,6 +350,9 @@ static int gnttab_init(const struct device *d)
 	rc = HYPERVISOR_grant_table_op(GNTTABOP_setup_table, &setup, 1);
 	__ASSERT((!rc) && (!setup.status), "Table setup failed; status = %s\n",
 		gnttabop_error(setup.status));
+
+	DEVICE_MMIO_TOPLEVEL_MAP(grant_tables, K_MEM_CACHE_WB | K_MEM_PERM_RW);
+	gnttab.table = (grant_entry_v1_t *)DEVICE_MMIO_TOPLEVEL_GET(grant_tables);
 
 	LOG_DBG("%s: grant table mapped\n", __func__);
 
