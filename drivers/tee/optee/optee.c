@@ -86,6 +86,7 @@ struct optee_driver_data {
 	sys_dlist_t notif;
 	struct k_spinlock notif_lock;
 	struct optee_supp supp;
+	unsigned long sec_caps;
 };
 
 /* Wrapping functions so function pointer can be used */
@@ -1127,6 +1128,56 @@ static int set_optee_method(const struct device *dev)
 	return 0;
 }
 
+static bool optee_check_uid(const struct device *dev)
+{
+	struct arm_smccc_res res;
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+
+	data->smc_call(OPTEE_SMC_CALLS_UID, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (res.a0 == OPTEE_MSG_UID_0 && res.a1 == OPTEE_MSG_UID_1 &&
+	    res.a2 == OPTEE_MSG_UID_2 && res.a3 == OPTEE_MSG_UID_3) {
+		return true;
+	}
+
+	return false;
+}
+
+static void optee_get_revision(const struct device *dev)
+{
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+	struct arm_smccc_res res = { 0 };
+
+	data->smc_call(OPTEE_SMC_CALL_GET_OS_REVISION, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (res.a2) {
+		LOG_INF("OPTEE revision %lu.%lu (%08lx)", res.a0,
+			res.a1, res.a2);
+	} else {
+		LOG_INF("OPTEE revision %lu.%lu", res.a0, res.a1);
+	}
+}
+
+static bool optee_exchange_caps(const struct device *dev, unsigned long *sec_caps)
+{
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+	struct arm_smccc_res res = { 0 };
+	unsigned long a1 = 0;
+
+	if (!IS_ENABLED(CONFIG_SMP) || arch_num_cpus() == 1) {
+		a1 |= OPTEE_SMC_NSEC_CAP_UNIPROCESSOR;
+	}
+
+	data->smc_call(OPTEE_SMC_EXCHANGE_CAPABILITIES, a1, 0, 0, 0, 0, 0, 0, &res);
+
+	if (res.a0 != OPTEE_SMC_RETURN_OK) {
+		return false;
+	}
+
+	*sec_caps = res.a1;
+	return true;
+}
+
 static int optee_init(const struct device *dev)
 {
 	struct optee_driver_data *data = dev->data;
@@ -1134,15 +1185,28 @@ static int optee_init(const struct device *dev)
 	if (set_optee_method(dev)) {
 		return -ENOTSUP;
 	}
-	/*
-	 * TODO At this stage driver should request and validate
-	 * capabilities from OP-TEE OS.
-	 */
 
 	sys_dlist_init(&data->notif);
 	k_mutex_init(&data->supp.mutex);
 	k_sem_init(&data->supp.reqs_c, 0, 1);
 	sys_dlist_init(&data->supp.reqs);
+
+	if (!optee_check_uid(dev)) {
+		LOG_ERR("OPTEE API UID mismatch");
+		return -EINVAL;
+	}
+
+	optee_get_revision(dev);
+
+	if (!optee_exchange_caps(dev, &data->sec_caps)) {
+		LOG_ERR("OPTEE capabilities exchange failed\n");
+		return -EINVAL;
+	}
+
+	if (!(data->sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM)) {
+		LOG_ERR("OPTEE does not support dynamic shared memory");
+		return -ENOTSUP;
+	}
 
 	return 0;
 }
