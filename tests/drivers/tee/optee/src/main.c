@@ -66,6 +66,13 @@ void arm_smccc_smc(unsigned long a0, unsigned long a1, unsigned long a2, unsigne
 	}
 }
 
+/* Allocate dummy arm_smccc_hvc function for the tests */
+void arm_smccc_hvc(unsigned long a0, unsigned long a1, unsigned long a2, unsigned long a3,
+		   unsigned long a4, unsigned long a5, unsigned long a6, unsigned long a7,
+		   struct arm_smccc_res *res)
+{
+}
+
 ZTEST(optee_test_suite, test_get_version)
 {
 	int ret;
