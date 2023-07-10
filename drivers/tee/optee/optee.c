@@ -53,6 +53,10 @@ typedef void (*smc_call_t)(unsigned long a0, unsigned long a1, unsigned long a2,
 			   unsigned long a4, unsigned long a5, unsigned long a6, unsigned long a7,
 			   struct arm_smccc_res *res);
 
+struct optee_driver_config {
+	const char *method;
+};
+
 struct optee_notify {
 	sys_dnode_t node;
 	uint32_t key;
@@ -81,13 +85,13 @@ struct optee_supp {
 	struct k_sem reqs_c;
 };
 
-static struct optee_driver_data {
+struct optee_driver_data {
 	smc_call_t smc_call;
 
 	sys_dlist_t notif;
 	struct k_spinlock notif_lock;
 	struct optee_supp supp;
-} optee_data;
+};
 
 /* Wrapping functions so function pointer can be used */
 static void optee_smccc_smc(unsigned long a0, unsigned long a1, unsigned long a2, unsigned long a3,
@@ -1111,16 +1115,15 @@ static int optee_suppl_send(const struct device *dev, unsigned int ret, unsigned
 	return 0;
 }
 
-static int set_optee_method(void)
+static int set_optee_method(const struct device *dev)
 {
-	const char *method;
+	const struct optee_driver_config *conf = dev->config;
+	struct optee_driver_data *data = dev->data;
 
-	method = DT_PROP(DT_INST(0, DT_DRV_COMPAT), method);
-
-	if (!strcmp("hvc", method)) {
-		optee_data.smc_call = optee_smccc_hvc;
-	} else if (!strcmp("smc", method)) {
-		optee_data.smc_call = optee_smccc_smc;
+	if (!strcmp("hvc", conf->method)) {
+		data->smc_call = optee_smccc_hvc;
+	} else if (!strcmp("smc", conf->method)) {
+		data->smc_call = optee_smccc_smc;
 	} else {
 		LOG_ERR("Invalid smc_call method");
 		return -EINVAL;
@@ -1133,7 +1136,7 @@ static int optee_init(const struct device *dev)
 {
 	struct optee_driver_data *data = dev->data;
 
-	if (set_optee_method()) {
+	if (set_optee_method(dev)) {
 		return -ENOTSUP;
 	}
 	/*
@@ -1161,14 +1164,16 @@ static const struct tee_driver_api optee_driver_api = {
 	.suppl_send = optee_suppl_send,
 };
 
-/*
- * TODO This should be rewritten using DT_INST_FOREACH_STAUS_OKAY macro.
- * According to the OP-TEE documentation it is possible to have multiple
- * OP-TEE driver instances in the system. Right now only one instance is
- * supported, which may lead to possible issues in future.
- * For example notif_bitmap array should be moved from the global definition
- * to the DT_INST_FOREACH_STATUS_OKAY macro handler so each driver instance
- * will have it's own bitmap allocated.
- */
-DEVICE_DT_INST_DEFINE(0, optee_init, NULL, &optee_data, NULL, POST_KERNEL,
-		      CONFIG_KERNEL_INIT_PRIORITY_DEVICE, &optee_driver_api);
+#define OPTEE_DT_DEVICE_INIT(inst)					\
+	static struct optee_driver_config optee_config_##inst = {	\
+		.method = DT_INST_PROP(inst, method)			\
+	};								\
+									\
+	static struct optee_driver_data optee_data_##inst = {0};	\
+									\
+	DEVICE_DT_INST_DEFINE(inst, optee_init, NULL, &optee_data_##inst, \
+			      &optee_config_##inst, POST_KERNEL,	\
+			      CONFIG_KERNEL_INIT_PRIORITY_DEVICE,	\
+			      &optee_driver_api);			\
+
+DT_INST_FOREACH_STATUS_OKAY(OPTEE_DT_DEVICE_INIT)
