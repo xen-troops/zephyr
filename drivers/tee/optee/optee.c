@@ -30,14 +30,6 @@ LOG_MODULE_REGISTER(optee);
  */
 #define TEE_OPTEE_CAP_TZ  BIT(0)
 
-/*
- * Bitmap of the ongoing notificatons, received from OP-TEE. Maximum number is
- * CONFIG_OPTEE_MAX_NOTIF. This bitmap is needed to handle case when SEND command
- * was received before WAIT command from OP-TEE. In this case WAIT will not create
- * locks.
- */
-SYS_BITARRAY_DEFINE_STATIC(notif_bitmap, CONFIG_OPTEE_MAX_NOTIF);
-
 struct optee_rpc_param {
 	uint32_t a0;
 	uint32_t a1;
@@ -87,6 +79,8 @@ struct optee_supp {
 
 struct optee_driver_data {
 	smc_call_t smc_call;
+
+	sys_bitarray_t *notif_bitmap;
 
 	sys_dlist_t notif;
 	struct k_spinlock notif_lock;
@@ -441,7 +435,7 @@ static int optee_notif_send(const struct device *dev, uint32_t key)
 	sp_key = k_spin_lock(&data->notif_lock);
 	if (!key_is_pending(data, key)) {
 		/* If nobody is waiting for key - set bit in the bitmap */
-		sys_bitarray_set_bit(&notif_bitmap, key);
+		sys_bitarray_set_bit(data->notif_bitmap, key);
 	}
 	k_spin_unlock(&data->notif_lock, sp_key);
 
@@ -473,7 +467,7 @@ static int optee_notif_wait(const struct device *dev, uint32_t key)
 	 * If notif bit was set then SEND command was already received.
 	 * Skipping wait.
 	 */
-	rc = sys_bitarray_test_and_clear_bit(&notif_bitmap, key, &prev_val);
+	rc = sys_bitarray_test_and_clear_bit(data->notif_bitmap, key, &prev_val);
 	if (rc || prev_val) {
 		goto out;
 	}
@@ -1164,12 +1158,22 @@ static const struct tee_driver_api optee_driver_api = {
 	.suppl_send = optee_suppl_send,
 };
 
+/*
+ * Bitmap of the ongoing notificatons, received from OP-TEE. Maximum number is
+ * CONFIG_OPTEE_MAX_NOTIF. This bitmap is needed to handle case when SEND command
+ * was received before WAIT command from OP-TEE. In this case WAIT will not create
+ * locks.
+ */
 #define OPTEE_DT_DEVICE_INIT(inst)					\
+	SYS_BITARRAY_DEFINE_STATIC(notif_bitmap_##inst, CONFIG_OPTEE_MAX_NOTIF); \
+									\
 	static struct optee_driver_config optee_config_##inst = {	\
 		.method = DT_INST_PROP(inst, method)			\
 	};								\
 									\
-	static struct optee_driver_data optee_data_##inst = {0};	\
+	static struct optee_driver_data optee_data_##inst = {		\
+		.notif_bitmap = &notif_bitmap_##inst			\
+	};								\
 									\
 	DEVICE_DT_INST_DEFINE(inst, optee_init, NULL, &optee_data_##inst, \
 			      &optee_config_##inst, POST_KERNEL,	\
