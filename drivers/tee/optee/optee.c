@@ -152,6 +152,24 @@ static int param_to_msg_param(const struct tee_param *param, unsigned int num_pa
 	return 0;
 }
 
+static void msg_param_to_tmp_mem(struct tee_param *p, uint32_t attr,
+				 const struct optee_msg_param *mp)
+{
+	struct tee_shm *shm = (struct tee_shm *)mp->u.tmem.shm_ref;
+
+	p->attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT + attr - OPTEE_MSG_ATTR_TYPE_TMEM_INPUT;
+	p->b = mp->u.tmem.size;
+
+	if (!shm) {
+		p->a = 0;
+		p->c = 0;
+		return;
+	}
+
+	p->a = mp->u.tmem.buf_ptr - z_mem_phys_addr(shm->addr);
+	p->c = mp->u.tmem.shm_ref;
+}
+
 static int msg_param_to_param(struct tee_param *param, unsigned int num_param,
 			      const struct optee_msg_param *msg_param)
 {
@@ -200,6 +218,11 @@ static int msg_param_to_param(struct tee_param *param, unsigned int num_param,
 				tp->c = mtp->u.rmem.shm_ref;
 			}
 
+			break;
+		case OPTEE_MSG_ATTR_TYPE_TMEM_INPUT:
+		case OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT:
+		case OPTEE_MSG_ATTR_TYPE_TMEM_INOUT:
+			msg_param_to_tmp_mem(tp, attr, mtp);
 			break;
 		default:
 			return -EINVAL;
