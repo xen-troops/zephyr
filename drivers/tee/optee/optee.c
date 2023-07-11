@@ -1139,9 +1139,9 @@ static int optee_init(const struct device *dev)
 	 */
 
 	sys_dlist_init(&data->notif);
-	k_mutex_init(&optee_data.supp.mutex);
-	k_sem_init(&optee_data.supp.reqs_c, 0, 1);
-	sys_dlist_init(&optee_data.supp.reqs);
+	k_mutex_init(&data->supp.mutex);
+	k_sem_init(&data->supp.reqs_c, 0, 1);
+	sys_dlist_init(&data->supp.reqs);
 
 	return 0;
 }
