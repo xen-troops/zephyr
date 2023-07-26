@@ -13,6 +13,8 @@
 #include "optee_msg.h"
 #include "optee_rpc_cmd.h"
 #include "optee_smc.h"
+#include "../tee_priv.h"
+
 LOG_MODULE_REGISTER(optee);
 
 #define DT_DRV_COMPAT linaro_optee_tz
@@ -86,6 +88,8 @@ struct optee_driver_data {
 	struct k_spinlock notif_lock;
 	struct optee_supp supp;
 	unsigned long sec_caps;
+
+	sys_dlist_t shm_reg_list;
 };
 
 /* Wrapping functions so function pointer can be used */
@@ -332,6 +336,7 @@ static void handle_cmd_alloc(const struct device *dev, struct optee_msg_arg *arg
 	struct tee_shm *shm = NULL;
 	void *pl;
 	uint64_t pl_phys_and_offset;
+	struct optee_driver_data *data = dev->data;
 
 	arg->ret_origin = TEEC_ORIGIN_COMMS;
 
@@ -375,6 +380,11 @@ static void handle_cmd_alloc(const struct device *dev, struct optee_msg_arg *arg
 	arg->params[0].u.tmem.size = shm->size;
 	arg->params[0].u.tmem.shm_ref = (uint64_t)shm;
 	arg->ret = TEEC_SUCCESS;
+
+	if (tee_shm_list_reg(&data->shm_reg_list, shm, arg->session)) {
+		arg->ret = TEEC_ERROR_BAD_PARAMETERS;
+	}
+
 	return;
 out:
 	tee_shm_free(dev, shm);
@@ -383,11 +393,14 @@ out:
 static void handle_cmd_free(const struct device *dev, struct optee_msg_arg *arg)
 {
 	int rc = 0;
+	struct optee_driver_data *data = dev->data;
 
 	if (!check_param_input(arg)) {
 		arg->ret = TEEC_ERROR_BAD_PARAMETERS;
 		return;
 	}
+
+	tee_shm_list_unreg(&data->shm_reg_list, (struct tee_shm *)arg->params[0].u.value.b);
 
 	switch (arg->params[0].u.value.a) {
 	case OPTEE_RPC_SHM_TYPE_KERNEL:
@@ -639,9 +652,10 @@ static uint32_t handle_func_rpc_call(const struct device *dev, struct tee_shm *s
 }
 
 static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *param,
-			    void **pages)
+			    uint32_t session_id, void **pages)
 {
 	struct tee_shm *shm = NULL;
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
 	uint32_t res = OPTEE_SMC_CALL_RETURN_FROM_RPC;
 
 	switch (OPTEE_SMC_RETURN_GET_RPC_FUNC(param->a0)) {
@@ -649,6 +663,11 @@ static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *pa
 		if (!tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
 				 param->a1,
 				 TEE_SHM_ALLOC, &shm)) {
+			if (tee_shm_list_reg(&data->shm_reg_list, shm, session_id)) {
+				LOG_ERR("Error: Unable to register shm for session %u\n",
+					session_id);
+			}
+
 			u64_to_regs((uint64_t)z_mem_phys_addr(shm->addr), &param->a1, &param->a2);
 			u64_to_regs((uint64_t)shm, &param->a4, &param->a5);
 		} else {
@@ -660,6 +679,7 @@ static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *pa
 		break;
 	case OPTEE_SMC_RPC_FUNC_FREE:
 		shm = (struct tee_shm *)regs_to_u64(param->a1, param->a2);
+		tee_shm_list_unreg(&data->shm_reg_list, shm);
 		tee_rm_shm(dev, shm);
 		break;
 	case OPTEE_SMC_RPC_FUNC_FOREIGN_INTR:
@@ -696,7 +716,7 @@ static int optee_call(const struct device *dev, struct optee_msg_arg *arg)
 			param.a1 = res.a1;
 			param.a2 = res.a2;
 			param.a3 = res.a3;
-			handle_rpc_call(dev, &param, &pages);
+			handle_rpc_call(dev, &param, arg->session, &pages);
 		} else {
 			free_shm_pages(&pages);
 			return res.a0 == OPTEE_SMC_RETURN_OK ? TEEC_SUCCESS :
@@ -728,6 +748,7 @@ static int optee_close_session(const struct device *dev, uint32_t session_id)
 	int rc;
 	struct tee_shm *shm;
 	struct optee_msg_arg *marg;
+	struct optee_driver_data *data = dev->data;
 
 	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
 			 OPTEE_MSG_GET_ARG_SIZE(0),
@@ -747,6 +768,9 @@ static int optee_close_session(const struct device *dev, uint32_t session_id)
 	if (tee_rm_shm(dev, shm)) {
 		LOG_ERR("Unable to free shared memory");
 	}
+
+	/* Cleanup remaining tee_shm which were not released by OP-TEE in terms of session */
+	tee_shm_session_clean(&data->shm_reg_list, session_id);
 
 	return rc;
 }
@@ -1212,6 +1236,7 @@ static int optee_init(const struct device *dev)
 	k_mutex_init(&data->supp.mutex);
 	k_sem_init(&data->supp.reqs_c, 0, 1);
 	sys_dlist_init(&data->supp.reqs);
+	sys_dlist_init(&data->shm_reg_list);
 
 	if (!optee_check_uid(dev)) {
 		LOG_ERR("OPTEE API UID mismatch");
