@@ -266,16 +266,25 @@ struct tee_invoke_func_arg {
 
 /**
  * struct tee_shm - tee shared memory structure
+ *
+ * Tee shared memory @node property stores link to dlist which is tracking
+ * all shm object allocated in terms of the @session. This list helps to clean up
+ * resources that weren't removed by TEE before closing @session.
+ *
  * @dev:        [out] Pointer to the device driver structure
  * @addr:       [out] Shared buffer pointer
  * @size:       [out] Shared buffer size
  * @flags:      [out] Shared buffer flags
+ * @session:    [out] Session_id which shm is registered to
+ * @node:       [out] Link to shm registry
  */
 struct tee_shm {
 	const struct device *dev;
 	void *addr;
 	uint64_t size;
 	uint32_t flags;
+	uint32_t session;
+	sys_dnode_t node;
 };
 
 /**

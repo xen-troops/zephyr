@@ -5,6 +5,12 @@
  */
 
 #include <zephyr/drivers/tee.h>
+#include <zephyr/logging/log.h>
+
+#include "tee_priv.h"
+
+LOG_MODULE_REGISTER(tee);
+K_MUTEX_DEFINE(shm_reg_mutex);
 
 int tee_add_shm(const struct device *dev, void *addr, size_t align, size_t size,
 		uint32_t flags, struct tee_shm **shmp)
@@ -99,4 +105,73 @@ int tee_rm_shm(const struct device *dev, struct tee_shm *shm)
 	k_free(shm);
 
 	return rc;
+}
+
+static bool tee_shm_is_registered(sys_dlist_t *list, struct tee_shm *shm, uint32_t session_id)
+{
+	struct tee_shm *iter;
+
+	if (!list || !shm || shm->session != session_id) {
+		return false;
+	}
+
+	k_mutex_lock(&shm_reg_mutex, K_FOREVER);
+	SYS_DLIST_FOR_EACH_CONTAINER(list, iter, node) {
+		if (iter == shm) {
+			k_mutex_unlock(&shm_reg_mutex);
+			return true;
+		}
+	}
+	k_mutex_unlock(&shm_reg_mutex);
+
+	return false;
+}
+
+void tee_shm_list_unreg(sys_dlist_t *list, struct tee_shm *shm)
+{
+	if (!shm) {
+		return;
+	}
+
+	if (!tee_shm_is_registered(list, shm, shm->session)) {
+		return;
+	}
+
+	k_mutex_lock(&shm_reg_mutex, K_FOREVER);
+	sys_dlist_remove(&shm->node);
+	k_mutex_unlock(&shm_reg_mutex);
+}
+
+int tee_shm_list_reg(sys_dlist_t *list, struct tee_shm *shm, uint32_t session_id)
+{
+	if (!shm || !list) {
+		return -EINVAL;
+	}
+
+	if (tee_shm_is_registered(list, shm, session_id)) {
+		return 0;
+	}
+
+	k_mutex_lock(&shm_reg_mutex, K_FOREVER);
+	shm->session = session_id;
+	sys_dlist_append(list, &shm->node);
+	k_mutex_unlock(&shm_reg_mutex);
+
+	return 0;
+}
+
+void tee_shm_session_clean(sys_dlist_t *list, uint32_t session_id)
+{
+	struct tee_shm *iter, *next;
+
+	k_mutex_lock(&shm_reg_mutex, K_FOREVER);
+	SYS_DLIST_FOR_EACH_CONTAINER_SAFE(list, iter, next, node) {
+		if (iter->session == session_id) {
+			sys_dlist_remove(&iter->node);
+			if (tee_rm_shm(iter->dev, iter)) {
+				LOG_ERR("Unable to clean shared memory");
+			}
+		}
+	}
+	k_mutex_unlock(&shm_reg_mutex);
 }
