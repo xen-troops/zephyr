@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <arm/renesas/rz/r7s9210.dtsi>
+#if PFC_NOT_YET
+#include "rz_a2m_pinctrl.dtsi"
+#endif
+
+/ {
+	model = "Renesas RZ A2M board";
+	compatible = "renesas,rz-a2m";
+
+	chosen {
+		zephyr,sram = &ram;
+#if SCIF_NOT_YET
+		zephyr,console = &scif4;
+		zephyr,shell-uart = &scif4;
+#endif
+	};
+
+	ram: memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 DT_SIZE_M(4)		 /* 4  Mbyte of Internal RAM */
+		       0x40000000 DT_SIZE_M(8)		 /* 8  Mbyte of External HyperRAM */
+		       0x0C000000 DT_SIZE_M(64)>;	 /* 64 Mbyte of External SDRAM */
+	};
+
+#if SCIF_NOT_YET
+	/* requires SW6-3 = OFF */
+	&scif4 {
+		pinctrl-0 = <&scif4_pins>;
+		pinctrl-names = "default";
+
+		status = "okay";
+	};
+#endif
+};
