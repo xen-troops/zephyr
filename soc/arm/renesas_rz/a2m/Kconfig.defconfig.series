@@ -1,0 +1,17 @@
+# Renesas RZ A2M SoC line
+
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_SERIES_RZ_A2M
+
+config SOC_SERIES
+	default "a2m"
+
+config NUM_IRQS
+	default 512
+
+config PINCTRL
+	# default y
+
+endif # SOC_SERIES_RZ_A2M

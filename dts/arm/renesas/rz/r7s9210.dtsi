@@ -1,0 +1,83 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <mem.h>
+#include <arm/armv7-a.dtsi>
+#include <zephyr/dt-bindings/interrupt-controller/arm-gic.h>
+#include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
+#include <zephyr/dt-bindings/clock/r7s9210_cpg_mssr.h>
+
+/ {
+	compatible = "renesas,r7s9210";
+	interrupt-parent = <&gic>;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a9";
+			reg = <0>;
+		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		gic: interrupt-controller@e8221000 {
+			compatible = "arm,gic-400", "arm,gic-v2", "arm,gic";
+			#interrupt-cells = <4>;
+			#address-cells = <0>;
+			interrupt-controller;
+			reg = <0xe8221000 0x1000>,
+			      <0xe8222000 0x1000>;
+		};
+
+		cpg: clock-controller@fcfe0010 {
+			compatible = "renesas,r7s9210-cpg-mssr";
+			reg = <0xfcfe0010 0x455>;
+			#clock-cells = <2>;
+			status = "disabled";
+		};
+#if PFC_NOT_YET
+		pfc: pin-controller@fcffe000 {
+			compatible = "renesas,r7s9210-pinctrl";
+			reg = <0xfcffe000 0x1000>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+			gpio-ranges = <&pfc 0 0 176>;
+
+			/* todo: delete this line when pfc will be implemented */
+			status = "disabled";
+		};
+#endif
+#if SCIF_NOT_YET
+		scif4: serial@e8009000 {
+			compatible = "renesas,scif-r7s9210";
+			reg = <0xe8009000 0x18>;
+			interrupts = <GIC_SPI 289 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 290 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 291 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 289 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "eri", "rxi", "txi",
+					  "bri", "dri", "tei";
+			clocks = <&cpg CPG_MOD 43>;
+			status = "disabled";
+		};
+#endif
+	};
+};
