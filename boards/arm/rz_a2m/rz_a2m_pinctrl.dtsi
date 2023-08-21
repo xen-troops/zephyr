@@ -169,4 +169,10 @@
 			 <RZA2_PINMUX(PORT9, 3, 5)>,	/* SSIRxD0 */
 			 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
 	};
+
+	/omit-if-no-ref/ dma0_pins: dma0_pins {
+		pinmux = <RZA2_PINMUX(PORT4, 5, 5)>,	/* DREQ0 */
+			 <RZA2_PINMUX(PORT4, 6, 5)>,	/* DACK0 */
+			 <RZA2_PINMUX(PORT4, 7, 5)>;	/* TEND0 */
+	};
 };
