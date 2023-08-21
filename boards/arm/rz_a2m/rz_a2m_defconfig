@@ -24,3 +24,7 @@ CONFIG_GPIO_ENABLE_DISABLE_INTERRUPT=y
 # Enable console
 CONFIG_CONSOLE=y
 CONFIG_UART_CONSOLE=y
+
+# Enable Cache Management to be support inv_range and flush_range calls
+# needed for DMA to work correctly.
+CONFIG_CACHE_MANAGEMENT=y

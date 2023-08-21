@@ -1,0 +1,40 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config DMA_RZA2
+	bool "Renesas RZA2 General Purpose DMA driver"
+	depends on DT_HAS_RENESAS_RZA2_DMA_ENABLED
+	default y
+	help
+	  General Purpose DMA for Renesas RZA2 series. Please note that driver
+	  uses dynamic memory allocation with k_calloc() to allocate link descriptors, so
+	  CONFIG_HEAP_MEM_POOL_SIZE should be enough to store all data.
+
+if DMA_RZA2
+
+config DMA_RZA2_DESCRS_CHUNKS
+	int "Dma RZA2 maximum descriptor pool chunks"
+	default 16
+	help
+	  When RZ/A2 DMAC works in Link Mode, it accepts a linked list of descriptors that
+	  includes information about data blocks to transfer. Zephyr recommends avoiding
+	  the use of HEAP for data allocation; that's why this driver uses a preallocated
+	  pool for the descriptors. This configuration specifies the number of descriptors
+	  per allocated chunk that can be assigned to each channel.
+
+config DMA_RZA2_MAX_DESCRS
+	int "Dma RZA2 maximum descriptors per channel"
+	default 4
+	help
+	  This configuration describes the number of descriptors per allocated chunk (see
+	  DAM_RZA2_DESCRS_CHUNKS for details) that can be assigned to each channel.
+	  During the configuration, descriptors are connected to the linked list, which
+	  is then passed to the DMA for performing the transfer.
+
+config DMA_RZA2_INIT_PRIORITY
+	int "Dma RZA2 init priority"
+	default 41
+	help
+	  Dma driver init priority.
+
+endif # DMA_RZA2
