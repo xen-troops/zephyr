@@ -1,0 +1,34 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas r7s9210 interrupt controller
+
+compatible: "renesas,r7s9210-intc"
+
+include: [interrupt-controller.yaml, base.yaml]
+
+properties:
+  reg:
+    required: true
+
+  map:
+    type: array
+    required: true
+
+  "#address-cells":
+    const: 0
+
+  "#interrupt-cells":
+    const: 2
+
+  nmi-edge:
+    type: int
+    description: |
+      Selects whether the falling or rising edge of the interrupt request signal on the
+      NMI pin is detected. Possible values IRQ_TYPE_EDGE_FALLING and IRQ_TYPE_EDGE_RISING.
+      Note: The NMI pin has a pull-up resistor, so the default level on the pin is high.
+    enum: [2, 4]
+
+interrupt-cells:
+  - irq
+  - flags
