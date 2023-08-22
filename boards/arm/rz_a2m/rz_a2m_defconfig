@@ -5,6 +5,8 @@ CONFIG_BOARD_RZ_A2M=y
 # dummy value, runtime value will be used from 'renesas,ostm' timer driver
 CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC=33000000
 
+CONFIG_MULTI_LEVEL_INTERRUPTS=y
+
 # Enable clock control
 CONFIG_CLOCK_CONTROL=y
 
