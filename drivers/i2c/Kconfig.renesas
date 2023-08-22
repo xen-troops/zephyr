@@ -1,0 +1,19 @@
+# Renesas I2C configuration options
+
+# Copyright (c) 2023 EPAM Systems
+# Copyright (c) 2021 IoT.bzh
+# SPDX-License-Identifier: Apache-2.0
+
+config I2C_RIIC
+	bool "Renesas I2C Driver for RZ/A2M"
+	default y
+	depends on DT_HAS_RENESAS_RIIC_ENABLED
+	help
+	  Enable Renesas I2C Driver (RIIC) for RZ/A2M.
+
+config I2C_RCAR
+	bool "Renesas R-Car I2C Driver"
+	default y
+	depends on DT_HAS_RENESAS_RCAR_I2C_ENABLED
+	help
+	  Enable Renesas R-Car I2C Driver.

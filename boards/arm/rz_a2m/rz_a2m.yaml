@@ -6,6 +6,7 @@ toolchain:
   - zephyr
   - gnuarmemb
 supported:
+  - i2c
   - clock_control
   - uart
   - gpio
