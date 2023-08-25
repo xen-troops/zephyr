@@ -16,6 +16,11 @@ CONFIG_SERIAL=y
 # Enable PINCTRL driver
 CONFIG_PINCTRL=y
 
+# Enable GPIO driver
+CONFIG_GPIO=y
+# RZ/A2M Driver doesn't support irq reconfiguration, just set ISEL bit
+CONFIG_GPIO_ENABLE_DISABLE_INTERRUPT=y
+
 # Enable console
 CONFIG_CONSOLE=y
 CONFIG_UART_CONSOLE=y
