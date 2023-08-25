@@ -6,6 +6,7 @@
 
 #include <mem.h>
 #include <arm/armv7-a.dtsi>
+#include <zephyr/dt-bindings/gpio/rza2-gpio.h>
 #include <zephyr/dt-bindings/interrupt-controller/arm-gic.h>
 #include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
@@ -107,6 +108,209 @@
 			interrupts = <GIC_SPI 58 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
 			clocks = <&cpg CPG_MOD 34>;
 			status = "disabled";
+		};
+
+		pinctrl: pin-controller@fcffe000 {
+			compatible = "renesas,r7s9210-pinctrl";
+			reg = <0xfcffe000 0x40>, <0xfcffe080 0xf80>;
+			reg-names = "pdr", "pinctrl";
+		};
+
+		gpio: gpio-controller@fcffe040{
+			compatible = "renesas,r7s9210-gpio";
+			reg = <0xfcffe040 0x40>, <0xfcffe140 0xc0>;
+			reg-names = "io", "dscr";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			interrupts = <GIC_SPI 479 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT31 */
+				     <GIC_SPI 478 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT30 */
+				     <GIC_SPI 477 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT29 */
+				     <GIC_SPI 476 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT28 */
+				     <GIC_SPI 475 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT27 */
+				     <GIC_SPI 474 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT26 */
+				     <GIC_SPI 473 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT25 */
+				     <GIC_SPI 472 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT24 */
+				     <GIC_SPI 471 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT23 */
+				     <GIC_SPI 470 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT22 */
+				     <GIC_SPI 469 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT21 */
+				     <GIC_SPI 468 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT20 */
+				     <GIC_SPI 467 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT19 */
+				     <GIC_SPI 466 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT18 */
+				     <GIC_SPI 465 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT17 */
+				     <GIC_SPI 464 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT16 */
+				     <GIC_SPI 463 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT15 */
+				     <GIC_SPI 462 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT14 */
+				     <GIC_SPI 461 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT13 */
+				     <GIC_SPI 460 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT12 */
+				     <GIC_SPI 459 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT11 */
+				     <GIC_SPI 458 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT10 */
+				     <GIC_SPI 457 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT9 */
+				     <GIC_SPI 456 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT8 */
+				     <GIC_SPI 455 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT7 */
+				     <GIC_SPI 454 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT6 */
+				     <GIC_SPI 453 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT5 */
+				     <GIC_SPI 452 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT4 */
+				     <GIC_SPI 451 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT3 */
+				     <GIC_SPI 450 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT2 */
+				     <GIC_SPI 449 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>, /* TINT1 */
+				     <GIC_SPI 448 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>; /* TINT0 */
+
+			port0: gpio@0 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x0>; /* PORT0 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+
+			port1: gpio@1 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x1>; /* PORT1 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port2: gpio@2 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x2>; /* PORT2 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port3: gpio@3 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x3>; /* PORT3 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port4: gpio@4 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x4>; /* PORT4 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port5: gpio@5 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x5>; /* PORT5 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port6: gpio@6 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x6>; /* PORT6 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port7: gpio@7 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x7>; /* PORT7 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port8: gpio@8 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x8>; /* PORT8 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			port9: gpio@9 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x9>; /* PORT9 */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			porta: gpio@a {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xa>; /* PORTA */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portb: gpio@b {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xb>; /* PORTB */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portc: gpio@c {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xc>; /* PORTC */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portd: gpio@d {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xd>; /* PORTD */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			porte: gpio@e {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xe>; /* PORTE */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portf: gpio@f {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0xf>; /* PORTF */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portg: gpio@10 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x10>; /* PORTG */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			porth: gpio@11 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x11>; /* PORTH */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portj: gpio@12 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x12>; /* PORTJ */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portk: gpio@13 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x13>; /* PORTK */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portl: gpio@14 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x14>; /* PORTL */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
+			portm: gpio@15 {
+				compatible = "renesas,r7s9210-gpio-port";
+				reg = <0x15>; /* PORTM */
+				gpio-controller;
+				#gpio-cells=<2>;
+				ngpios = <8>;
+			};
 		};
 	};
 };
