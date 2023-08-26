@@ -319,6 +319,75 @@
 			/* interval timer interrupt is generated only in interval timer mode */
 			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
 			clocks = <&cpg CPG_CORE R7S9210_CLK_P0>;
+		};
+
+		scif0: serial@e8007000 {
+			compatible = "renesas,rza2m-scif";
+			reg = <0xe8007000 0x18>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 266 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 267 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 268 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 47>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+		};
+
+		scif1: serial@e8007800 {
+			compatible = "renesas,rza2m-scif";
+			reg = <0xe8007800 0x18>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 271 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 272 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 273 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 274 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 46>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+		};
+
+		scif2: serial@e8008000 {
+			compatible = "renesas,rza2m-scif";
+			reg = <0xe8008000 0x18>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 277 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 278 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 279 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 280 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 45>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+			};
+
+		scif3: serial@e8008800 {
+			compatible = "renesas,rza2m-scif";
+			reg = <0xe8008800 0x18>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 283 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 284 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 285 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 286 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 44>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+		};
+
+		scif4: serial@e8009000 {
+			compatible = "renesas,rza2m-scif";
+			reg = <0xe8009000 0x18>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 289 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 290 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 291 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 292 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 43>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
 			status = "disabled";
 		};
 	};
