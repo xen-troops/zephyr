@@ -1,0 +1,24 @@
+# Renesas SSIF2 driver configuration options
+
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config I2S_RENESAS_SSIF2
+	bool "SSIF controller driver"
+	default y
+	depends on DT_HAS_RENESAS_SSIF2_ENABLED
+	select DMA
+	help
+	  Enable I2S support on the RZ/A2M family of processors.
+
+if I2S_RENESAS_SSIF2
+
+config I2S_RENESAS_SSIF_RX_BLOCK_COUNT
+	int "RX queue length"
+	default 4
+
+config I2S_RENESAS_SSIF_TX_BLOCK_COUNT
+	int "TX queue length"
+	default 4
+
+endif # I2S_RENESAS_SSIF2
