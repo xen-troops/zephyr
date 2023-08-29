@@ -390,5 +390,86 @@
 			clock-names = "fck", "bus";
 			status = "disabled";
 		};
+
+		i2c0: i2c@e803a000 {
+			compatible = "renesas,riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe803a000 0x50>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 232 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 233 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 234 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 235 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 236 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 237 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 238 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 239 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tei", "ri", "ti", "spi",
+					  "sti", "nacki", "ali", "tmoi";
+			clocks = <&cpg CPG_MOD 87>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			status = "disabled";
+		};
+		i2c1: i2c@e803a400 {
+			compatible = "renesas,riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe803a400 0x50>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 240 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 241 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 242 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 243 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 244 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 245 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 246 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 247 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tei", "ri", "ti", "spi",
+					  "sti", "nacki", "ali", "tmoi";
+			clocks = <&cpg CPG_MOD 86>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			status = "disabled";
+		};
+		i2c2: i2c@e803a800 {
+			compatible = "renesas,riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe803a800 0x50>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 248 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 249 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 250 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 251 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 252 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 253 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 254 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 255 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tei", "ri", "ti", "spi",
+					  "sti", "nacki", "ali", "tmoi";
+			clocks = <&cpg CPG_MOD 85>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			status = "disabled";
+		};
+		i2c3: i2c@e803ac00 {
+			compatible = "renesas,riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe803ac00 0x50>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 256 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 257 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 258 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 259 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 260 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 261 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 262 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 263 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tei", "ri", "ti", "spi",
+					  "sti", "nacki", "ali", "tmoi";
+			clocks = <&cpg CPG_MOD 84>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			status = "disabled";
+		};
 	};
 };

@@ -1,0 +1,17 @@
+# Copyright (c) 2021, IoT.bzh
+# Copyright (c) 2023, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ/A2M I2C controller
+
+compatible: "renesas,riic"
+
+include: [i2c-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+  interrupts:
+    required: true
+  clocks:
+    required: true
