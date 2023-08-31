@@ -460,7 +460,7 @@ def write_interrupts(node):
         irq_ctrl = irq.controller
         # Look for interrupt controller parent until we have none
         while irq_ctrl.interrupts:
-            irq_num = (irq_num + 1) << 8
+            irq_num = (irq_num + 1) << 9
             if "irq" not in irq_ctrl.interrupts[0].data:
                 err(f"Expected binding for {irq_ctrl!r} to have 'irq' in "
                     "interrupt-cells")
