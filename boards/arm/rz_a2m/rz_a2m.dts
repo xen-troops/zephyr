@@ -17,12 +17,20 @@
 		zephyr,flash = &flash0;
 	};
 
+#ifdef CONFIG_XIP
 	ram: memory@80000000 {
 		compatible = "mmio-sram";
 		reg = <0x80000000 DT_SIZE_M(4)		 /* 4  Mbyte of Internal RAM */
 		       0x40000000 DT_SIZE_M(8)		 /* 8  Mbyte of External HyperRAM */
 		       0x0C000000 DT_SIZE_M(64)>;	 /* 64 Mbyte of External SDRAM */
 	};
+#else
+	/* TODO: Remove this when RECRZZP-52 is resolved */
+	ram: memory@80020000 {
+		compatible = "mmio-sram";
+		reg = <0x80020000 DT_SIZE_K(3968)>;
+	};
+#endif
 
 	flash0: flash@20000000 {
 		compatible = "soc-nv-flash";
