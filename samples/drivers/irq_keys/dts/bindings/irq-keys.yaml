@@ -1,0 +1,40 @@
+# Copyright (c) 2023, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  IRQ Input keys parent node
+
+  This defines a group of buttons that can generate input events. Each button is defined
+  in a child node of the irq-keys node and defines a specific key code.
+
+  For example:
+
+  &pinctrl {
+    keyboard_pins: keyboard {
+      pinmux = <RZA2_PINMUX(PORTJ, 1, 6)>; /* IRQ0 */
+    };
+  };
+
+  / {
+         keyboard {
+                 compatible = "irq-keys";
+
+                 pinctrl-names = "default";
+                 pinctrl-0 = <&keyboard_pins>;
+
+                 sw3 {
+                   interrupt-parent = <&intc>;
+                   interrupts = <R7S9210_IRQ0 IRQ_TYPE_LOW_LEVEL>;
+                 };
+         };
+  };
+
+compatible: "irq-keys"
+
+include: [base.yaml, pinctrl-device.yaml]
+
+child-binding:
+  description: IRQ keys child node
+  properties:
+    interrupts:
+      type: array
