@@ -45,6 +45,8 @@ void z_arm_nmi_set_handler(void (*pHandler)(void))
 }
 #endif /* CONFIG_RUNTIME_NMI */
 
+void __weak z_arm_nmi_eoi(void) {}
+
 /**
  *
  * @brief Handler installed in the vector table
@@ -56,5 +58,6 @@ void z_arm_nmi_set_handler(void (*pHandler)(void))
 void z_arm_nmi(void)
 {
 	handler();
+	z_arm_nmi_eoi();
 	z_arm_int_exit();
 }
