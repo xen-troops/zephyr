@@ -1,0 +1,8 @@
+sample:
+  description: Demonstration of the r7s9210 multilevel interrupt controller on external key
+  name: IRQ Keys sample
+tests:
+  sample.drivers.rz.irq_keys:
+    platform_allow: rz_a2m
+    tags: input
+    depends_on: pinctrl
