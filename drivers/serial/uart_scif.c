@@ -1,10 +1,9 @@
 /*
  * Copyright (c) 2021 IoT.bzh
+ * Copyright (c) 2023 EPAM Systems
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
-#define DT_DRV_COMPAT renesas_rcar_scif
 
 #include <errno.h>
 #include <zephyr/device.h>
@@ -16,12 +15,57 @@
 #include <zephyr/irq.h>
 #include <zephyr/spinlock.h>
 
+/* TODO: Add error handling */
+
+struct scif_reg {
+	uint8_t offset, size;
+};
+
+/*
+ * SCI register subset common for all port types.
+ * Not all registers will exist on all parts.
+ */
+enum {
+	SCSMR,				/* Serial Mode Register */
+	SCBRR,				/* Bit Rate Register */
+	SCSCR,				/* Serial Control Register */
+	SCFSR,				/* Serial Status Register */
+	SCFCR,				/* FIFO Control Register */
+	SCFDR,				/* FIFO Data Count Register */
+	SCFTDR,				/* Transmit (FIFO) Data Register */
+	SCFRDR,				/* Receive (FIFO) Data Register */
+	SCLSR,				/* Line Status Register */
+	SCTFDR,				/* Transmit FIFO Data Count Register */
+	SCRFDR,				/* Receive FIFO Data Count Register */
+	SCSPTR,				/* Serial Port Register */
+	SCDL,				/* BRG Frequency Division Register */
+	SEMR,				/* Serial extended mode register */
+	FTCR,				/* FIFO Trigger Control Register */
+
+	SCIF_NR_REGS,
+};
+
+enum {
+	SCIF_SCIFA_TYPE,
+	SCIF_RZ_SCIFA_TYPE,
+
+	NR_REGTYPES,
+};
+
+struct scif_params {
+	const struct scif_reg regs[SCIF_NR_REGS];
+	uint16_t init_lsr_mask;
+	uint16_t init_interrupt_mask;
+};
+
 struct uart_scif_cfg {
 	DEVICE_MMIO_ROM; /* Must be first */
 	const struct device *clock_dev;
 	struct renesas_cpg_clk mod_clk;
 	struct renesas_cpg_clk bus_clk;
 	const struct pinctrl_dev_config *pcfg;
+	const struct scif_params *params;
+	uint32_t type;
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	void (*irq_config_func)(const struct device *dev);
 #endif
@@ -38,20 +82,6 @@ struct uart_scif_data {
 #endif
 };
 
-/* Registers */
-#define SCSMR           0x00    /* Serial Mode Register */
-#define SCBRR           0x04    /* Bit Rate Register */
-#define SCSCR           0x08    /* Serial Control Register */
-#define SCFTDR          0x0c    /* Transmit FIFO Data Register */
-#define SCFSR           0x10    /* Serial Status Register */
-#define SCFRDR          0x14    /* Receive FIFO Data Register */
-#define SCFCR           0x18    /* FIFO Control Register */
-#define SCFDR           0x1c    /* FIFO Data Count Register */
-#define SCSPTR          0x20    /* Serial Port Register */
-#define SCLSR           0x24    /* Line Status Register */
-#define DL              0x30    /* Frequency Division Register */
-#define CKS             0x34    /* Clock Select Register */
-
 /* SCSMR (Serial Mode Register) */
 #define SCSMR_C_A       BIT(7)  /* Communication Mode */
 #define SCSMR_CHR       BIT(6)  /* 7-bit Character Length */
@@ -62,13 +92,14 @@ struct uart_scif_data {
 #define SCSMR_CKS0      BIT(0)  /* Clock Select 0 */
 
 /* SCSCR (Serial Control Register) */
-#define SCSCR_TEIE      BIT(11) /* Transmit End Interrupt Enable */
+#define SCSCR_TEIE_SCIFA  BIT(11) /* Transmit End Interrupt Enable on SCIFA*/
+#define SCSCR_TEIE_RZ   BIT(2) /* Transmit End Interrupt Enable RZ */
 #define SCSCR_TIE       BIT(7)  /* Transmit Interrupt Enable */
 #define SCSCR_RIE       BIT(6)  /* Receive Interrupt Enable */
 #define SCSCR_TE        BIT(5)  /* Transmit Enable */
 #define SCSCR_RE        BIT(4)  /* Receive Enable */
 #define SCSCR_REIE      BIT(3)  /* Receive Error Interrupt Enable */
-#define SCSCR_TOIE      BIT(2)  /* Timeout Interrupt Enable */
+#define SCSCR_TOIE_SCIFA  BIT(2)  /* Timeout Interrupt Enable on SCIFA */
 #define SCSCR_CKE1      BIT(1)  /* Clock Enable 1 */
 #define SCSCR_CKE0      BIT(0)  /* Clock Enable 0 */
 
@@ -89,7 +120,7 @@ struct uart_scif_data {
 #define SCFSR_PER0      BIT(12) /* Parity Error Count 0 */
 #define SCFSR_FER3      BIT(11) /* Framing Error Count 3 */
 #define SCFSR_FER2      BIT(10) /* Framing Error Count 2 */
-#define SCFSR_FER_1     BIT(9)  /* Framing Error Count 1 */
+#define SCFSR_FER1      BIT(9)  /* Framing Error Count 1 */
 #define SCFSR_FER0      BIT(8)  /* Framing Error Count 0 */
 #define SCFSR_ER        BIT(7)  /* Receive Error */
 #define SCFSR_TEND      BIT(6)  /* Transmission ended */
@@ -101,34 +132,111 @@ struct uart_scif_data {
 #define SCFSR_DR        BIT(0)  /* Receive Data Ready */
 
 /* SCLSR (Line Status Register) on (H)SCIF */
-#define SCLSR_TO        BIT(2)  /* Timeout */
+#define SCLSR_TO_SCIFA  BIT(2)  /* Timeout on SCIFA */
 #define SCLSR_ORER      BIT(0)  /* Overrun Error */
+
+/* Serial Extended Mode Register */
+#define SEMR_ABCS0      BIT(0)  /* Asynchronous Base Clock Select */
+#define SEMR_NFEN       BIT(2)  /* Noise Cancellation Enable */
+#define SEMR_DIR        BIT(3)  /* Data Transfer Direction Select */
+#define SEMR_MDDRS      BIT(4)  /* Modulation Duty Register Selec */
+#define SEMR_BRME       BIT(5)  /* Bit Rate Modulation Enable */
+/* Baud Rate Generator Double-Speed Mode Select */
+#define SEMR_BGDM       BIT(7)
+
+/* Registers */
+static const struct scif_params port_params[NR_REGTYPES] = {
+	[SCIF_SCIFA_TYPE] = {
+		.regs = {
+			[SCSMR]		= { 0x00, 16 },
+			[SCBRR]		= { 0x04,  8 },
+			[SCSCR]		= { 0x08, 16 },
+			[SCFTDR]	= { 0x0c,  8 },
+			[SCFSR]		= { 0x10, 16 },
+			[SCFRDR]	= { 0x14,  8 },
+			[SCFCR]		= { 0x18, 16 },
+			[SCFDR]		= { 0x1c, 16 },
+			[SCSPTR]	= { 0x20, 16 },
+			[SCLSR]		= { 0x24, 16 },
+		},
+		.init_lsr_mask = SCLSR_ORER | SCLSR_TO_SCIFA,
+		.init_interrupt_mask = SCSCR_TIE | SCSCR_RIE | SCSCR_REIE |
+				       SCSCR_TEIE_SCIFA | SCSCR_TOIE_SCIFA,
+	},
+	[SCIF_RZ_SCIFA_TYPE] = {
+		.regs = {
+			[SCSMR]		= { 0x00, 16 },
+			[SCBRR]		= { 0x02,  8 },
+			[SCSCR]		= { 0x04, 16 },
+			[SCFTDR]	= { 0x06,  8 },
+			[SCFSR]		= { 0x08, 16 },
+			[SCFRDR]	= { 0x0A,  8 },
+			[SCFCR]		= { 0x0C, 16 },
+			[SCFDR]		= { 0x0E, 16 },
+			[SCSPTR]	= { 0x10, 16 },
+			[SCLSR]		= { 0x12, 16 },
+			[SEMR]		= { 0x14, 8 },
+			[FTCR]		= { 0x16, 16 },
+		},
+		.init_lsr_mask = SCLSR_ORER,
+		.init_interrupt_mask = SCSCR_TIE | SCSCR_RIE | SCSCR_REIE | SCSCR_TEIE_RZ,
+	},
+};
+
+#define scif_getreg(dev, offset)	\
+	&(((const struct uart_scif_cfg *)((dev)->config))->params->regs[offset])
+
+/* TODO: Make unify uart_scif_read/uart_scif_write functions */
+
+static uint8_t uart_scif_read_8(const struct device *dev,
+				uint32_t offs)
+{
+	const struct uart_scif_cfg *config = dev->config;
+	uint32_t offset = config->params->regs[offs].offset;
+
+	return sys_read8(DEVICE_MMIO_GET(dev) + offset);
+}
 
 static void uart_scif_write_8(const struct device *dev,
 			      uint32_t offs, uint8_t value)
 {
-	sys_write8(value, DEVICE_MMIO_GET(dev) + offs);
+	const struct uart_scif_cfg *config = dev->config;
+	uint32_t offset = config->params->regs[offs].offset;
+
+	sys_write8(value, DEVICE_MMIO_GET(dev) + offset);
 }
 
 static uint16_t uart_scif_read_16(const struct device *dev,
 				  uint32_t offs)
 {
-	return sys_read16(DEVICE_MMIO_GET(dev) + offs);
+	const struct uart_scif_cfg *config = dev->config;
+	uint32_t offset = config->params->regs[offs].offset;
+
+	return sys_read16(DEVICE_MMIO_GET(dev) + offset);
 }
 
 static void uart_scif_write_16(const struct device *dev,
 			       uint32_t offs, uint16_t value)
 {
-	sys_write16(value, DEVICE_MMIO_GET(dev) + offs);
+	const struct uart_scif_cfg *config = dev->config;
+	uint32_t offset = config->params->regs[offs].offset;
+
+	sys_write16(value, DEVICE_MMIO_GET(dev) + offset);
 }
 
 static void uart_scif_set_baudrate(const struct device *dev,
 				   uint32_t baud_rate)
 {
+	const struct uart_scif_cfg *config = dev->config;
 	struct uart_scif_data *data = dev->data;
 	uint8_t reg_val;
 
-	reg_val = ((data->clk_rate + 16 * baud_rate) / (32 * baud_rate) - 1);
+	/* Those formulas for hardcoded parameters */
+	if (config->type == SCIF_RZ_SCIFA_TYPE) {
+		reg_val = ((data->clk_rate + 4 * baud_rate) / (8 * baud_rate) - 1);
+	} else {
+		reg_val = ((data->clk_rate + 16 * baud_rate) / (32 * baud_rate) - 1);
+	}
 	uart_scif_write_8(dev, SCBRR, reg_val);
 }
 
@@ -146,7 +254,7 @@ static int uart_scif_poll_in(const struct device *dev, unsigned char *p_char)
 		goto unlock;
 	}
 
-	*p_char = uart_scif_read_16(dev, SCFRDR);
+	*p_char = uart_scif_read_8(dev, SCFRDR);
 
 	reg_val = uart_scif_read_16(dev, SCFSR);
 	reg_val &= ~SCFSR_RDF;
@@ -180,9 +288,11 @@ static void uart_scif_poll_out(const struct device *dev, unsigned char out_char)
 static int uart_scif_configure(const struct device *dev,
 			       const struct uart_config *cfg)
 {
+	const struct uart_scif_cfg *config = dev->config;
 	struct uart_scif_data *data = dev->data;
 
 	uint16_t reg_val;
+	uint8_t reg_val8;
 	k_spinlock_key_t key;
 
 	if (cfg->parity != UART_CFG_PARITY_NONE ||
@@ -210,7 +320,7 @@ static int uart_scif_configure(const struct device *dev,
 	uart_scif_write_16(dev, SCFSR, reg_val);
 
 	reg_val = uart_scif_read_16(dev, SCLSR);
-	reg_val &= ~(SCLSR_TO | SCLSR_ORER);
+	reg_val &= ~(config->params->init_lsr_mask);
 	uart_scif_write_16(dev, SCLSR, reg_val);
 
 	/* Select internal clock */
@@ -236,9 +346,14 @@ static int uart_scif_configure(const struct device *dev,
 	/* Enable Transmit & Receive + disable Interrupts */
 	reg_val = uart_scif_read_16(dev, SCSCR);
 	reg_val |= (SCSCR_TE | SCSCR_RE);
-	reg_val &= ~(SCSCR_TIE | SCSCR_RIE | SCSCR_TEIE | SCSCR_REIE |
-		     SCSCR_TOIE);
+	reg_val &= ~(config->params->init_interrupt_mask);
 	uart_scif_write_16(dev, SCSCR, reg_val);
+
+	if (config->type == SCIF_RZ_SCIFA_TYPE) {
+		reg_val8 = uart_scif_read_8(dev, SEMR);
+		reg_val8 |= (SEMR_ABCS0 | SEMR_BGDM);
+		uart_scif_write_8(dev, SEMR, reg_val8);
+	}
 
 	data->current_config = *cfg;
 
@@ -347,7 +462,7 @@ static int uart_scif_fifo_read(const struct device *dev, uint8_t *rx_data,
 	while (((size - num_rx) > 0) &&
 	       (uart_scif_read_16(dev, SCFSR) & SCFSR_RDF)) {
 		/* Receive current byte */
-		rx_data[num_rx++] = uart_scif_read_16(dev, SCFRDR);
+		rx_data[num_rx++] = uart_scif_read_8(dev, SCFRDR);
 
 		reg_val = uart_scif_read_16(dev, SCFSR);
 		reg_val &= ~(SCFSR_RDF);
@@ -518,68 +633,98 @@ static const struct uart_driver_api uart_scif_driver_api = {
 };
 
 /* Device Instantiation */
-#define UART_SCIF_DECLARE_CFG(n, IRQ_FUNC_INIT)			    \
-	PINCTRL_DT_INST_DEFINE(n);				    \
-	static const struct uart_scif_cfg uart_scif_cfg_##n = {	    \
-		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),		    \
-		.clock_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)), \
-		.mod_clk.module =				    \
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),   \
-		.mod_clk.domain =				    \
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),   \
-		.bus_clk.module =				    \
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),   \
-		.bus_clk.domain =				    \
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),   \
-		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),	    \
-		IRQ_FUNC_INIT					    \
+#define UART_SCIF_DECLARE_CFG(n, soc_type, IRQ_FUNC_INIT)		\
+	PINCTRL_DT_INST_DEFINE(n);					\
+	static const struct uart_scif_cfg uart_scif_cfg_##n = {		\
+		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),			\
+		.clock_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)),	\
+		.mod_clk.module =					\
+			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),	\
+		.mod_clk.domain =					\
+			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),	\
+		.bus_clk.module =					\
+			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),	\
+		.bus_clk.domain =					\
+			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),	\
+		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),		\
+		.params = &port_params[soc_type],			\
+		.type = soc_type,					\
+		IRQ_FUNC_INIT						\
 	}
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
-#define UART_SCIF_CONFIG_FUNC(n)				  \
-	static void irq_config_func_##n(const struct device *dev) \
-	{							  \
-		IRQ_CONNECT(DT_INST_IRQN(n),			  \
-			    DT_INST_IRQ(n, priority),		  \
-			    uart_scif_isr,			  \
-			    DEVICE_DT_INST_GET(n), 0);		  \
-								  \
-		irq_enable(DT_INST_IRQN(n));			  \
+#define UART_SCIF_IRQ_CONFIG_FUNC_SCIFA(n)				\
+	static void irq_config_func_##n(const struct device *dev)	\
+	{								\
+		IRQ_CONNECT(DT_INST_IRQN(n),				\
+			    DT_INST_IRQ(n, priority),			\
+			    uart_scif_isr,				\
+			    DEVICE_DT_INST_GET(n), 0);			\
+									\
+		irq_enable(DT_INST_IRQN(n));				\
+	}
+
+#define UART_SET_IRQ(n, name)						\
+		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, name, irq),		\
+			    DT_INST_IRQ_BY_NAME(n, name, priority),	\
+			    uart_scif_isr,				\
+			    DEVICE_DT_INST_GET(n), 0);			\
+									\
+		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
+
+#define UART_SCIF_IRQ_CONFIG_FUNC_RZ(n)					\
+	static void irq_config_func_##n(const struct device *dev)	\
+	{								\
+		UART_SET_IRQ(n, eri);					\
+		UART_SET_IRQ(n, rxi);					\
+		UART_SET_IRQ(n, txi);					\
+		UART_SET_IRQ(n, tei);					\
 	}
 #define UART_SCIF_IRQ_CFG_FUNC_INIT(n) \
 	.irq_config_func = irq_config_func_##n
-#define UART_SCIF_INIT_CFG(n) \
-	UART_SCIF_DECLARE_CFG(n, UART_SCIF_IRQ_CFG_FUNC_INIT(n))
+#define UART_SCIF_INIT_CFG(n, soc_type) \
+	UART_SCIF_DECLARE_CFG(n, soc_type, UART_SCIF_IRQ_CFG_FUNC_INIT(n))
 #else
-#define UART_SCIF_CONFIG_FUNC(n)
+#define UART_SCIF_IRQ_CONFIG_FUNC(n)
 #define UART_SCIF_IRQ_CFG_FUNC_INIT
-#define UART_SCIF_INIT_CFG(n) \
-	UART_SCIF_DECLARE_CFG(n, UART_SCIF_IRQ_CFG_FUNC_INIT)
+#define UART_SCIF_INIT_CFG(n, soc_type) \
+	UART_SCIF_DECLARE_CFG(n, soc_type, UART_SCIF_IRQ_CFG_FUNC_INIT)
 #endif
 
-#define UART_SCIF_INIT(n)							\
-	static struct uart_scif_data uart_scif_data_##n = {			\
-		.current_config = {						\
-			.baudrate = DT_INST_PROP(n, current_speed),		\
-			.parity = UART_CFG_PARITY_NONE,				\
-			.stop_bits = UART_CFG_STOP_BITS_1,			\
-			.data_bits = UART_CFG_DATA_BITS_8,			\
-			.flow_ctrl = UART_CFG_FLOW_CTRL_NONE,			\
-		},								\
-	};									\
-										\
-	static const struct uart_scif_cfg uart_scif_cfg_##n;			\
-										\
-	DEVICE_DT_INST_DEFINE(n,						\
-			      uart_scif_init,					\
-			      NULL,						\
-			      &uart_scif_data_##n,				\
-			      &uart_scif_cfg_##n,				\
-			      PRE_KERNEL_1, CONFIG_SERIAL_INIT_PRIORITY,	\
-			      &uart_scif_driver_api);				\
-										\
-	UART_SCIF_CONFIG_FUNC(n)						\
-										\
-	UART_SCIF_INIT_CFG(n);
+#define UART_SCIF_XXX_INIT(n, soc_type)					\
+	static struct uart_scif_data uart_scif_data_##n = {		\
+		.current_config = {					\
+			.baudrate = DT_INST_PROP(n, current_speed),	\
+			.parity = UART_CFG_PARITY_NONE,			\
+			.stop_bits = UART_CFG_STOP_BITS_1,		\
+			.data_bits = UART_CFG_DATA_BITS_8,		\
+			.flow_ctrl = UART_CFG_FLOW_CTRL_NONE,		\
+		},							\
+	};								\
+	static const struct uart_scif_cfg uart_scif_cfg_##n;		\
+	DEVICE_DT_INST_DEFINE(n,					\
+			      uart_scif_init,				\
+			      NULL,					\
+			      &uart_scif_data_##n,			\
+			      &uart_scif_cfg_##n,			\
+			      PRE_KERNEL_1, CONFIG_SERIAL_INIT_PRIORITY,\
+			      &uart_scif_driver_api);			\
+									\
+	UART_SCIF_IRQ_CONFIG_FUNC(n)					\
+	UART_SCIF_INIT_CFG(n, soc_type);
 
-DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_INIT)
+#define DT_DRV_COMPAT renesas_rcar_scif
+#define UART_SCIF_SCIFA_INIT(n) UART_SCIF_XXX_INIT(n, SCIF_SCIFA_TYPE)
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+#define UART_SCIF_IRQ_CONFIG_FUNC UART_SCIF_IRQ_CONFIG_FUNC_SCIFA
+#endif
+DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_SCIFA_INIT)
+
+#undef DT_DRV_COMPAT
+#define DT_DRV_COMPAT renesas_rza2m_scif
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+#undef UART_SCIF_IRQ_CONFIG_FUNC
+#define UART_SCIF_IRQ_CONFIG_FUNC UART_SCIF_IRQ_CONFIG_FUNC_RZ
+#endif
+#define UART_SCIF_RZ_INIT(n) UART_SCIF_XXX_INIT(n, SCIF_RZ_SCIFA_TYPE)
+DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_RZ_INIT)
