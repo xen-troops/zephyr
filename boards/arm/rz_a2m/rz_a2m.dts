@@ -18,6 +18,21 @@
 		zephyr,flash = &flash0;
 	};
 
+	aliases {
+		led0 = &green;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		red: led_1_red {
+			gpios = <&port6 0 GPIO_ACTIVE_HIGH>;
+		};
+
+		green: led_1_green {
+			gpios = <&portc 1 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
 #ifdef CONFIG_XIP
 	ram: memory@80000000 {
 		compatible = "mmio-sram";
