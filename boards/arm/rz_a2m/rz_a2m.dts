@@ -19,6 +19,7 @@
 	};
 
 	aliases {
+		sw0 = &sw4;
 		led0 = &green;
 	};
 
@@ -30,6 +31,20 @@
 
 		green: led_1_green {
 			gpios = <&portc 1 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		sw4: button_4 {
+		     gpios = <&port5 6 GPIO_ACTIVE_HIGH>;
+		     label = "SW4";
+		     zephyr,code = <4>;
+		};
+
+		sw6_10: switch6_10 {
+		     gpios = <&portc 2 GPIO_ACTIVE_HIGH>;
+		     zephyr,code = <10>;
 		};
 	};
 
