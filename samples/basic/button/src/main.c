@@ -55,8 +55,12 @@ int main(void)
 		return 0;
 	}
 
+#ifdef CONFIG_GPIO_ENABLE_DISABLE_INTERRUPT
+	ret = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_MODE_ENABLE_ONLY);
+#else
 	ret = gpio_pin_interrupt_configure_dt(&button,
 					      GPIO_INT_EDGE_TO_ACTIVE);
+#endif
 	if (ret != 0) {
 		printk("Error %d: failed to configure interrupt on %s pin %d\n",
 			ret, button.port->name, button.pin);
