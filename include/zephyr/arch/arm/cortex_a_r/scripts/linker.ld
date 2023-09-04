@@ -73,7 +73,11 @@ _region_min_align = 4;
     . = ALIGN(_region_min_align)
 #endif
 
-#define BSS_ALIGN ALIGN(_region_min_align)
+#ifdef CONFIG_XIP
+#define BSS_ALIGN SUBALIGN(_region_min_align)
+#else
+#define BSS_ALIGN ALIGN(_region_min_align) /*BSDS*/
+#endif
 
 MEMORY
 {
