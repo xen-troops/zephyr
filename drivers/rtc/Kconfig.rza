@@ -1,0 +1,9 @@
+# Copyright 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config RTC_RZA2M
+	bool "Renesas RZ A RTC driver"
+	default y
+	depends on DT_HAS_RENESAS_RZA2M_RTC_ENABLED
+	help
+	  Build RTC driver for RZ A SoCs.
