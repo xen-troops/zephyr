@@ -16,6 +16,7 @@
 config CPU_CORTEX_A9
 	bool
 	select CPU_AARCH32_CORTEX_A
+	select CPU_HAS_DCACHE
 	select ARMV7_A
 	help
 	  This option signifies the use of a Cortex-A9 CPU.

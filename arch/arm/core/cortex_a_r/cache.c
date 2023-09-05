@@ -15,6 +15,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/cache.h>
 #include <cmsis_core.h>
+#include <zephyr/arch/arm/cortex_a_r/lib_helpers.h>
 #include <zephyr/sys/barrier.h>
 
 /* Cache Type Register */
@@ -170,6 +171,8 @@ int arch_dcache_flush_and_invd_range(void *start_addr, size_t size)
 #endif
 
 #ifdef CONFIG_ICACHE
+
+int arch_icache_invd_all(void);
 
 void arch_icache_enable(void)
 {
