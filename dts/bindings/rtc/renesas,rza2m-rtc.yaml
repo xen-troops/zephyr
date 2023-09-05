@@ -1,0 +1,16 @@
+# Copyright (c) 2023 EPAM Networks
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ A2M RTC
+
+compatible: "renesas,rza2m-rtc"
+
+include: [rtc-device.yaml]
+
+properties:
+  reg:
+    required: true
+  clocks:
+    required: true
+  interrupts:
+    required: true

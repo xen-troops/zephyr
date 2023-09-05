@@ -37,6 +37,13 @@
 		clock-frequency = <0>;
 	};
 
+	rtc_x1: rtc_x1 {
+		#clock-cells = <0>;
+		compatible = "fixed-clock";
+		/* value must be set by board */
+		clock-frequency = <0>;
+	};
+
 	soc {
 		compatible = "simple-bus";
 		interrupt-parent = <&gic>;
@@ -534,6 +541,33 @@
 			interrupt-names = "tei", "ri", "ti", "spi",
 					  "sti", "nacki", "ali", "tmoi";
 			clocks = <&cpg CPG_MOD 84>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			status = "disabled";
+		};
+
+		/* secure channel */
+		rtc0: rtc@fcffd000 {
+			compatible = "renesas,rza2m-rtc";
+			reg = <0xfcffd000 0x2f>;
+			interrupts = <GIC_SPI 327 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 328 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 329 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "alarm", "period", "carry";
+			clocks = <&cpg CPG_MOD 53>;
+			alarms-count = <1>;
+			status = "disabled";
+		};
+
+		/* non-secure channel */
+		rtc1: rtc@fcff1000 {
+			compatible = "renesas,rza2m-rtc";
+			reg = <0xfcff1000 0x2f>;
+			interrupts = <GIC_SPI 330 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 331 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 332 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "alarm", "period", "carry";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 52>;
+			alarms-count = <1>;
 			status = "disabled";
 		};
 	};
