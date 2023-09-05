@@ -1,13 +1,14 @@
-# Renesas R-Car UART configuration options
+# Renesas SCIF UART configuration options
 
 # Copyright (c) 2021 IoT.bzh
+# Copyright (c) 2023 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
-config UART_RCAR
-	bool "Renesas R-Car UART Driver"
+config UART_SCIF
+	bool "Renesas SCIF UART Driver"
 	default y
 	depends on DT_HAS_RENESAS_RCAR_SCIF_ENABLED
 	select SERIAL_HAS_DRIVER
 	select SERIAL_SUPPORT_INTERRUPT
 	help
-	  Enable Renesas R-Car UART Driver.
+	  Enable Renesas SCIF UART Driver.
