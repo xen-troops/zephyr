@@ -1,0 +1,23 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ A Watchdog
+
+compatible: "renesas,rza-wdt"
+
+include: [base.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  pinctrl-0:
+    required: false
+    description: |
+      Pinconfig setting of WDTOVF pin. The WDTOVF pin is used in watchdog timer
+      mode to output the WDTOVF signal when the WTCNT overflows. The WDTOVF
+      signal is externally output for 64 × P0φ clock cycles. Unfortunately, the
+      RZ A2M EVK board utilizes all available WDTOVF outputs for other functions.
