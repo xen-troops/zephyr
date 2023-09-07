@@ -312,5 +312,14 @@
 				ngpios = <8>;
 			};
 		};
+
+		wdt: watchdog@fcfe7000 {
+			compatible = "renesas,rza-wdt";
+			reg = <0xfcfe7000 0x6>;
+			/* interval timer interrupt is generated only in interval timer mode */
+			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			clocks = <&cpg CPG_CORE R7S9210_CLK_P0>;
+			status = "disabled";
+		};
 	};
 };

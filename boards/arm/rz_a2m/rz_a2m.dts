@@ -21,6 +21,7 @@
 	aliases {
 		sw0 = &sw4;
 		led0 = &green;
+		watchdog0 = &wdt;
 	};
 
 	leds {
@@ -67,6 +68,10 @@
 		compatible = "soc-nv-flash";
 		reg = <0x20000000 DT_SIZE_M(64)>;
 	};
+};
+
+&wdt {
+	status = "okay";
 };
 
 &extal_clk {
