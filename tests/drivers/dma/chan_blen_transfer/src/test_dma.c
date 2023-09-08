@@ -29,8 +29,13 @@ static const char TX_DATA[] = "It is harder to be kind than to be wise........";
 static __aligned(32) char rx_data[RX_BUFF_SIZE] __used
 	__attribute__((__section__(CONFIG_DMA_LOOP_TRANSFER_SRAM_SECTION".dma")));
 #else
+#ifdef CONFIG_BOARD_RZ_A2M
+static __aligned(4) const char tx_data[] = "It is harder to be kind than to be wise........";
+static __aligned(4) char rx_data[RX_BUFF_SIZE] = { 0 };
+#else
 static const char tx_data[] = "It is harder to be kind than to be wise........";
 static char rx_data[RX_BUFF_SIZE] = { 0 };
+#endif
 #endif
 
 static void test_done(const struct device *dma_dev, void *arg,
