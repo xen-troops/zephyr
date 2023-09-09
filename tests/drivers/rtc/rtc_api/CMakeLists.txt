@@ -11,8 +11,14 @@ target_sources(app PRIVATE
 	src/main.c
 	src/test_time_incrementing.c
 	src/test_time.c
+)
+
+# RTC of RZ A SoC series can run only from 2000 year
+if(NOT DEFINED CONFIG_SOC_SERIES_RZ_A)
+target_sources(app PRIVATE
 	src/test_y2k.c
 )
+endif()
 
 if(DEFINED CONFIG_RTC_ALARM)
 	target_sources(app PRIVATE
