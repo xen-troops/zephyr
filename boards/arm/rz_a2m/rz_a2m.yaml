@@ -12,6 +12,7 @@ supported:
   - gpio
   - pinctrl
   - dma
+  - rtc
 testing:
   default: true
   ignore_tags:
