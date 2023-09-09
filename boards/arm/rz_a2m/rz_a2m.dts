@@ -24,6 +24,7 @@
 		sw0 = &sw4;
 		led0 = &green;
 		watchdog0 = &wdt;
+		rtc = &rtc1;
 	};
 
 	leds {
@@ -76,8 +77,17 @@
 	status = "okay";
 };
 
+&rtc1 {
+	status = "okay";
+	clocks = <&cpg CPG_MOD 52>, <&rtc_x1>;
+};
+
 &extal_clk {
 	clock-frequency = <DT_FREQ_M(24)>;
+};
+
+&rtc_x1 {
+	clock-frequency = <32768>;
 };
 
 &ostm1 {
