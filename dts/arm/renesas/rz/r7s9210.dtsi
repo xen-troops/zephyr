@@ -12,6 +12,8 @@
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
 #include <zephyr/dt-bindings/clock/r7s9210_cpg_mssr.h>
 #include <zephyr/dt-bindings/dma/rza2_dma.h>
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/pwm/rza2m_pwm.h>
 
 / {
 	compatible = "renesas,r7s9210";
@@ -568,6 +570,191 @@
 			interrupt-parent = <&gic>;
 			clocks = <&cpg CPG_MOD 52>;
 			alarms-count = <1>;
+			status = "disabled";
+		};
+
+		/* General Purpose PWM Timer Channels */
+		gpt32e0: gpt32e0@e8043000 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043000 0xa4>, <0xe8043810 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 107 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 108 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 109 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 110 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 114 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 115 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 116 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 117 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 118 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 119 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <0>;
+			status = "disabled";
+		};
+
+		gpt32e1: gpt32e1@e8043100 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043100 0xa4>, <0xe8043814 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 120 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 121 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 122 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 123 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 127 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 128 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 129 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 130 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 131 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 132 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <1>;
+			status = "disabled";
+		};
+
+		gpt32e2: gpt32e2@e8043200 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043200 0xa4>, <0xe8043818 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 133 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 134 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 135 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 136 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 140 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 141 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 142 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 143 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 144 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 145 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <2>;
+			status = "disabled";
+		};
+
+		gpt32e3: gpt32e3@e8043300 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043300 0xa4>, <0xe804381c 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 146 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 147 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 148 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 149 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 153 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 154 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 155 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 156 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 157 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 158 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <3>;
+			status = "disabled";
+		};
+
+		gpt32e4: gpt32e4@e8043400 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043400 0xa4>, <0xe8043820 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 159 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 160 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 161 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 162 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 166 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 167 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 168 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 169 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 170 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 171 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <4>;
+			status = "disabled";
+		};
+
+		gpt32e5: gpt32e5@e8043500 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043500 0xa4>, <0xe8043824 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 172 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 173 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 174 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 175 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 179 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 180 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 181 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 182 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 183 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 184 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <5>;
+			status = "disabled";
+		};
+
+		gpt32e6: gpt32e6@e8043600 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043600 0xa4>, <0xe8043828 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 185 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 186 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 187 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 188 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 192 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 193 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 194 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 195 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 196 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 197 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <6>;
+			status = "disabled";
+		};
+
+		gpt32e7: gpt32e7@e8043700 {
+			compatible = "renesas,rza2m-pwm";
+			reg = <0xe8043700 0xa4>, <0xe804382c 0x4>;
+			reg-names = "GPT32E", "GTESR";
+			interrupts = <GIC_SPI 198 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 199 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 200 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 201 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 205 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 206 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 207 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 208 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 209 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 210 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "ccmpa", "ccmpb", "cmpc", "cmpd", "cmpe", "cmpf",
+					  "adtrga", "adtrgb", "ovf", "unf";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 30>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <7>;
 			status = "disabled";
 		};
 	};
