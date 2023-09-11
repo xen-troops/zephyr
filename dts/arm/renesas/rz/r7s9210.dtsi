@@ -21,6 +21,50 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 
+	bsc: bsc@1f000000 {
+		compatible = "renesas,rza2-bsc";
+		reg = <0x1f000000 0x2500>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		bsc_ram0: ram@0 {
+			reg = <0x0>;
+			type = <0x0>; /* Normal mem */
+		};
+
+		/* Enable this node if SDRAM is connected */
+		bsc_sdram: sdram@3 {
+			reg = <0x3>;
+			type = <0x4>; /* SDRAM */
+			bsz = <16>;
+			wtrp = <1>;
+			wtrcd = <3>;
+			a3cl = <3>;
+			trwl = <2>;
+			wtrc = <8>;
+			auto_ref = <1>;
+			bactv = <0>;
+			a3row = <0x2>; /* 13 bit */
+			a3col = <0x2>; /* 10 bit */
+			a2row = <0x2>; /* 13 bit */
+			a2col = <0x2>; /* 10 bit */
+			cks = <2>; /* CKIO/16 */
+			rrc = <1>;
+			rtcor = <0x40>;
+			sdrodly = <0x2>;
+			sdridly = <0xf>;
+			iwrrd = <0x0>;
+			iwrrs = <0x0>;
+			iww = <0x0>;
+			iwrwd = <0x0>;
+			iwrws = <0x0>;
+			idle = <0x33F1>;
+			sdcs2 = <0x0>;
+			sdcs3 = <0x0>;
+			status = "disabled";
+		};
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;

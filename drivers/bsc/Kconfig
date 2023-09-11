@@ -1,0 +1,15 @@
+# Copyright 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig BSC
+	   bool "BSC drivers"
+	   help
+	     The bus state controller outputs control signals
+	     for various types of memory and external devices
+	     that are connected to the external address space.
+
+if BSC
+
+source "drivers/bsc/Kconfig.rza2"
+
+endif #BSC

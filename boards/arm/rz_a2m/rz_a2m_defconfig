@@ -28,3 +28,6 @@ CONFIG_UART_CONSOLE=y
 # Enable Cache Management to be support inv_range and flush_range calls
 # needed for DMA to work correctly.
 CONFIG_CACHE_MANAGEMENT=y
+
+# Enable BSC
+CONFIG_BSC=y
