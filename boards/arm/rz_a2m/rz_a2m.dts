@@ -58,8 +58,7 @@
 	ram: memory@80000000 {
 		compatible = "mmio-sram";
 		reg = <0x80000000 DT_SIZE_M(4)		 /* 4  Mbyte of Internal RAM */
-		       0x40000000 DT_SIZE_M(8)		 /* 8  Mbyte of External HyperRAM */
-		       0x0C000000 DT_SIZE_M(64)>;	 /* 64 Mbyte of External SDRAM */
+		       0x40000000 DT_SIZE_M(8)>;	 /* 8  Mbyte of External HyperRAM */
 	};
 #else
 	/* TODO: Remove this when RECRZZP-52 is resolved */
@@ -68,6 +67,17 @@
 		reg = <0x80020000 DT_SIZE_K(3968)>;
 	};
 #endif
+	/*
+	 * Enable this node if SDRAM is connected
+	 * You must change switch SW6_1 to "ON" to enable SDRAM bus
+	 * You must also change switch SW6_3 to "ON to detach USB-serial from SDRAM bus
+	 * You must also change switch SW6_4 to "OFF" to enable SCIF-2 on CN17
+	 */
+	sdram1: sdram@C000000 {
+		compatible = "mmio-sram";
+		reg = <0x0C000000 DT_SIZE_M(64)>;
+		status = "disabled";
+	};
 
 	flash0: flash@20000000 {
 		compatible = "soc-nv-flash";
@@ -116,7 +126,17 @@
 	status = "okay";
 };
 
+
 &dma0 {
 	pinctrl-0 = <&dma0_pins>;
+};
+
+&bsc_ram0 {
+	pinctrl-0 = <&bsc_pins>;
+	pinctrl-names = "default";
+};
+
+&bsc_sdram {
+	pinctrl-0 = <&bsc_sdram_pins>;
 	pinctrl-names = "default";
 };

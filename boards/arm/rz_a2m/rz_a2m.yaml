@@ -14,6 +14,8 @@ supported:
   - dma
   - rtc
   - pwm
+  - bsc
+
 testing:
   default: true
   ignore_tags:

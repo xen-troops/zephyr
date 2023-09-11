@@ -1,0 +1,19 @@
+# Copyright 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config BSC_RZA2
+	bool "BSC driver for RZ/A2 series"
+	default y
+	depends on DT_HAS_RENESAS_RZA2_BSC_ENABLED
+	help
+	 Enable support for BSC driver for RZ/A2 series.
+
+if BSC_RZA2
+
+config BSC_RZA2_INIT_PRIORITY
+	int "RZA2 BSC init priority"
+	default 40
+	help
+	  Device driver initialization priority.
+
+endif # BSC_RZA2

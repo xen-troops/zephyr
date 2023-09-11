@@ -185,4 +185,92 @@
 	/omit-if-no-ref/ pwm1_pins: pwm1_pins {
 		pinmux = <RZA2_PINMUX(PORTG, 4, 5)>;	/* GTIOC1A */
 	};
+
+	/omit-if-no-ref/ bsc_pins: bsc {
+		pinmux = <RZA2_PINMUX(PORTA, 4, 1)>,	/* A20 */
+			 <RZA2_PINMUX(PORTA, 3, 1)>,	/* A19 */
+			 <RZA2_PINMUX(PORTA, 2, 1)>,	/* A18 */
+			 <RZA2_PINMUX(PORTA, 1, 1)>,	/* A17 */
+			 <RZA2_PINMUX(PORTA, 0, 1)>,	/* A16 */
+			 <RZA2_PINMUX(PORT9, 7, 1)>,	/* A15 */
+			 <RZA2_PINMUX(PORT9, 6, 1)>,	/* A14 */
+			 <RZA2_PINMUX(PORT9, 5, 1)>,	/* A13 */
+			 <RZA2_PINMUX(PORT9, 4, 1)>,	/* A12 */
+			 <RZA2_PINMUX(PORT9, 3, 1)>,	/* A11 */
+			 <RZA2_PINMUX(PORT9, 2, 1)>,	/* A10 */
+			 <RZA2_PINMUX(PORT9, 1, 1)>,	/* A9 */
+			 <RZA2_PINMUX(PORT9, 0, 1)>,	/* A8 */
+			 <RZA2_PINMUX(PORT8, 7, 1)>,	/* A7 */
+			 <RZA2_PINMUX(PORT8, 6, 1)>,	/* A6 */
+			 <RZA2_PINMUX(PORT8, 5, 1)>,	/* A5 */
+			 <RZA2_PINMUX(PORT8, 4, 1)>,	/* A4 */
+			 <RZA2_PINMUX(PORT8, 3, 1)>,	/* A3 */
+			 <RZA2_PINMUX(PORT8, 2, 1)>,	/* A2 */
+			 <RZA2_PINMUX(PORT8, 1, 1)>,	/* A1 */
+
+			 <RZA2_PINMUX(PORT2, 3, 1)>,	/* D15 */
+			 <RZA2_PINMUX(PORT2, 2, 1)>,	/* D14 */
+			 <RZA2_PINMUX(PORT2, 1, 1)>,	/* D13 */
+			 <RZA2_PINMUX(PORT2, 0, 1)>,	/* D12 */
+			 <RZA2_PINMUX(PORT1, 4, 1)>,	/* D11 */
+			 <RZA2_PINMUX(PORT1, 3, 1)>,	/* D10 */
+			 <RZA2_PINMUX(PORT1, 2, 1)>,	/* D9 */
+			 <RZA2_PINMUX(PORT1, 1, 1)>,	/* D8 */
+			 <RZA2_PINMUX(PORT1, 0, 1)>,	/* D7 */
+			 <RZA2_PINMUX(PORT0, 6, 1)>,	/* D6 */
+			 <RZA2_PINMUX(PORT0, 5, 1)>,	/* D5 */
+			 <RZA2_PINMUX(PORT0, 4, 1)>,	/* D4 */
+			 <RZA2_PINMUX(PORT0, 3, 1)>,	/* D3 */
+			 <RZA2_PINMUX(PORT0, 2, 1)>,	/* D2 */
+			 <RZA2_PINMUX(PORT0, 1, 1)>,	/* D1 */
+			 <RZA2_PINMUX(PORT0, 0, 1)>,	/* D0 */
+
+			 <RZA2_PINMUX(PORTB, 3, 1)>,	/* CS0# */
+
+			 <RZA2_PINMUX(PORT7, 7, 1)>;	/* RD# */
+	};
+
+	/omit-if-no-ref/ bsc_sdram_pins: bsc_sdram {
+		pinmux = <CKIO_DRV>,
+			 <RZA2_PINMUX(PORT9, 7, 1)>,	/* A15 */
+			 <RZA2_PINMUX(PORT9, 6, 1)>,	/* A14 */
+			 <RZA2_PINMUX(PORT9, 5, 1)>,	/* A13 */
+			 <RZA2_PINMUX(PORT9, 4, 1)>,	/* A12 */
+			 <RZA2_PINMUX(PORT9, 3, 1)>,	/* A11 */
+			 <RZA2_PINMUX(PORT9, 2, 1)>,	/* A10 */
+			 <RZA2_PINMUX(PORT9, 1, 1)>,	/* A9 */
+			 <RZA2_PINMUX(PORT9, 0, 1)>,	/* A8 */
+			 <RZA2_PINMUX(PORT8, 7, 1)>,	/* A7 */
+			 <RZA2_PINMUX(PORT8, 6, 1)>,	/* A6 */
+			 <RZA2_PINMUX(PORT8, 5, 1)>,	/* A5 */
+			 <RZA2_PINMUX(PORT8, 4, 1)>,	/* A4 */
+			 <RZA2_PINMUX(PORT8, 3, 1)>,	/* A3 */
+			 <RZA2_PINMUX(PORT8, 2, 1)>,	/* A2 */
+			 <RZA2_PINMUX(PORT8, 1, 1)>,	/* A1 */
+			 <RZA2_PINMUX(PORT2, 3, 1)>,	/* D15 */
+			 <RZA2_PINMUX(PORT2, 2, 1)>,	/* D14 */
+			 <RZA2_PINMUX(PORT2, 1, 1)>,	/* D13 */
+			 <RZA2_PINMUX(PORT2, 0, 1)>,	/* D12 */
+			 <RZA2_PINMUX(PORT1, 4, 1)>,	/* D11 */
+			 <RZA2_PINMUX(PORT1, 3, 1)>,	/* D10 */
+			 <RZA2_PINMUX(PORT1, 2, 1)>,	/* D9 */
+			 <RZA2_PINMUX(PORT1, 1, 1)>,	/* D8 */
+			 <RZA2_PINMUX(PORT1, 0, 1)>,	/* D7 */
+			 <RZA2_PINMUX(PORT0, 6, 1)>,	/* D6 */
+			 <RZA2_PINMUX(PORT0, 5, 1)>,	/* D5 */
+			 <RZA2_PINMUX(PORT0, 4, 1)>,	/* D4 */
+			 <RZA2_PINMUX(PORT0, 3, 1)>,	/* D3 */
+			 <RZA2_PINMUX(PORT0, 2, 1)>,	/* D2 */
+			 <RZA2_PINMUX(PORT0, 1, 1)>,	/* D1 */
+			 <RZA2_PINMUX(PORT0, 0, 1)>,	/* D0 */
+			 <RZA2_PINMUX(PORT6, 7, 1)>,	/* WE0/DQML */
+			 <RZA2_PINMUX(PORT6, 5, 1)>,	/* CS3 */
+			 <RZA2_PINMUX(PORT7, 1, 1)>,	/* RD/WR */
+			 <RZA2_PINMUX(PORT7, 0, 1)>,	/* WE1/DQMU */
+			 <RZA2_PINMUX(PORT7, 5, 1)>,	/* CKE */
+			 <RZA2_PINMUX(PORT7, 4, 1)>,	/* CAS */
+			 <RZA2_PINMUX(PORT7, 3, 1)>;	/* RAS */
+
+		drive-strength = <0x2>;
+	};
 };

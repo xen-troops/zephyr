@@ -20,6 +20,13 @@ static const struct arm_mmu_region mmu_regions[] = {
 			      0x1000,
 			      MT_DEVICE | MATTR_SHARED | MPERM_R | MPERM_W),
 
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(sdram1), okay)
+	MMU_REGION_FLAT_ENTRY("sdram",
+			      DT_REG_ADDR(DT_NODELABEL(sdram1)),
+			      DT_REG_SIZE(DT_NODELABEL(sdram1)),
+			      MT_NORMAL | MATTR_SHARED | MPERM_R | MPERM_W),
+#endif
+
 	MMU_REGION_FLAT_ENTRY("gic",
 			      DT_REG_ADDR_BY_IDX(DT_INST(0, arm_gic), 0),
 			      DT_REG_SIZE_BY_IDX(DT_INST(0, arm_gic), 0),
