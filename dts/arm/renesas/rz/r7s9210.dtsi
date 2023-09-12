@@ -97,6 +97,13 @@
 		clock-frequency = <0>;
 	};
 
+	audio_clk: audio_clk {
+		#clock-cells = <0>;
+		compatible = "fixed-clock";
+		/* value must be set by board */
+		clock-frequency = <0>;
+	};
+
 	soc {
 		compatible = "simple-bus";
 		interrupt-parent = <&gic>;
@@ -486,7 +493,7 @@
 			clocks = <&cpg CPG_MOD 45>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
 			clock-names = "fck", "bus";
 			status = "disabled";
-			};
+		};
 
 		scif3: serial@e8008800 {
 			compatible = "renesas,rza2m-scif";
@@ -1101,4 +1108,76 @@
 			interrupt-names = "usbh", "usbf", "dma0", "dma1", "dmaerr";
 		};
 	};
+
+		/* I2S Interfaces */
+		ssif0: ssif@e8048000 {
+			compatible = "renesas,ssif2", "renesas,rza2m-ssif2";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8048000 0x30>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 221 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 222 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "int_req", "dma_tx", "dma_rx";
+			dmas = <&dma0 0 DMA_RS_INT_SSIF_DMA_RX_0 0>,
+			       <&dma0 1 DMA_RS_INT_SSIF_DMA_TX_0 0>;
+			dma-names = "rx", "tx";
+			clocks = <&cpg CPG_MOD 73>, <&cpg CPG_CORE R7S9210_CLK_P1>, <&audio_clk>;
+			clock-names = "fck", "bus", "audio";
+			status = "disabled";
+		};
+
+		ssif1: ssif@e8048800 {
+			compatible = "renesas,ssif2", "renesas,rza2m-ssif2";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8048800 0x30>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 223 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 224 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 225 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "int_req", "dma_tx", "dma_rx";
+			dmas = <&dma0 0 DMA_RS_INT_SSIF_DMA_RX_1 0>,
+			       <&dma0 1 DMA_RS_INT_SSIF_DMA_TX_1 0>;
+			dma-names = "rx", "tx";
+			clocks = <&cpg CPG_MOD 72>, <&cpg CPG_CORE R7S9210_CLK_P1>, <&audio_clk>;
+			clock-names = "fck", "bus", "audio";
+			status = "disabled";
+		};
+
+		ssif2: ssif@e8049000 {
+			compatible = "renesas,ssif2", "renesas,rza2m-ssif2";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8049000 0x30>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 226 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 227 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "int_req", "dma_rt";
+			dmas = <&dma0 0 DMA_RS_INT_SSIF_DMA_RX_2 0>,
+			       <&dma0 1 DMA_RS_INT_SSIF_DMA_TX_2 0>;
+			dma-names = "rx", "tx";
+			clocks = <&cpg CPG_MOD 71>, <&cpg CPG_CORE R7S9210_CLK_P1>, <&audio_clk>;
+			clock-names = "fck", "bus", "audio";
+			status = "disabled";
+		};
+
+		ssif3: ssif@e8049800 {
+			compatible = "renesas,ssif2", "renesas,rza2m-ssif2";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xe8049800 0x30>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 228 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 229 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 230 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "int_req", "dma_tx", "dma_rx";
+			dmas = <&dma0 0 DMA_RS_INT_SSIF_DMA_RX_3 0>,
+			       <&dma0 1 DMA_RS_INT_SSIF_DMA_TX_3 0>;
+			dma-names = "rx", "tx";
+			clocks = <&cpg CPG_MOD 70>, <&cpg CPG_CORE R7S9210_CLK_P1>, <&audio_clk>;
+			clock-names = "fck", "bus", "audio";
+			status = "disabled";
+		};
 };
