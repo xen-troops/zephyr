@@ -1,0 +1,8 @@
+tests:
+  drivers.bsc.rz_a2m:
+    tags:
+      - drivers
+      - bsc
+    depends_on:
+      - bsc
+      - rz_a2m

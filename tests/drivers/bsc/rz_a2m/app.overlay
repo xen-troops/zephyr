@@ -1,0 +1,30 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		zephyr,console = &scif2;
+	};
+};
+
+&bsc_sdram {
+	status = "okay";
+};
+
+&sdram1 {
+	status = "okay";
+};
+
+&scif4 {
+	status = "disabled";
+};
+
+&scif2 {
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
