@@ -33,10 +33,13 @@
 #define PORTL 20
 #define PORTM 21 /* Pins PM_0/1 are labeled JP_0/1 in HW manual */
 
+#define PORTCKIO             22
 /*
  * Create the pin index from its bank and position numbers and store in
  * the upper 16 bits the alternate function identifier
  */
 #define RZA2_PINMUX(b, p, f) ((b) * RZA2_PIN_NUM_IN_PORT + (p) | (f << 16))
+
+#define CKIO_DRV RZA2_PINMUX(PORTCKIO, 0, 0)
 
 #endif /* ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_RENESAS_PINCTRL_R7S9210_H_ */

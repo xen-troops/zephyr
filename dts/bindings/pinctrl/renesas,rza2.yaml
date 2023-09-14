@@ -34,3 +34,12 @@ child-binding:
         Values are constructed from GPIO port number, pin number, and
         alternate function configuration number using the RZA2_PINMUX()
         helper macro in pinctrl-r7s9210.h.
+
+    drive-strength:
+      required: false
+      type: int
+      enum:
+        - 1 # 8 mA
+        - 2 # 12 mA
+      description: |
+        The PCKIO register controls driving ability of the CKIO pin.

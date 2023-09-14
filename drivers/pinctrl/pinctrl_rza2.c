@@ -20,6 +20,7 @@
 #define RZA2_PDR(port)      (0x0000 + (port) * 2)           /* Direction 16-bit */
 #define RZA2_PMR(port)      (0x0000 + (port))               /* Mode 8-bit */
 #define RZA2_PFS(port, pin) (0x0180 + ((port) * 8) + (pin)) /* Fnct 8-bit */
+#define RZA2_PCKIO          (0x0950)
 
 #define RZA2_PWPR 0x027f /* Write Protect 8-bit */
 
@@ -125,6 +126,16 @@ static void rza2_set_gpio_int(uint8_t port, uint8_t pin, bool int_en)
 	rza2_pin_write_prot(PWPR_B0WI); /* B0WI=1, PFSWE=0 */
 }
 
+static int rza2_set_ckio_drive(uint8_t drive_strength)
+{
+	if (drive_strength != 0b01 && drive_strength != 0b10) {
+		return 0;
+	}
+
+	sys_write8(drive_strength, rza2_pinctrl_data.pinctrl_addr + RZA2_PCKIO);
+	return 0;
+}
+
 static int pinctrl_configure_pin(const pinctrl_soc_pin_t pin)
 {
 	if (pin.func & FUNC_GPIO_INPUT) {
@@ -135,6 +146,8 @@ static int pinctrl_configure_pin(const pinctrl_soc_pin_t pin)
 		rza2_set_gpio_int(pin.port, pin.pin, true);
 	} else if (pin.func & FUNC_GPIO_INT_DIS) {
 		rza2_set_gpio_int(pin.port, pin.pin, false);
+	} else if (pin.port == CKIO_PORT) {
+		return rza2_set_ckio_drive(pin.drive_strength);
 	} else {
 		rza2_set_pin_function(pin.port, pin.pin, pin.func);
 	}

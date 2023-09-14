@@ -14,6 +14,7 @@ typedef struct pinctrl_soc_pin {
 	uint8_t port;
 	uint8_t pin;
 	uint8_t func;
+	uint8_t drive_strength;
 } pinctrl_soc_pin_t;
 
 #define RZA2_PINS_PER_PORT 8
@@ -27,6 +28,10 @@ typedef struct pinctrl_soc_pin {
 #define FUNC_GPIO_INT_EN  BIT(5) /* Enable interrupt for gpio */
 #define FUNC_GPIO_INT_DIS BIT(6) /* Disable interrupt for gpio */
 
+/*
+ * CKIO to set CKIO pin Driving Ability Control Register.
+ */
+#define CKIO_PORT         22
 /*
  * Use 16 lower bits [15:0] for pin identifier
  * Use 16 higher bits [31:16] for pin mux function
@@ -51,6 +56,7 @@ typedef struct pinctrl_soc_pin {
 		.port = RZA_PORT(DT_PROP_BY_IDX(node_id, state_prop, idx)),                        \
 		.pin = RZA_PIN(DT_PROP_BY_IDX(node_id, state_prop, idx)),                          \
 		.func = RZA_FUNC(DT_PROP_BY_IDX(node_id, state_prop, idx)),                        \
+		.drive_strength = DT_PROP_OR(node_id, drive_strength, 0),                          \
 	},
 
 /**
