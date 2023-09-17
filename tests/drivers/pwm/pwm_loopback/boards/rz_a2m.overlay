@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	pwm_loopback_0 {
+		compatible = "test-pwm-loopback";
+		pwms = <&gpt32e0 0 0 PWM_POLARITY_NORMAL>,
+		       <&gpt32e1 1 0 PWM_POLARITY_NORMAL>;
+	};
+};
