@@ -175,4 +175,14 @@
 			 <RZA2_PINMUX(PORT4, 6, 5)>,	/* DACK0 */
 			 <RZA2_PINMUX(PORT4, 7, 5)>;	/* TEND0 */
 	};
+
+	/* CMOS pin 24 */
+	/omit-if-no-ref/ pwm0_pins: pwm0_pins {
+		pinmux = <RZA2_PINMUX(PORTG, 2, 5)>;	/* GTIOC0A */
+	};
+
+	/* CMOS pin 19 */
+	/omit-if-no-ref/ pwm1_pins: pwm1_pins {
+		pinmux = <RZA2_PINMUX(PORTG, 4, 5)>;	/* GTIOC1A */
+	};
 };
