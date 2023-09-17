@@ -13,6 +13,7 @@ supported:
   - pinctrl
   - dma
   - rtc
+  - pwm
 testing:
   default: true
   ignore_tags:
