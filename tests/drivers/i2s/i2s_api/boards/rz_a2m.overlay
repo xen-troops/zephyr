@@ -1,0 +1,34 @@
+/* i2s-node0 is the transmitter/receiver */
+
+/ {
+	aliases {
+		i2s-node0 = &ssif1;
+		i2s-node1 = &ssif0;
+		test = &scif2;
+	};
+};
+
+&ssi0_pins {
+	pinmux = <RZA2_PINMUX(PORTE, 3, 3)>,	/* SSIBCK0 */
+		 <RZA2_PINMUX(PORTE, 4, 3)>,	/* SSILRCK0 */
+		 <RZA2_PINMUX(PORTE, 5, 3)>,	/* SSITxD0 */
+		 <RZA2_PINMUX(PORTE, 6, 3)>,	/* SSIRxD0 */
+		 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
+};
+
+&ssif0 {
+	pinctrl-0 = <&ssi0_pins>;
+	pinctrl-names = "default";
+	clock-stop-enable;
+	status = "okay";
+};
+
+&ssif1 {
+	pinctrl-0 = <&ssi1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&dma0 {
+	status = "okay";
+};

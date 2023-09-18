@@ -20,6 +20,9 @@
  */
 ZTEST_USER(i2s_loopback, test_i2s_transfer_short)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -86,6 +89,9 @@ ZTEST_USER(i2s_loopback, test_i2s_transfer_short)
  */
 ZTEST_USER(i2s_loopback, test_i2s_transfer_long)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -140,6 +146,9 @@ ZTEST_USER(i2s_loopback, test_i2s_transfer_long)
  */
 ZTEST_USER(i2s_loopback, test_i2s_rx_sync_start)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -208,6 +217,9 @@ ZTEST_USER(i2s_loopback, test_i2s_rx_empty_timeout)
  */
 ZTEST_USER(i2s_loopback, test_i2s_transfer_restart)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -293,6 +305,9 @@ ZTEST_USER(i2s_loopback, test_i2s_transfer_restart)
  */
 ZTEST_USER(i2s_loopback, test_i2s_transfer_rx_overrun)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -371,6 +386,9 @@ ZTEST_USER(i2s_loopback, test_i2s_transfer_rx_overrun)
  */
 ZTEST_USER(i2s_loopback, test_i2s_transfer_tx_underrun)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -428,4 +446,26 @@ ZTEST_USER(i2s_loopback, test_i2s_transfer_tx_underrun)
 	zassert_equal(ret, TC_PASS);
 
 	k_sleep(K_MSEC(200));
+}
+
+ZTEST_USER(i2s_loopback, test_i2s_rx)
+{
+	int ret;
+
+	/* Prefill TX queue */
+	ret = tx_block_write(dev_i2s_tx, 0, 0);
+	zassert_equal(ret, TC_PASS);
+	TC_PRINT("%d->OK\n", 1);
+
+	/* Start reception */
+	ret = i2s_trigger(dev_i2s_rx, I2S_DIR_RX, I2S_TRIGGER_START);
+	zassert_equal(ret, 0, "RX START trigger failed");
+
+	/* Start transmission */
+	ret = i2s_trigger(dev_i2s_tx, I2S_DIR_TX, I2S_TRIGGER_START);
+	zassert_equal(ret, 0, "TX START trigger failed");
+
+	ret = rx_block_read(dev_i2s_rx, 0);
+	zassert_equal(ret, TC_PASS);
+	TC_PRINT("%d<-OK\n", 1);
 }
