@@ -15,6 +15,7 @@ supported:
   - rtc
   - pwm
   - bsc
+  - flash
 
 testing:
   default: true
