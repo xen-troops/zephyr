@@ -16,7 +16,11 @@ extern struct k_mem_slab tx_mem_slab;
 
 #define SAMPLE_NO	32
 #define TIMEOUT		2000
+#if defined(CONFIG_BOARD_RZ_A2M)
+#define FRAME_CLK_FREQ	7350
+#else
 #define FRAME_CLK_FREQ	8000
+#endif
 
 extern int16_t data_l[SAMPLE_NO];
 extern int16_t data_r[SAMPLE_NO];

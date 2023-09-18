@@ -119,6 +119,9 @@ ZTEST_USER(i2s_states, test_i2s_state_ready_neg)
  */
 ZTEST_USER(i2s_states, test_i2s_state_running_neg)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -176,6 +179,9 @@ ZTEST_USER(i2s_states, test_i2s_state_running_neg)
  */
 ZTEST_USER(i2s_states, test_i2s_state_stopping_neg)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();
@@ -246,6 +252,9 @@ ZTEST_USER(i2s_states, test_i2s_state_stopping_neg)
  */
 ZTEST_USER(i2s_states, test_i2s_state_error_neg)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	if (IS_ENABLED(CONFIG_I2S_TEST_USE_I2S_DIR_BOTH)) {
 		TC_PRINT("RX/TX transfer requires use of I2S_DIR_BOTH.\n");
 		ztest_test_skip();

@@ -108,7 +108,7 @@ int verify_buf_const(int16_t *rx_block, int16_t val_l, int16_t val_r)
 static int tx_block_write_slab(const struct device *dev_i2s, int att, int err,
 			       struct k_mem_slab *slab)
 {
-	char tx_block[BLOCK_SIZE];
+	uint8_t tx_block[BLOCK_SIZE];
 	int ret;
 
 	fill_buf((uint16_t *)tx_block, att);
