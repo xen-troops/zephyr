@@ -77,6 +77,8 @@ hardware features:
 +-----------+------------------------------+-------------------------------------+
 | MTU       | pwm                          | period capture/pwm saw-waves        |
 +-----------+------------------------------+-------------------------------------+
+| Flash     | Flash controller             | One serial flash connected          |
++-----------+------------------------------+-------------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 

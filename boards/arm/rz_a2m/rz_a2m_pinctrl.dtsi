@@ -281,4 +281,8 @@
 	/omit-if-no-ref/ mtu4_pwm_pin: mtu4_pwm_pin {
 		pinmux = <RZA2_PINMUX(PORTG, 6, 4)>;	/* MTIOC4C */
 	};
+
+	/omit-if-no-ref/ spi_mode_3: spi_flash {
+		pinmux = <RZA2_PINMUX(PORTPPOC, PIN_POSEL, 3)>;
+	};
 };

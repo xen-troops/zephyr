@@ -79,10 +79,26 @@
 		status = "disabled";
 	};
 
+#ifdef CONFIG_XIP
 	flash0: flash@20000000 {
 		compatible = "soc-nv-flash";
 		reg = <0x20000000 DT_SIZE_M(64)>;
 	};
+#else
+	flash_controller: flash-controller@1F800000 {
+		compatible = "renesas,rza2-flash-controller";
+		reg = <0x1F800000 0x78>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		flash0: flash@20000000 {
+			compatible = "soc-nv-flash";
+			reg = <0x20000000 DT_SIZE_M(64)>;
+			erase-block-size = <4096>;
+			write-block-size = <256>;
+		};
+	};
+#endif
 };
 
 &wdt {
@@ -141,3 +157,10 @@
 	pinctrl-0 = <&bsc_sdram_pins>;
 	pinctrl-names = "default";
 };
+
+#ifndef CONFIG_XIP
+&flash_controller {
+	pinctrl-0 = <&spi_mode_3>;
+	pinctrl-names = "default";
+};
+#endif
