@@ -9,4 +9,13 @@
 #define PWM_CHANNEL_INPUT_A (0 << 31)
 #define PWM_CHANNEL_INPUT_B (1 << 31)
 
+#define MTU_PWM_CH_IO_A 0
+#define MTU_PWM_CH_IO_B 1
+#define MTU_PWM_CH_IO_C 2
+#define MTU_PWM_CH_IO_D 3
+
+#define MTU_PWM_CH_IO_U 0
+#define MTU_PWM_CH_IO_V 1
+#define MTU_PWM_CH_IO_W 2
+
 #endif /* ZEPHYR_INCLUDE_DT_BINDINGS_RZA2M_PWM_H_ */

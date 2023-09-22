@@ -801,5 +801,175 @@
 			channel-id = <7>;
 			status = "disabled";
 		};
+
+		/* Multi-function timers (MTU) */
+		mtu0: mtu0@e8041300 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041300 0x29>, <0xe8041290 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 63 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 64 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 65 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 66 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 67 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 68 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 69 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tgiv", "tgie", "tgif";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <0>;
+			status = "disabled";
+		};
+
+		mtu1: mtu1@e8041380 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041380 0x2C>, <0xe8041291 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 70 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 71 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 72 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 73 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tciv", "tciu";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <1>;
+			status = "disabled";
+		};
+
+		mtu2: mtu2@e8041400 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041400 0xd>, <0xe8041292 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 74 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 75 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 76 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 77 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tciv", "tciu";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <2>;
+			status = "disabled";
+		};
+
+		mtu3: mtu3@e8041200 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041200 0x39>, <0xe8041293 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 78 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 79 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 80 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 81 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 82 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <3>;
+			status = "disabled";
+		};
+
+		mtu4: mtu4@e8041201 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041201 0x77>, <0xe8041294 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 83 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 84 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 85 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 86 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 87 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <4>;
+			status = "disabled";
+		};
+
+		mtu5: mtu5@e8041c80 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041c80 0x37>, <0xe8041a95 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 88 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 89 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 90 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgiu", "tgiv", "tgiw";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <5>;
+			status = "disabled";
+		};
+
+		mtu6: mtu6@e8041a00 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041a00 0x39>, <0xe8041a93 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 91 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 92 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 93 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 94 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 95 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <6>;
+			status = "disabled";
+		};
+
+		mtu7: mtu7@e8041a01 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041a01 0x77>, <0xe8041a94 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 96  IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 97  IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 98  IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 99  IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 100 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <7>;
+			status = "disabled";
+		};
+
+		mtu8: mtu8@e8041600 {
+			compatible = "renesas,rza2m-mtu";
+			reg = <0xe8041600 0x1C>, <0xe8041298 0x1>,
+			      <0xe8041299 0x1>, <0xe804120a 0x78>, <0xe8041a0a 0x7b>;
+			reg-names = "mtu", "noise_flt_cr",
+				    "noise_flt_cr_cmn", "mtu_cmn_a", "mtu_cmn_b";
+			interrupts = <GIC_SPI 101 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 102 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 103 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 104 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 105 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv";
+			interrupt-parent = <&gic>;
+			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			#pwm-cells = <3>;
+			channel-id = <8>;
+			status = "disabled";
+		};
 	};
 };
