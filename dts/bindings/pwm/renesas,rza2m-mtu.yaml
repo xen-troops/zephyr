@@ -1,0 +1,38 @@
+# Copyright (c) 2023, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ A2M multi-functional PWM timer channel
+
+compatible: "renesas,rza2m-mtu"
+
+include: [pwm-controller.yaml, pinctrl-device.yaml, base.yaml]
+
+properties:
+  "#pwm-cells":
+    const: 3
+
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  interrupt-names:
+    required: true
+
+  clocks:
+    required: true
+
+  channel-id:
+    type: int
+    required: true
+
+  divider:
+    type: int
+    enum: [1, 2, 4, 8, 16, 32, 64, 256, 1024]
+
+# for using channel B you should set 31-th bit in channel number, i.e. (ch | PWM_CHANNEL_INPUT_B)
+pwm-cells:
+  - channel
+  - period
+  - flags

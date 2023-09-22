@@ -9,3 +9,10 @@ config PWM_RZA2M
 	depends on DT_HAS_RENESAS_RZA2M_PWM_ENABLED
 	help
 	  Enable General Purpose PWM timer driver.
+
+config PWM_MTU_RZA2M
+	bool "Renesas RZ/A2M multi-functional PWM timer driver"
+	default y
+	depends on DT_HAS_RENESAS_RZA2M_MTU_ENABLED
+	help
+	  Enable Multi Functional PWM timer driver.
