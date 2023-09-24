@@ -129,6 +129,7 @@
 
 &dma0 {
 	pinctrl-0 = <&dma0_pins>;
+	pinctrl-names = "default";
 };
 
 &bsc_ram0 {
