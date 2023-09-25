@@ -192,3 +192,8 @@
 	pinctrl-0 = <&usb1_pins>;
 	pinctrl-names = "default";
 };
+
+&ssif0 {
+	pinctrl-0 = <&ssi0_pins>;
+	pinctrl-names = "default";
+};
