@@ -193,6 +193,32 @@
 			 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
 	};
 
+	/* I2S Audio on SSI-1 */
+	/omit-if-no-ref/ ssi1_pins: ssi1 {
+		pinmux = <RZA2_PINMUX(PORTB, 2, 4)>,	/* SSIBCK1 */
+			 <RZA2_PINMUX(PORTB, 1, 4)>,	/* SSILRCK1 */
+			 <RZA2_PINMUX(PORTB, 0, 4)>,	/* SSITxD1 */
+			 <RZA2_PINMUX(PORTA, 7, 4)>,	/* SSIRxD1 */
+			 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
+	};
+
+	/* I2S Audio on SSI-2 */
+	/omit-if-no-ref/ ssi2_pins: ssi2 {
+		pinmux = <RZA2_PINMUX(PORTB, 5, 4)>,	/* SSIBCK2 */
+			 <RZA2_PINMUX(PORTB, 4, 4)>,	/* SSILRCK2 */
+			 <RZA2_PINMUX(PORTB, 3, 4)>,	/* SSITxDATA2 */
+			 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
+	};
+
+	/* I2S Audio on SSI-3 */
+	/omit-if-no-ref/ ssi3_pins: ssi3 {
+		pinmux = <RZA2_PINMUX(PORT8, 7, 5)>,	/* SSIBCK3 */
+			 <RZA2_PINMUX(PORT8, 6, 5)>,	/* SSILRCK3 */
+			 <RZA2_PINMUX(PORT8, 5, 5)>,	/* SSITxD3 */
+			 <RZA2_PINMUX(PORT8, 4, 5)>,	/* SSIRxD3 */
+			 <RZA2_PINMUX(PORT6, 4, 4)>;	/* AUDIO_CLK */
+	};
+
 	/omit-if-no-ref/ dma0_pins: dma0_pins {
 		pinmux = <RZA2_PINMUX(PORT4, 5, 5)>,	/* DREQ0 */
 			 <RZA2_PINMUX(PORT4, 6, 5)>,	/* DACK0 */
