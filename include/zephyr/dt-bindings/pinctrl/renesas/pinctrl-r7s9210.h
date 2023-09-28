@@ -34,6 +34,12 @@
 #define PORTM 21 /* Pins PM_0/1 are labeled JP_0/1 in HW manual */
 
 #define PORTCKIO             22
+#define PORTPPOC             23
+
+#define PIN_POSEL 0 /* Sets function for POSEL0 bits. 00, 01, 10 - 1.8v, 11 - 3.3v */
+#define PIN_POC2  1 /* Sets function for SSD host 0, 0 - 1.8v 1 - 3.3v */
+#define PIN_POC3  2 /* Sets function for SSD host 1, 0 - 1.8v 1 - 3.3v */
+
 /*
  * Create the pin index from its bank and position numbers and store in
  * the upper 16 bits the alternate function identifier
