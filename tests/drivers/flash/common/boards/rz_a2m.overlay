@@ -1,0 +1,24 @@
+/*
+ * Copyright (c) 2022 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&flash0 {
+	status = "okay";
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* Set 3 KB of storage in the middle of the of the of 2Mb flash 0 */
+		storage_partition: partition@1000 {
+			label = "storage";
+			reg = <0x1000 DT_SIZE_K(3)>;
+		};
+	};
+};
+
+&flash_controller {
+	status = "okay";
+};
