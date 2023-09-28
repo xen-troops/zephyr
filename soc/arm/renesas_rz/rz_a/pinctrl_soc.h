@@ -29,10 +29,6 @@ typedef struct pinctrl_soc_pin {
 #define FUNC_GPIO_INT_DIS BIT(6) /* Disable interrupt for gpio */
 
 /*
- * CKIO to set CKIO pin Driving Ability Control Register.
- */
-#define CKIO_PORT         22
-/*
  * Use 16 lower bits [15:0] for pin identifier
  * Use 16 higher bits [31:16] for pin mux function
  */
