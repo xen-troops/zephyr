@@ -48,6 +48,10 @@
 #define EXPECTED_SIZE	512
 #define CANARY		0xff
 
+#ifdef CONFIG_BOARD_RZ_A2M
+#define FLASH_SECTOR_SIZE DT_PROP(DT_CHOSEN(zephyr_flash), erase_block_size)
+#endif
+
 static const struct device *const flash_dev = TEST_AREA_DEVICE;
 static struct flash_pages_info page_info;
 static uint8_t __aligned(4) expected[EXPECTED_SIZE];
@@ -92,11 +96,19 @@ static void *flash_driver_setup(void)
 	}
 
 	if (!is_buf_clear) {
+#ifndef CONFIG_BOARD_RZ_A2M
 		/* Erase a nb of pages aligned to the EXPECTED_SIZE */
 		rc = flash_erase(flash_dev, page_info.start_offset,
 				(page_info.size *
 				((EXPECTED_SIZE + page_info.size - 1)
 				/ page_info.size)));
+#else
+		/* Erase a nb of pages aligned to the EXPECTED_SIZE */
+		rc = flash_erase(flash_dev, page_info.start_offset,
+				(FLASH_SECTOR_SIZE *
+				((EXPECTED_SIZE + FLASH_SECTOR_SIZE - 1)
+				/ FLASH_SECTOR_SIZE)));
+#endif
 
 		zassert_equal(rc, 0, "Flash memory not properly erased");
 	}
@@ -144,5 +156,58 @@ ZTEST(flash_driver, test_read_unaligned_address)
 		}
 	}
 }
+
+#if defined(CONFIG_BOARD_RZ_A2M)
+ZTEST(flash_driver_rw, test_read_write_erase)
+{
+	uint32_t value, val_wr;
+	int ret;
+
+	ret = flash_erase(flash_dev, 0x1000, FLASH_SECTOR_SIZE);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	ret = flash_read(flash_dev, 0x1000, (void *)&val_wr, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	zassert_equal(val_wr, 0xffffffff, "Wrong val exp %x got %x", 0xffffffff, val_wr);
+
+	value = 0x12345678;
+	ret = flash_write(flash_dev, 0x1000, (void *)&value, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	ret = flash_read(flash_dev, 0x1000, (void *)&val_wr, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	zassert_equal(value, val_wr, "Wrong val exp %x got %x", value, val_wr);
+
+	ret = flash_erase(flash_dev, 0, FLASH_SECTOR_SIZE);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	ret = flash_read(flash_dev, 0, (void *)&val_wr, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	zassert_equal(val_wr, 0xffffffff, "Wrong val exp %x got %x", 0xffffffff, val_wr);
+
+	value = 0x12345600;
+	ret = flash_write(flash_dev, 0, (void *)&value, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	ret = flash_read(flash_dev, 0, (void *)&val_wr, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	zassert_equal(value, val_wr, "Wrong val exp %x got %x", value, val_wr);
+
+	value = 0x12345601;
+	ret = flash_write(flash_dev, 4, (void *)&value, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	ret = flash_read(flash_dev, 4, (void *)&val_wr, 4);
+	zassert_equal(ret, 0, "Wrong ret %d", ret);
+
+	zassert_equal(value, val_wr, "Wrong val exp %x got %x", value, val_wr);
+}
+
+ZTEST_SUITE(flash_driver_rw, NULL, NULL, NULL, NULL, NULL);
+#endif
 
 ZTEST_SUITE(flash_driver, NULL, flash_driver_setup, NULL, NULL, NULL);
