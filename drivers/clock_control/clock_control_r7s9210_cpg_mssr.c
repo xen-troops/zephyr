@@ -511,6 +511,19 @@ static int r7s9210_cpg_mssr_init(const struct device *dev)
 	rate = UINT_TO_POINTER(RENESAS_CPG_MHZ(66));
 	renesas_cpg_set_rate(dev, (clock_control_subsys_t)&clk, rate);
 
+	/*
+	 * TODO: According to the HW manual this register setting must
+	 * be processed by the program on the on-chip RAM.
+	 * Zephyr currently do not support code relocation so romcode
+	 * does an initial configuration.
+	 */
+#ifdef FLASH_RZA2
+	/* Eanable clock P1 66 MHz if spi flash is enabled */
+	reg_val = sys_read16(DEVICE_MMIO_GET(dev) + SCLKSEL_OFFSET);
+	reg_val &= ~(SCLKSEL_SPICR_MASK << SCLKSEL_SPICR_OFFSET);
+	reg_val |= 1 << SCLKSEL_SPICR_OFFSET;
+	sys_write16(reg_val, DEVICE_MMIO_GET(dev) + SCLKSEL_OFFSET);
+#endif
 	return 0;
 }
 
