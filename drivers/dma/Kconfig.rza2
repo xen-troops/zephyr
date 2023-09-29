@@ -4,11 +4,20 @@
 config DMA_RZA2
 	bool "Renesas RZA2 General Purpose DMA driver"
 	depends on DT_HAS_RENESAS_RZA2_DMA_ENABLED
+	select NOCACHE_MEMORY
 	default y
 	help
-	  General Purpose DMA for Renesas RZA2 series. Please note that driver
-	  uses dynamic memory allocation with k_calloc() to allocate link descriptors, so
-	  CONFIG_HEAP_MEM_POOL_SIZE should be enough to store all data.
+	  General Purpose DMA for Renesas RZA2 series. Please note that the buffers
+	  for DMA should be provided with care or placed in NOCACHE_MEMORY section
+	  to avoid cache coherence issues that can not be solved using cache maintenance
+	  operations.
+	  Using cacheble buffers for transfer is possible when buffers follows a set of rules:
+	  - ensure the I/O buffers are cacheline-aligned. Without that, cacheline
+	    sharing problems (data corruption) on CPUs with DMA-incoherent caches can be seen.
+	    (The CPU could write to one word, DMA would write to a different one
+	    in the same cache line, and one of them could be overwritten.)
+	  - use cache maintenance operations to ensure that cache is coherent before and after the
+	    transaction.
 
 if DMA_RZA2
 
