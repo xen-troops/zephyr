@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <stddef.h>
-#include <zephyr/arch/cache.h>
 #include <zephyr/device.h>
 #include <zephyr/dt-bindings/dma/rza2_dma.h>
 #include <zephyr/drivers/dma.h>
@@ -177,11 +176,6 @@ struct dma_rza2_config {
 	uint32_t addr_alignment;
 };
 
-enum dma_cache_op {
-	CACHE_FLUSH = 0,
-	CACHE_INV
-};
-
 enum channel_mode {
 	REGISTER_MODE = 0,
 	LINK_MODE
@@ -349,24 +343,6 @@ static int dma_get_data_size(uint32_t data_size)
 	}
 }
 
-static void dma_cache_data_clean(uint32_t daddr, uint32_t saddr, uint8_t sop, uint32_t size,
-				 uint32_t direction)
-{
-	if (direction != MEMORY_TO_PERIPHERAL) {
-		cache_data_flush_and_invd_range((void *)daddr, size);
-	}
-
-	if (direction == PERIPHERAL_TO_MEMORY) {
-		return;
-	}
-
-	if (sop == CACHE_FLUSH) {
-		cache_data_flush_range((void *)saddr, size);
-	} else {
-		cache_data_invd_range((void *)saddr, size);
-	}
-}
-
 static int get_free_and_set_unlocked(uint32_t *descrs_busy)
 {
 	int chunk;
@@ -459,9 +435,6 @@ static int rza2_construct_link_chain(const struct device *dev, struct dma_config
 			return -EINVAL;
 		}
 
-		dma_cache_data_clean(block->dest_address, block->source_address, CACHE_FLUSH,
-				     block->block_size, dma_cfg->channel_direction);
-
 		chan->descrs[i].src_addr = Z_MEM_PHYS_ADDR(block->source_address);
 		chan->descrs[i].dest_addr = Z_MEM_PHYS_ADDR(block->dest_address);
 		chan->descrs[i].trans_byte = block->block_size;
@@ -487,8 +460,6 @@ static int rza2_construct_link_chain(const struct device *dev, struct dma_config
 			chan->descrs[i].next_link_address =
 				Z_MEM_PHYS_ADDR((uint32_t)&chan->descrs[i + 1]);
 		}
-
-		cache_data_flush_range(&chan->descrs[i], sizeof(struct rza2_dma_link_descriptor));
 
 		total_bytes += block->block_size;
 		block = block->next_block;
@@ -655,10 +626,6 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 			LOG_ERR("%s: buffers are not properly aligned", __func__);
 			return -EINVAL;
 		}
-
-		dma_cache_data_clean(dma_cfg->head_block->dest_address,
-				     dma_cfg->head_block->source_address, CACHE_FLUSH,
-				     dma_cfg->head_block->block_size, dma_cfg->channel_direction);
 
 		rza2_set_n0sa(dev, channel, Z_MEM_PHYS_ADDR(dma_cfg->head_block->source_address));
 		rza2_set_n0da(dev, channel, Z_MEM_PHYS_ADDR(dma_cfg->head_block->dest_address));
@@ -830,8 +797,6 @@ static uint32_t get_copied_bytes(struct dma_rza2_channel *chan,
 	struct rza2_dma_link_descriptor *cur = chan->descrs;
 
 	while (cur) {
-		cache_data_invd_range((void *)cur, sizeof(*cur));
-
 		if (cur == descr) {
 			found = true;
 			break;
@@ -870,7 +835,6 @@ static int dma_rza2_get_status(const struct device *dev, uint32_t ch, struct dma
 		/* For link mode calculate already processed blocks */
 		link = (struct rza2_dma_link_descriptor *)Z_MEM_VIRT_ADDR(rza2_get_crla(dev, ch));
 		if (link) {
-			cache_data_invd_range((void *)link, sizeof(*link));
 			stat->total_copied = get_copied_bytes(&data->channels[ch], link);
 		} else {
 			stat->total_copied = 0;
@@ -914,8 +878,6 @@ static int dma_rza2_process_link(const struct device *dev, int ch, uint32_t stat
 	}
 
 	if (IS_SET(stat, DMAC_PRV_CHSTAT_MASK_TACT) && !IS_SET(stat, DMAC_PRV_CHSTAT_MASK_DER)) {
-		cache_data_invd_range(link, sizeof(struct rza2_dma_link_descriptor));
-
 		if (data->channels[ch].sw_trigger) {
 			rza2_set_chctrl(dev, ch, STG);
 		}
@@ -1112,7 +1074,8 @@ static int dma_rza2_init(const struct device *dev)
 	};                                                                                         \
                                                                                                    \
 	static __aligned(DMA_BUF_ADDR_ALIGNMENT(DT_DRV_INST(inst)))                                \
-		struct rza2_dma_link_descriptor descr_##inst##_pool[DMA_RZA2_POOL_SIZE] = {0};     \
+		struct rza2_dma_link_descriptor descr_##inst##_pool[DMA_RZA2_POOL_SIZE]            \
+		__attribute__((__section__(".nocache.dma"))) = {0};                                \
                                                                                                    \
 	static struct dma_rza2_channel                                                             \
 		dma_rza2_##inst##_channels[DT_INST_PROP(inst, dma_channels)];                      \
