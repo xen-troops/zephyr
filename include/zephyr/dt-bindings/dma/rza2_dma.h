@@ -7,267 +7,212 @@
 #ifndef ZEPHYR_INCLUDE_DT_BINDINGS_RZA2_DMA_H_
 #define ZEPHYR_INCLUDE_DT_BINDINGS_RZA2_DMA_H_
 
-/*
- * The following format represents RZ/A2 Soc series device specific
- * dma channel configurations. Expample from Table 9.4 of HW Manual:
- * NAME     MID       RID TM AM[2:0] LVL HIEN LOEN REQD
- * RXF_DMA0 1010_1011 11  0  001     0   1    0    0/1
- *
- * DMA Slot configuration is uin32_t bitmask and has the following format:
- * RID  [1..0]
- * MID  [9..2]
- * TM   [11..10] - values: 0, 1, TM_BOTH
- * AM   [14..12]
- * LVL  [15]
- * HIEN [16]
- * LOEN [17]
- * REQD [19..18] - values: 0, 1, REQ_BOTH
- */
-
-#define RID(x)   ((x & 0x3))
-#define MID(x)   ((x & 0xff) << 2)
-#define TM_BOTH  3
-#define TM(x)    ((x & 0x3) << 10)
-#define AM(x)    ((x & 0x7) << 12)
-#define LVL1     (1 << 15)
-#define HIEN1    (1 << 16)
-#define LOEN1    (1 << 17)
-#define REQ_BOTH 3
-#define REQD(x)  ((x & 0x3) << 18)
-
-#define DMA_OSTM0TINT (MID(8) | RID(3) | TM(TM_BOTH) | AM(2) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OSTM1TINT (MID(9) | RID(3) | TM(TM_BOTH) | AM(2) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OSTM2TINT (MID(10) | RID(3) | TM(TM_BOTH) | AM(2) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA0 (MID(16) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB0 (MID(17) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC0 (MID(18) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID0 (MID(19) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA1 (MID(20) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB1 (MID(21) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA2 (MID(22) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB2 (MID(23) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA3 (MID(24) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB3 (MID(25) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC3 (MID(26) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID3 (MID(27) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA4 (MID(28) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB4 (MID(29) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC4 (MID(30) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID4 (MID(31) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TCIV4 (MID(32) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGUI5 (MID(33) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIV5 (MID(34) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIW5 (MID(35) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA6 (MID(36) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB6 (MID(37) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC6 (MID(38) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID6 (MID(39) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA7 (MID(40) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB7 (MID(41) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC7 (MID(42) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID7 (MID(43) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIV7 (MID(44) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_TGIA8 (MID(45) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIB8 (MID(46) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGIC8 (MID(47) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_TGID8 (MID(48) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA0  (MID(49) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB0  (MID(50) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC0   (MID(51) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD0   (MID(52) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE0   (MID(56) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF0   (MID(57) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA0 (MID(58) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB0 (MID(59) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF0    (MID(60) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF0    (MID(61) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA1  (MID(62) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB1  (MID(63) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC1   (MID(64) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD1   (MID(65) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE1   (MID(69) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF1   (MID(70) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA1 (MID(71) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB1 (MID(72) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF1    (MID(73) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF1    (MID(74) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA2  (MID(75) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB2  (MID(76) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC2   (MID(77) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD2   (MID(78) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE2   (MID(82) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF2   (MID(83) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA2 (MID(84) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB2 (MID(85) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF2    (MID(86) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF2    (MID(87) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA3  (MID(88) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB3  (MID(89) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC3   (MID(90) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD3   (MID(91) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE3   (MID(95) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF3   (MID(96) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA3 (MID(97) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB3 (MID(98) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF3    (MID(99) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF3    (MID(100) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA4  (MID(101) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB4  (MID(102) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC4   (MID(103) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD4   (MID(104) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE4   (MID(108) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF4   (MID(109) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA4 (MID(110) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB4 (MID(111) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF4    (MID(112) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF4    (MID(113) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA5  (MID(114) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB5  (MID(115) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC5   (MID(116) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD5   (MID(117) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE5   (MID(121) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF5   (MID(122) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA5 (MID(123) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB5 (MID(124) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF5    (MID(125) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF5    (MID(126) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA6  (MID(127) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB6  (MID(128) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC6   (MID(129) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD6   (MID(130) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE6   (MID(134) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF6   (MID(135) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA6 (MID(136) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB6 (MID(137) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF6    (MID(138) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF6    (MID(139) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_CCMPA7  (MID(140) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CCMPB7  (MID(141) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPC7   (MID(142) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPD7   (MID(143) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPE7   (MID(147) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_CMPF7   (MID(148) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGA7 (MID(149) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_ADTRGB7 (MID(150) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_OVF7    (MID(151) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_UNF7    (MID(152) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_S12DI0    (MID(153) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(0))
-#define DMA_S12GBADI0 (MID(154) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(0))
-#define DMA_S12GCADI0 (MID(155) | RID(3) | TM(TM_BOTH) | AM(1) | HIEN1 | REQD(0))
-
-#define DMA_INT_ssif_dma_rx_0 (MID(156) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INT_ssif_dma_tx_0 (MID(156) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_INT_ssif_dma_rx_1 (MID(157) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INT_ssif_dma_tx_1 (MID(157) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_INT_ssif_dma_rx_2 (MID(158) | RID(3) | TM(0) | AM(2) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_INT_ssif_dma_tx_2 (MID(158) | RID(3) | TM(0) | AM(2) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_INT_ssif_dma_rx_3 (MID(159) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INT_ssif_dma_tx_3 (MID(159) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_SPDIFRXI (MID(160) | RID(3) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_SPDIFTXI (MID(161) | RID(3) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_INTRIICRI0 (MID(162) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INTRIICTI0 (MID(162) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_INTRIICRI1 (MID(163) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INTRIICTI1 (MID(163) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_INTRIICRI2 (MID(164) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INTRIICTI2 (MID(164) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_INTRIICRI3 (MID(165) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_INTRIICTI3 (MID(165) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_RXI0 (MID(166) | RID(2) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(0))
-#define DMA_TXI0 (MID(166) | RID(1) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_RXI1 (MID(167) | RID(2) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(0))
-#define DMA_TXI1 (MID(167) | RID(1) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_RXI2 (MID(168) | RID(2) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(0))
-#define DMA_TXI2 (MID(168) | RID(1) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_RXI3 (MID(169) | RID(2) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(0))
-#define DMA_TXI3 (MID(169) | RID(1) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_RXI4 (MID(170) | RID(2) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(0))
-#define DMA_TXI4 (MID(170) | RID(1) | TM(0) | AM(4) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_RXF_DMA0 (MID(171) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA1 (MID(172) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA2 (MID(173) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA3 (MID(174) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA4 (MID(175) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA5 (MID(176) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA6 (MID(177) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RXF_DMA7 (MID(178) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_COM_DMA0 (MID(179) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_COM_DMA1 (MID(180) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_SPRI0 (MID(181) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_SPTI0 (MID(181) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_SPRI1 (MID(182) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_SPTI1 (MID(182) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_SPRI2 (MID(183) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_SPTI2 (MID(183) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_SRXI0 (MID(184) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_STXI0 (MID(184) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define DMA_SRXI1 (MID(185) | RID(2) | TM(0) | AM(2) | HIEN1 | REQD(0))
-#define DMA_STXI1 (MID(185) | RID(1) | TM(0) | AM(2) | HIEN1 | REQD(1))
-
-#define IPLS (MID(186) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_RDRDY1 (MID(187) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_RDRDY0 (MID(188) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_WRRDY4 (MID(189) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_WRRDY1 (MID(191) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_WRRDY0 (MID(240) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_IRRDY  (MID(241) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-#define DMA_IWRRDY (MID(242) | RID(3) | TM(0) | AM(1) | HIEN1 | REQD(REQ_BOTH))
-
-#define DMA_PAE0 (MID(243) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF0 (MID(243) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_PAE1 (MID(244) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF1 (MID(244) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_PAE2 (MID(245) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF2 (MID(245) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_PAE3 (MID(246) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF3 (MID(246) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_PAE4 (MID(247) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF4 (MID(247) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
-
-#define DMA_PAE5 (MID(248) | RID(2) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(0))
-#define DMA_PAF5 (MID(248) | RID(1) | TM(0) | AM(2) | LVL1 | HIEN1 | REQD(1))
+#define DMA_MEM_2_MEM            0
+#define DMA_RS_OSTM0TINT         1
+#define DMA_RS_OSTM1TINT         2
+#define DMA_RS_OSTM2TINT         3
+#define DMA_RS_TGIA_0            4
+#define DMA_RS_TGIB_0            5
+#define DMA_RS_TGIC_0            6
+#define DMA_RS_TGID_0            7
+#define DMA_RS_TGIA_1            8
+#define DMA_RS_TGIB_1            9
+#define DMA_RS_TGIA_2            10
+#define DMA_RS_TGIB_2            11
+#define DMA_RS_TGIA_3            12
+#define DMA_RS_TGIB_3            13
+#define DMA_RS_TGIC_3            14
+#define DMA_RS_TGID_3            15
+#define DMA_RS_TGIA_4            16
+#define DMA_RS_TGIB_4            17
+#define DMA_RS_TGIC_4            18
+#define DMA_RS_TGID_4            19
+#define DMA_RS_TCIV_4            20
+#define DMA_RS_TGIU_5            21
+#define DMA_RS_TGIV_5            22
+#define DMA_RS_TGIW_5            23
+#define DMA_RS_TGIA_6            24
+#define DMA_RS_TGIB_6            25
+#define DMA_RS_TGIC_6            26
+#define DMA_RS_TGID_6            27
+#define DMA_RS_TGIA_7            28
+#define DMA_RS_TGIB_7            29
+#define DMA_RS_TGIC_7            30
+#define DMA_RS_TGID_7            31
+#define DMA_RS_TCIV_7            32
+#define DMA_RS_TGIA_8            33
+#define DMA_RS_TGIB_8            34
+#define DMA_RS_TGIC_8            35
+#define DMA_RS_TGID_8            36
+#define DMA_RS_GTCIA_0           37
+#define DMA_RS_GTCIB_0           38
+#define DMA_RS_GTCIC_0           39
+#define DMA_RS_GTCID_0           40
+#define DMA_RS_GDTE_0            41
+#define DMA_RS_GTCIH_0           42
+#define DMA_RS_GTCIL_0           43
+#define DMA_RS_GTCIE_0           44
+#define DMA_RS_GTCIF_0           45
+#define DMA_RS_GTCIADA_0         46
+#define DMA_RS_GTCIADB_0         47
+#define DMA_RS_GTCIV_0           48
+#define DMA_RS_GTCIU_0           49
+#define DMA_RS_GTCIA_1           50
+#define DMA_RS_GTCIB_1           51
+#define DMA_RS_GTCIC_1           52
+#define DMA_RS_GTCID_1           53
+#define DMA_RS_GDTE_1            54
+#define DMA_RS_GTCIH_1           55
+#define DMA_RS_GTCIL_1           56
+#define DMA_RS_GTCIE_1           57
+#define DMA_RS_GTCIF_1           58
+#define DMA_RS_GTCIADA_1         59
+#define DMA_RS_GTCIADB_1         60
+#define DMA_RS_GTCIV_1           61
+#define DMA_RS_GTCIU_1           62
+#define DMA_RS_GTCIA_2           63
+#define DMA_RS_GTCIB_2           64
+#define DMA_RS_GTCIC_2           65
+#define DMA_RS_GTCID_2           66
+#define DMA_RS_GDTE_2            67
+#define DMA_RS_GTCIH_2           68
+#define DMA_RS_GTCIL_2           69
+#define DMA_RS_GTCIE_2           70
+#define DMA_RS_GTCIF_2           71
+#define DMA_RS_GTCIADA_2         72
+#define DMA_RS_GTCIADB_2         73
+#define DMA_RS_GTCIV_2           74
+#define DMA_RS_GTCIU_2           75
+#define DMA_RS_GTCIA_3           76
+#define DMA_RS_GTCIB_3           77
+#define DMA_RS_GTCIC_3           78
+#define DMA_RS_GTCID_3           79
+#define DMA_RS_GDTE_3            80
+#define DMA_RS_GTCIH_3           81
+#define DMA_RS_GTCIL_3           82
+#define DMA_RS_GTCIE_3           83
+#define DMA_RS_GTCIF_3           84
+#define DMA_RS_GTCIADA_3         85
+#define DMA_RS_GTCIADB_3         86
+#define DMA_RS_GTCIV_3           87
+#define DMA_RS_GTCIU_3           88
+#define DMA_RS_GTCIA_4           89
+#define DMA_RS_GTCIB_4           90
+#define DMA_RS_GTCIC_4           91
+#define DMA_RS_GTCID_4           92
+#define DMA_RS_GDTE_4            93
+#define DMA_RS_GTCIH_4           94
+#define DMA_RS_GTCIL_4           95
+#define DMA_RS_GTCIE_4           96
+#define DMA_RS_GTCIF_4           97
+#define DMA_RS_GTCIADA_4         98
+#define DMA_RS_GTCIADB_4         99
+#define DMA_RS_GTCIV_4           100
+#define DMA_RS_GTCIU_4           101
+#define DMA_RS_GTCIA_5           102
+#define DMA_RS_GTCIB_5           103
+#define DMA_RS_GTCIC_5           104
+#define DMA_RS_GTCID_5           105
+#define DMA_RS_GDTE_5            106
+#define DMA_RS_GTCIH_5           107
+#define DMA_RS_GTCIL_5           108
+#define DMA_RS_GTCIE_5           109
+#define DMA_RS_GTCIF_5           110
+#define DMA_RS_GTCIADA_5         111
+#define DMA_RS_GTCIADB_5         112
+#define DMA_RS_GTCIV_5           113
+#define DMA_RS_GTCIU_5           114
+#define DMA_RS_GTCIA_6           115
+#define DMA_RS_GTCIB_6           116
+#define DMA_RS_GTCIC_6           117
+#define DMA_RS_GTCID_6           118
+#define DMA_RS_GDTE_6            119
+#define DMA_RS_GTCIH_6           120
+#define DMA_RS_GTCIL_6           121
+#define DMA_RS_GTCIE_6           122
+#define DMA_RS_GTCIF_6           123
+#define DMA_RS_GTCIADA_6         124
+#define DMA_RS_GTCIADB_6         125
+#define DMA_RS_GTCIV_6           126
+#define DMA_RS_GTCIU_6           127
+#define DMA_RS_GTCIA_7           128
+#define DMA_RS_GTCIB_7           129
+#define DMA_RS_GTCIC_7           130
+#define DMA_RS_GTCID_7           131
+#define DMA_RS_GDTE_7            132
+#define DMA_RS_GTCIH_7           133
+#define DMA_RS_GTCIL_7           134
+#define DMA_RS_GTCIE_7           135
+#define DMA_RS_GTCIF_7           136
+#define DMA_RS_GTCIADA_7         137
+#define DMA_RS_GTCIADB_7         138
+#define DMA_RS_GTCIV_7           139
+#define DMA_RS_GTCIU_7           140
+#define DMA_RS_S12ADI_0          141
+#define DMA_RS_S12GBADI_0        142
+#define DMA_RS_S12GCADI_0        143
+#define DMA_RS_INT_SSIF_DMA_RX_0 144
+#define DMA_RS_INT_SSIF_DMA_TX_0 145
+#define DMA_RS_INT_SSIF_DMA_RX_1 146
+#define DMA_RS_INT_SSIF_DMA_TX_1 147
+#define DMA_RS_INT_SSIF_DMA_RX_2 148
+#define DMA_RS_INT_SSIF_DMA_TX_2 149
+#define DMA_RS_INT_SSIF_DMA_RX_3 150
+#define DMA_RS_INT_SSIF_DMA_TX_3 151
+#define DMA_RS_SPDIFTXI          152
+#define DMA_RS_SPDIFRXI          153
+#define DMA_RS_INTRIIC_RI0       154
+#define DMA_RS_INTRIIC_TI0       155
+#define DMA_RS_INTRIIC_RI1       156
+#define DMA_RS_INTRIIC_TI1       157
+#define DMA_RS_INTRIIC_RI2       158
+#define DMA_RS_INTRIIC_TI2       159
+#define DMA_RS_INTRIIC_RI3       160
+#define DMA_RS_INTRIIC_TI3       161
+#define DMA_RS_RXI0              162
+#define DMA_RS_TXI0              163
+#define DMA_RS_RXI1              164
+#define DMA_RS_TXI1              165
+#define DMA_RS_RXI2              166
+#define DMA_RS_TXI2              167
+#define DMA_RS_RXI3              168
+#define DMA_RS_TXI3              169
+#define DMA_RS_RXI4              170
+#define DMA_RS_TXI4              171
+#define DMA_RS_RXF_DMA0          172
+#define DMA_RS_RXF_DMA1          173
+#define DMA_RS_RXF_DMA2          174
+#define DMA_RS_RXF_DMA3          175
+#define DMA_RS_RXF_DMA4          176
+#define DMA_RS_RXF_DMA5          177
+#define DMA_RS_RXF_DMA6          178
+#define DMA_RS_RXF_DMA7          179
+#define DMA_RS_COM_DMA0          180
+#define DMA_RS_COM_DMA1          181
+#define DMA_RS_SPRI0             182
+#define DMA_RS_SPTI0             183
+#define DMA_RS_SPRI1             184
+#define DMA_RS_SPTI1             185
+#define DMA_RS_SPRI2             186
+#define DMA_RS_SPTI2             187
+#define DMA_RS_SCI_RXI0          188
+#define DMA_RS_SCI_TXI0          189
+#define DMA_RS_SCI_RXI1          190
+#define DMA_RS_SCI_TXI1          191
+#define DMA_RS_IPLS              192
+#define DMA_RS_TILE_0_PAFI       193
+#define DMA_RS_TILE_0_PAEI       194
+#define DMA_RS_TILE_1_PAFI       195
+#define DMA_RS_TILE_1_PAEI       196
+#define DMA_RS_TILE_2_PAFI       197
+#define DMA_RS_TILE_2_PAEI       198
+#define DMA_RS_TILE_3_PAFI       199
+#define DMA_RS_TILE_3_PAEI       200
+#define DMA_RS_TILE_4_PAFI       201
+#define DMA_RS_TILE_4_PAEI       202
+#define DMA_RS_TILE_5_PAFI       203
+#define DMA_RS_TILE_5_PAEI       204
+#define DREQ0                    205
+#define LAST_RESOURCE_MARKER     206
 
 #endif /* ZEPHYR_INCLUDE_DT_BINDINGS_RZA2_DMA_H_ */
