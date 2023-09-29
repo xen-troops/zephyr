@@ -1,0 +1,13 @@
+dut: &scif2 {
+	dmas = <&dma0 6 DMA_RS_RXI2 0>, <&dma0 5 DMA_RS_TXI2 0>;
+	dma-names = "rx", "tx";
+	current-speed = <115200>;
+	pinctrl-0 = <&scif2_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
+};

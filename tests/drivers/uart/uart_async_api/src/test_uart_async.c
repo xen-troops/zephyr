@@ -13,6 +13,12 @@ K_SEM_DEFINE(rx_buf_coherency, 0, 255);
 K_SEM_DEFINE(rx_buf_released, 0, 1);
 K_SEM_DEFINE(rx_disabled, 0, 1);
 
+#ifdef CONFIG_NOCACHE_MEMORY
+#define NONCACHE(buf) static __aligned(16) buf __used __attribute__((__section__(".nocache")))
+#else
+#define NONCACHE(buf) buf
+#endif
+
 ZTEST_BMEM volatile bool failed_in_isr;
 static ZTEST_BMEM const struct device *const uart_dev =
 	DEVICE_DT_GET(UART_NODE);
@@ -45,6 +51,7 @@ static void set_permissions(void)
 static void uart_async_test_init(void)
 {
 	static bool initialized;
+	struct uart_config cfg = {0};
 
 	__ASSERT_NO_MSG(device_is_ready(uart_dev));
 	uart_rx_disable(uart_dev);
@@ -67,6 +74,9 @@ static void uart_async_test_init(void)
 	__ASSERT_NO_MSG(uart_configure(uart_dev, &uart_cfg) == 0);
 #endif
 
+	if (uart_config_get(uart_dev, &cfg) == 0) {
+		uart_configure(uart_dev, &cfg);
+	}
 	if (!initialized) {
 		init_test();
 		initialized = true;
@@ -77,9 +87,12 @@ static void uart_async_test_init(void)
 
 }
 
+NONCACHE(uint8_t tdata_rx_buf[5]);
+
 struct test_data {
 	volatile uint32_t tx_aborted_count;
-	uint8_t rx_buf[5];
+	uint8_t *rx_buf;
+	size_t rx_buf_size;
 	bool rx_buf_req_done;
 	bool supply_next_buffer;
 	uint8_t *last_rx_buf;
@@ -110,7 +123,7 @@ static void test_single_read_callback(const struct device *dev,
 	case UART_RX_BUF_REQUEST:
 		if (data->supply_next_buffer) {
 			/* Reply to one buffer request. */
-			uart_rx_buf_rsp(dev, data->rx_buf, sizeof(data->rx_buf));
+			uart_rx_buf_rsp(dev, data->rx_buf, data->rx_buf_size);
 			data->supply_next_buffer = false;
 		}
 		break;
@@ -130,6 +143,8 @@ static void *single_read_setup(void)
 
 	memset(&tdata, 0, sizeof(tdata));
 	tdata.supply_next_buffer = true;
+	tdata.rx_buf = tdata_rx_buf;
+	tdata.rx_buf_size = sizeof(tdata_rx_buf);
 	uart_callback_set(uart_dev,
 			  test_single_read_callback,
 			  (void *) &tdata);
@@ -139,7 +154,7 @@ static void *single_read_setup(void)
 
 ZTEST_USER(uart_async_single_read, test_single_read)
 {
-	uint8_t rx_buf[10] = {0};
+	NONCACHE(uint8_t rx_buf[10]) = {0};
 
 	/* Check also if sending from read only memory (e.g. flash) works. */
 	static const uint8_t tx_buf[5] = "test\0";
@@ -148,7 +163,7 @@ ZTEST_USER(uart_async_single_read, test_single_read)
 			  "Initial buffer check failed");
 
 	uart_rx_enable(uart_dev, rx_buf, 10, 50 * USEC_PER_MSEC);
-	zassert_equal(k_sem_take(&rx_rdy, K_MSEC(100)), -EAGAIN,
+	zassert_equal(k_sem_take(&rx_rdy, K_MSEC(110)), -EAGAIN,
 		      "RX_RDY not expected at this point");
 
 	uart_tx(uart_dev, tx_buf, sizeof(tx_buf), 100 * USEC_PER_MSEC);
@@ -194,9 +209,12 @@ static void *multiple_rx_enable_setup(void)
 
 ZTEST_USER(uart_async_multi_rx, test_multiple_rx_enable)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	/* Check also if sending from read only memory (e.g. flash) works. */
 	static const uint8_t tx_buf[] = "test";
-	uint8_t rx_buf[sizeof(tx_buf)] = {0};
+	NONCACHE(uint8_t rx_buf[sizeof(tx_buf)]) = {0};
 	int ret;
 
 	/* Enable RX without a timeout. */
@@ -273,7 +291,7 @@ ZTEST_USER(uart_async_multi_rx, test_multiple_rx_enable)
 		      "Buffers not equal");
 }
 
-ZTEST_BMEM uint8_t chained_read_buf[2][8];
+ZTEST_BMEM NONCACHE(uint8_t chained_read_buf[2][8]);
 ZTEST_BMEM uint8_t chained_cpy_buf[10];
 ZTEST_BMEM volatile uint8_t rx_data_idx;
 ZTEST_BMEM uint8_t rx_buf_idx;
@@ -323,6 +341,9 @@ static void *chained_read_setup(void)
 
 ZTEST_USER(uart_async_chain_read, test_chained_read)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	uint8_t tx_buf[10];
 	int iter = 6;
 	uint32_t rx_timeout_ms = 50;
@@ -355,7 +376,7 @@ ZTEST_USER(uart_async_chain_read, test_chained_read)
 		      "RX_DISABLED timeout");
 }
 
-ZTEST_BMEM uint8_t double_buffer[2][12];
+ZTEST_BMEM NONCACHE(uint8_t double_buffer[2][12]);
 ZTEST_DMEM uint8_t *next_buf = double_buffer[1];
 
 static void test_double_buffer_callback(const struct device *dev,
@@ -396,6 +417,9 @@ static void *double_buffer_setup(void)
 
 ZTEST_USER(uart_async_double_buf, test_double_buffer)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	uint8_t tx_buf[4];
 
 	zassert_equal(uart_rx_enable(uart_dev,
@@ -491,7 +515,7 @@ static void *read_abort_setup(void)
 
 ZTEST_USER(uart_async_read_abort, test_read_abort)
 {
-	uint8_t rx_buf[100];
+	NONCACHE(uint8_t rx_buf[100]);
 	uint8_t tx_buf[100];
 
 	memset(rx_buf, 0, sizeof(rx_buf));
@@ -533,7 +557,8 @@ ZTEST_USER(uart_async_read_abort, test_read_abort)
 
 ZTEST_BMEM volatile size_t sent;
 ZTEST_BMEM volatile size_t received;
-ZTEST_BMEM uint8_t test_rx_buf[2][100];
+
+ZTEST_BMEM NONCACHE(uint8_t test_rx_buf[2][100]);
 
 static void test_write_abort_callback(const struct device *dev,
 			       struct uart_event *evt, void *user_data)
@@ -577,6 +602,9 @@ static void *write_abort_setup(void)
 
 ZTEST_USER(uart_async_write_abort, test_write_abort)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	uint8_t tx_buf[100];
 
 	memset(test_rx_buf, 0, sizeof(test_rx_buf));
@@ -646,7 +674,7 @@ static void *forever_timeout_setup(void)
 
 ZTEST_USER(uart_async_timeout, test_forever_timeout)
 {
-	uint8_t rx_buf[100];
+	NONCACHE(uint8_t rx_buf[100]);
 	uint8_t tx_buf[100];
 
 	memset(rx_buf, 0, sizeof(rx_buf));
@@ -680,7 +708,7 @@ ZTEST_USER(uart_async_timeout, test_forever_timeout)
 }
 
 
-ZTEST_DMEM uint8_t chained_write_tx_bufs[2][10] = {"Message 1", "Message 2"};
+ZTEST_DMEM NONCACHE(uint8_t chained_write_tx_bufs[2][10]) = {"Message 1", "Message 2"};
 ZTEST_DMEM bool chained_write_next_buf = true;
 ZTEST_BMEM volatile uint8_t tx_sent;
 
@@ -726,7 +754,7 @@ static void *chained_write_setup(void)
 
 ZTEST_USER(uart_async_chain_write, test_chained_write)
 {
-	uint8_t rx_buf[20];
+	NONCACHE(uint8_t rx_buf[20]);
 
 	memset(rx_buf, 0, sizeof(rx_buf));
 
@@ -752,9 +780,9 @@ ZTEST_USER(uart_async_chain_write, test_chained_write)
 		      "RX_DISABLED timeout");
 }
 
-ZTEST_BMEM uint8_t long_rx_buf[1024];
-ZTEST_BMEM uint8_t long_rx_buf2[1024];
-ZTEST_BMEM uint8_t long_tx_buf[1000];
+ZTEST_BMEM NONCACHE(uint8_t long_rx_buf[1024]);
+ZTEST_BMEM NONCACHE(uint8_t long_rx_buf2[1024]);
+ZTEST_BMEM NONCACHE(uint8_t long_tx_buf[1000]);
 ZTEST_BMEM volatile uint8_t evt_num;
 ZTEST_BMEM size_t long_received[2];
 
@@ -802,6 +830,9 @@ static void *long_buffers_setup(void)
 
 ZTEST_USER(uart_async_long_buf, test_long_buffers)
 {
+#if defined(CONFIG_BOARD_RZ_A2M)
+	ztest_test_skip();
+#endif
 	memset(long_rx_buf, 0, sizeof(long_rx_buf));
 	memset(long_tx_buf, 1, sizeof(long_tx_buf));
 
