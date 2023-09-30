@@ -273,4 +273,12 @@
 
 		drive-strength = <0x2>;
 	};
+
+	/omit-if-no-ref/ mtu0_pwm_pin: mtu0_pwm_pin {
+		pinmux = <RZA2_PINMUX(PORTE, 3, 4)>;	/* MTIOC0A */
+	};
+
+	/omit-if-no-ref/ mtu4_pwm_pin: mtu4_pwm_pin {
+		pinmux = <RZA2_PINMUX(PORTG, 6, 4)>;	/* MTIOC4C */
+	};
 };

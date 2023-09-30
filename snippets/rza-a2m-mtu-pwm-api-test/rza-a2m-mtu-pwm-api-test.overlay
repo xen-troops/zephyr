@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+ / {
+	aliases {
+		pwm-0 = &mtu0;
+	};
+};
+
+ /* MTIOC0A */
+ &mtu0 {
+	pinctrl-0 = <&mtu0_pwm_pin>;
+	pinctrl-names = "default";
+	divider = <64>;
+	status = "okay";
+};
