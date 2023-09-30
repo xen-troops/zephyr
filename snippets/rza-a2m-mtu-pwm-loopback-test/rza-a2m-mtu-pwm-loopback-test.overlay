@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+ / {
+	pwm_loopback_0 {
+		compatible = "test-pwm-loopback";
+		pwms = <&mtu4 MTU_PWM_CH_IO_C 0 PWM_POLARITY_NORMAL>,
+		       <&mtu0 MTU_PWM_CH_IO_A 0 PWM_POLARITY_NORMAL>;
+	};
+};
+
+ /* MTIOC0A */
+ &mtu0 {
+	pinctrl-0 = <&mtu0_pwm_pin>;
+	pinctrl-names = "default";
+	divider = <256>;
+	status = "okay";
+};
+
+/* MTIOC4C */
+&mtu4 {
+	pinctrl-0 = <&mtu4_pwm_pin>;
+	pinctrl-names = "default";
+	divider = <256>;
+	status = "okay";
+};

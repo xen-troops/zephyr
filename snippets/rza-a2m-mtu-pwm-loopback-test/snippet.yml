@@ -1,0 +1,5 @@
+name: rza-a2m-mtu-pwm-loopback-test
+boards:
+  rz_a2m:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rza-a2m-mtu-pwm-loopback-test.overlay
