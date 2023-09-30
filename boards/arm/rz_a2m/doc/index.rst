@@ -75,6 +75,8 @@ hardware features:
 +-----------+------------------------------+-------------------------------------+
 | BSC       | Bus state controller         |                                     |
 +-----------+------------------------------+-------------------------------------+
+| MTU       | pwm                          | period capture/pwm saw-waves        |
++-----------+------------------------------+-------------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
