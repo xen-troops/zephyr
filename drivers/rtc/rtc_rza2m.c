@@ -133,6 +133,8 @@ struct rtc_rza2m_data {
 #endif
 #ifdef CONFIG_RTC_CALIBRATION
 	int32_t calibration;
+	uint8_t radj;
+	bool manual_cal;
 #endif
 };
 
@@ -545,6 +547,12 @@ static void rtc_rza2m_period_isr(const struct device *dev)
 	reg = sys_read8(DEVICE_MMIO_GET(dev) + RSR);
 	sys_write8(reg & ~RSR_PF, DEVICE_MMIO_GET(dev) + RSR);
 
+#ifdef CONFIG_RTC_CALIBRATION
+	if (data->manual_cal) {
+		sys_write8(data->radj, DEVICE_MMIO_GET(dev) + RADJ);
+	}
+#endif
+
 	k_spin_unlock(&data->lock, key);
 
 	if (callback) {
@@ -606,6 +614,8 @@ static int rtc_rza2m_set_calibration(const struct device *dev, int32_t calibrati
 	const struct rtc_rza2m_config *config = dev->config;
 	struct rtc_rza2m_data *data = dev->data;
 	k_spinlock_key_t key;
+	int64_t ticks = (int64_t)config->clk_freq * calibration;
+	uint8_t period = 1;
 
 	if (!config->is_rtc_x1_src) {
 		LOG_ERR("%s:%s: calibration isn't supported for EXTAL clock source", __func__,
@@ -613,19 +623,24 @@ static int rtc_rza2m_set_calibration(const struct device *dev, int32_t calibrati
 		return -ENOTSUP;
 	}
 
-	/*
-	 * TODO: add support of manual calibration period interrupt + manual set of RADJ.ADJ
-	 * Zephyr RTC subsystem supports only adjustment on integer values, e.g. granularity 1 Hz
-	 * with manual adjustment we can achive bigger values of adjustment that in auto mode
-	 *
-	 * In the auto mode we support only adjustment from -6 to +6 Hz, ADJ field in RADJ can
-	 * hold only 2^6 - 1 values, 0 means that we disable adjustment.
-	 */
-	if (calibration < -6 || calibration > 6) {
-		LOG_ERR("%s: currently support calibration values from the next range [-6;6] Hz",
-			dev->name);
-		return -EINVAL;
+	/* calibration in parts per billion */
+	if (IN_RANGE((ticks * 60), -63000000000LL, 63000000000LL)) {
+		ticks *= 60;
+		period = 60;
+	} else if (IN_RANGE((ticks * 10), -63000000000LL, 63000000000LL)) {
+		ticks *= 10;
+		period = 10;
+#ifdef CONFIG_RTC_UPDATE
+	} else if (IN_RANGE(ticks, -63000000000LL, 63000000000LL)) {
+		ticks *= 1;
+#endif
+	} else {
+		LOG_ERR("%s: calibration value (%d) isn't supported by driver", dev->name,
+			calibration);
+		return -ENOTSUP;
 	}
+
+	ticks /= 1000000000;
 
 	base = DEVICE_MMIO_GET(dev);
 
@@ -633,16 +648,35 @@ static int rtc_rza2m_set_calibration(const struct device *dev, int32_t calibrati
 	/* disable adjustment */
 	sys_write8(0, base + RADJ);
 
-	/* set auto mode + update every 10 sec */
 	reg = sys_read8(base + RCR2);
-	sys_write8(reg | RCR2_AADJE | RCR2_AADJP, base + RCR2);
-
-	if (calibration < 0) {
-		calibration = -calibration;
-		sys_write8((calibration * 10) | RADJ_OP_SUB, base + RADJ);
-	} else {
-		sys_write8((calibration * 10) | RADJ_OP_ADD, base + RADJ);
+	switch (period) {
+	case 10:
+		sys_write8(reg | RCR2_AADJE | RCR2_AADJP, base + RCR2);
+		data->manual_cal = false;
+		break;
+	case 60:
+		reg &= ~RCR2_AADJP;
+		sys_write8(reg | RCR2_AADJE, base + RCR2);
+		data->manual_cal = false;
+		break;
+	default:
+		reg &= ~RCR2_AADJE; /* manual mode */
+		sys_write8(reg, base + RCR2);
+		data->manual_cal = true;
+		break;
 	}
+
+	if (ticks < 0) {
+		ticks = -ticks;
+		data->radj = ticks | RADJ_OP_SUB;
+	} else {
+		data->radj = ticks | RADJ_OP_ADD;
+	}
+
+	if (data->manual_cal == false) {
+		sys_write8(data->radj, base + RADJ);
+	}
+
 	k_spin_unlock(&data->lock, key);
 
 	/* store information for restoring on reset and for get calibration callback */
