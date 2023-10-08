@@ -816,7 +816,7 @@
 				     <GIC_SPI 67 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
 				     <GIC_SPI 68 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
 				     <GIC_SPI 69 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
-			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tgiv", "tgie", "tgif";
+			interrupt-names = "tgia", "tgib", "tgic", "tgid", "tciv", "tgie", "tgif";
 			interrupt-parent = <&gic>;
 			clocks = <&cpg CPG_MOD 33>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
 			#pwm-cells = <3>;
