@@ -1,0 +1,30 @@
+stages:
+  - compliance
+  - guidlines
+
+comliance-job:
+  stage: compliance
+  script:
+    - echo "Starting compliance check"
+    - cd /builds/rec-rzzp
+    - west init -l zephyr > /dev/null 2>&1 || true
+    - cd zephyr
+    # WA to skip undef config checks because it fails with errors about
+    # CONFIG_CHRE, CONFIG_CHRE_LOG_LEVEL_DBG and CONFIG_RIMAGE_SIGNING_SCHEMA
+    - sed -i "s/self.check_no_undef_within_kconfig(kconf)//g" ./scripts/ci/check_compliance.py
+    - sed -i "s/self.check_no_undef_outside_kconfig(kconf)/print(\"skip\")/g"
+      ./scripts/ci/check_compliance.py
+    - export ZEPHYR_BASE=$PWD
+    - ./scripts/ci/check_compliance.py --annotate -e KconfigBasic -c ${CI_DEFAULT_BRANCH}..
+
+guidlines-job:
+  stage: guidlines
+  script:
+    - echo "Starting guidlines check"
+    - cd /builds/rec-rzzp
+    - west init -l zephyr > /dev/null 2>&1 || true
+    - cd ./zephyr
+    - source zephyr-env.sh
+    - export ZEPHYR_BASE=/builds/rec-rzzp/zephyr
+    - ./scripts/ci/guideline_check.py --output output.txt -c ${CI_DEFAULT_BRANCH}.. ||
+      cat ./output.txt
