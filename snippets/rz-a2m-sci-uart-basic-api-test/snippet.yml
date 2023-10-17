@@ -1,0 +1,5 @@
+name: rz-a2m-sci-uart-basic-api-test
+boards:
+  rz_a2m:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-a2m-sci-uart-basic-api-test.overlay
