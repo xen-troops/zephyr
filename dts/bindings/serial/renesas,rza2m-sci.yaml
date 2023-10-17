@@ -1,0 +1,36 @@
+description: Renesas RZ/A2M UART
+
+compatible: "renesas,rza2m-sci"
+
+include: [uart-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  current-speed:
+    required: true
+    description: |
+      Initial baud rate setting for UART. Only a fixed set of baud
+      rates are selectable on these devices.
+    enum:
+      - 4800
+      - 9600
+      - 14400
+      - 19200
+      - 28800
+      - 38400
+      - 57600
+      - 115200
+      - 230400
+      - 500000
+      - 921600
+      - 1000000
+      - 2000000
+
+  clocks:
+    description: |
+      Clock source for calculating BRR value

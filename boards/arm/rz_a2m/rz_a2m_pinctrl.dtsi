@@ -35,6 +35,18 @@
 			 <RZA2_PINMUX(PORT7, 1, 4)>;	/* RxD1 */
 	};
 
+	/* Serial Console or additional serial */
+	/omit-if-no-ref/ sci0_pins: uart0 {
+		pinmux = <RZA2_PINMUX(PORTA, 4, 4)>,	/* TxD0 */
+			 <RZA2_PINMUX(PORTA, 5, 4)>;	/* RxD0 */
+	};
+
+	/* Serial Console or additional serial */
+	/omit-if-no-ref/ sci1_pins: uart1 {
+		pinmux = <RZA2_PINMUX(PORTA, 0, 4)>,	/* TxD1 */
+			 <RZA2_PINMUX(PORTA, 1, 4)>;	/* RxD1 */
+	};
+
 	/* RIIC ch2 (MIPI camera) */
 	/omit-if-no-ref/ i2c2_pins: i2c2 {
 		pinmux = <RZA2_PINMUX(PORTD, 4, 1)>,	/* RIIC2SCL */

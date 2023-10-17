@@ -971,5 +971,33 @@
 			channel-id = <8>;
 			status = "disabled";
 		};
+
+		sci0: uart@e800b000 {
+			compatible = "renesas,rza2m-sci";
+			reg = <0xe800b000 0x14>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 333 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 334 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 335 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 336 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 42>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+		};
+
+		sci1: uart@e800b800 {
+			compatible = "renesas,rza2m-sci";
+			reg = <0xe800b800 0x14>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SPI 337 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 338 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 339 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 340 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "eri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD 41>, <&cpg CPG_CORE R7S9210_CLK_P1C>;
+			clock-names = "fck", "bus";
+			status = "disabled";
+		};
 	};
 };
