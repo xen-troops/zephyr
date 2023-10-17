@@ -205,7 +205,7 @@ source "drivers/serial/Kconfig.npcx"
 
 source "drivers/serial/Kconfig.apbuart"
 
-source "drivers/serial/Kconfig.scif"
+source "drivers/serial/Kconfig.renesas"
 
 source "drivers/serial/Kconfig.xec"
 
