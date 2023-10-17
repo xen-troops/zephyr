@@ -14,3 +14,12 @@ config UART_SCIF
 	select DMA if UART_ASYNC_API
 	help
 	  Enable Renesas SCIF UART Driver.
+
+config UART_SCI
+	bool "Renesas SCI UART Driver"
+	default y
+	depends on DT_HAS_RENESAS_RZA2M_SCI_ENABLED
+	select SERIAL_HAS_DRIVER
+	select SERIAL_SUPPORT_INTERRUPT
+	help
+	  Enable Renesas SCI UART Driver.
