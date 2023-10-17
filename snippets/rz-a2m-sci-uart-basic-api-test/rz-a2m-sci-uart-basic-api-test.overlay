@@ -1,0 +1,13 @@
+/ {
+	chosen {
+		zephyr,console = &sci0;
+		zephyr,shell-uart = &sci0;
+	};
+};
+
+dut: &sci0 {
+	current-speed = <115200>;
+	pinctrl-0 = <&sci0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
