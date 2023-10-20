@@ -47,6 +47,7 @@ struct riic_data {
 	uint32_t interrupt_mask;
 	uint32_t status_bits;
 	struct k_sem int_sem;
+	struct k_mutex i2c_lock_mtx; /* For I2C transfer locking mechanism */
 	int master_active;
 	uint32_t dev_config;
 #ifdef CONFIG_I2C_TARGET
@@ -160,7 +161,9 @@ struct riic_data {
 #define I2C_FREQ_STANDARD	100000
 #define I2C_FREQ_FAST		400000
 
-#define MAX_WAIT_US 500
+#define MAX_WAIT_US		500
+
+#define TRANSFER_TIMEOUT_MS	10		/* Timeout for @riic_data::transfer_mtx */
 
 static void riic_write(const struct device *dev, uint32_t offs, uint32_t value)
 {
@@ -337,6 +340,12 @@ static int riic_transfer(const struct device *dev,
 		return 0;
 	}
 
+	/* Prohibiting simultaneous transfer over the same I2C bus from different threads */
+	if (k_mutex_lock(&data->i2c_lock_mtx, K_MSEC(TRANSFER_TIMEOUT_MS))) {
+		LOG_ERR("Bus is busy\n");
+		return -EIO;
+	}
+
 	/* Wait for the bus to be available */
 	while ((riic_read(dev, RIIC_CR2) & RIIC_CR2_BBSY) && (timeout < 10)) {
 		k_busy_wait(USEC_PER_MSEC);
@@ -344,7 +353,8 @@ static int riic_transfer(const struct device *dev,
 	}
 	if (timeout == 10) {
 		LOG_ERR("Bus is busy\n");
-		return -EIO;
+		ret = -EIO;
+		goto exit;
 	}
 	current = msgs;
 	current->flags |= I2C_MSG_RESTART;
@@ -354,20 +364,17 @@ static int riic_transfer(const struct device *dev,
 			if (OPERATION(current) != OPERATION(next)) {
 				if (!(next->flags & I2C_MSG_RESTART)) {
 					ret = -EIO;
-					break;
+					goto exit;
 				}
 			}
 			if (current->flags & I2C_MSG_STOP) {
 				ret = -EIO;
-				break;
+				goto exit;
 			}
 		} else {
 			current->flags |= I2C_MSG_STOP;
 		}
 		current++;
-	}
-	if (ret) {
-		return ret;
 	}
 	current = msgs;
 
@@ -413,6 +420,8 @@ static int riic_transfer(const struct device *dev,
 	data->master_active = 0;
 
 	/* Complete without error */
+exit:
+	k_mutex_unlock(&data->i2c_lock_mtx);
 	return ret;
 }
 
@@ -502,6 +511,12 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	if (brh < 1)
 		brh = 1;
 
+	/* Prohibiting the bus configuration during transfer. */
+	if (k_mutex_lock(&data->i2c_lock_mtx, K_MSEC(TRANSFER_TIMEOUT_MS))) {
+		LOG_ERR("Bus is busy\n");
+		return -EIO;
+	}
+
 	LOG_DBG("i2c-riic: freq=%lu, duty=%d, fall=%lu, rise=%lu, cks=%d, brl=%d, brh=%d\n",
 		rate / total_ticks, ((brl + 3) * 100) / (brl + brh + 6),
 		scl_fall_ns / (1000000000 / rate),
@@ -521,6 +536,9 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	riic_clear_set_bit(dev, RIIC_CR1, RIIC_CR1_IICRST, 0);
 	data->master_active = 0;
 	data->dev_config = dev_config;
+
+	k_mutex_unlock(&data->i2c_lock_mtx);
+
 	return 0;
 }
 
@@ -540,6 +558,8 @@ static int riic_init(const struct device *dev)
 	int ret;
 
 	k_sem_init(&data->int_sem, 0, 1);
+
+	k_mutex_init(&data->i2c_lock_mtx);
 
 	if (!device_is_ready(config->clock_dev)) {
 		LOG_ERR("Device %s is not ready\n", dev->name);
