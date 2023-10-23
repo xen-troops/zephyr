@@ -240,15 +240,13 @@ static inline void riic_transmit_nack(const struct device *dev)
 
 static int riic_finish(const struct device *dev)
 {
-	int ret = 0;
-
 	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
 	riic_wait_for_state(dev, RIIC_IER_SPIE);
 	if (riic_read(dev, RIIC_CR2) & RIIC_SR2_START) {
 		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_START, 0);
 	}
 	riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF | RIIC_SR2_STOP, 0);
-	return ret;
+	return 0;
 }
 
 static int riic_set_addr(const struct device *dev, uint16_t chip, uint16_t flags)
@@ -355,12 +353,12 @@ static int riic_transfer(const struct device *dev,
 			next = current + 1;
 			if (OPERATION(current) != OPERATION(next)) {
 				if (!(next->flags & I2C_MSG_RESTART)) {
-					ret = -EINVAL;
+					ret = -EIO;
 					break;
 				}
 			}
 			if (current->flags & I2C_MSG_STOP) {
-				ret = -EINVAL;
+				ret = -EIO;
 				break;
 			}
 		} else {
@@ -424,18 +422,18 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	struct riic_data *data = dev->data;
 	unsigned long rate;
 	int total_ticks, cks, brl, brh;
-	uint32_t scl_rise_ns, scl_fall_ns, sda_fall_ns, sda_hold_ns, scl_int_delay_ns;
+	uint32_t scl_rise_ns, scl_fall_ns;
 
 	/* TODO: will be removed after confirming slave mode works */
 	/* We only support Master mode */
 	if ((dev_config & I2C_MODE_CONTROLLER) != I2C_MODE_CONTROLLER) {
-		return -ENOTSUP;
+		return -EIO;
 	}
 
 	/* TODO: This will be removed after confirming 10-bit addressing works */
 	/* We are not supporting 10-bit addressing */
 	if ((dev_config & I2C_ADDR_10_BITS) == I2C_ADDR_10_BITS) {
-		return -ENOTSUP;
+		return -EIO;
 	}
 
 	/* TODO: Add support I2C_SPEED_FAST_PLUS, I2C_SPEED_HIGH, I2C_SPEED_ULTRA speed */
@@ -445,21 +443,15 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 		rate = I2C_FREQ_STANDARD;
 		scl_rise_ns = 1000;
 		scl_fall_ns = 300;
-		scl_int_delay_ns = 0;
-		sda_hold_ns = 0;
-		sda_fall_ns = 300;
 		break;
 	case I2C_SPEED_FAST:
 		scl_rise_ns = 300;
 		scl_fall_ns = 300;
-		scl_int_delay_ns = 0;
-		sda_hold_ns = 0;
-		sda_fall_ns = 300;
 		rate = I2C_FREQ_FAST;
 		break;
 	default:
 		LOG_ERR("%s: supported only I2C_SPEED_STANDARD and I2C_SPEED_FAST\n", dev->name);
-		return -ENOTSUP;
+		return -EIO;
 	}
 
 	/*
@@ -484,7 +476,7 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 
 	if (brl > (0x1F + 3)) {
 		LOG_ERR("invalid speed (%lu). Too slow.\n", (unsigned long)config->bitrate);
-		return -EINVAL;
+		return -EIO;
 	}
 
 	brh = total_ticks - brl;
