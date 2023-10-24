@@ -19,7 +19,9 @@
 
 /* RX and TX pins have to be connected together*/
 
-#if DT_NODE_EXISTS(DT_NODELABEL(dut))
+#if DT_NODE_EXISTS(DT_ALIAS(dut))
+#define UART_NODE DT_ALIAS(dut)
+#elif DT_NODE_EXISTS(DT_NODELABEL(dut))
 #define UART_NODE DT_NODELABEL(dut)
 #elif defined(CONFIG_SOC_SERIES_ESP32C3)
 #define UART_NODE DT_NODELABEL(uart1)
