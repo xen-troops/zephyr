@@ -1,4 +1,10 @@
-dut: &scif2 {
+/{
+	aliases {
+		dut = &scif2;
+	};
+};
+
+&scif2 {
 	dmas = <&dma0 6 DMA_RS_RXI2 0>, <&dma0 5 DMA_RS_TXI2 0>;
 	dma-names = "rx", "tx";
 	current-speed = <115200>;
