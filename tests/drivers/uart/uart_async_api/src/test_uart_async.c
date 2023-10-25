@@ -14,7 +14,7 @@ K_SEM_DEFINE(rx_buf_released, 0, 1);
 K_SEM_DEFINE(rx_disabled, 0, 1);
 
 #ifdef CONFIG_NOCACHE_MEMORY
-#define NONCACHE(buf) static __aligned(16) buf __used __attribute__((__section__(".nocache")))
+#define NONCACHE(buf) static buf __used __attribute__((__section__(".nocache")))
 #else
 #define NONCACHE(buf) buf
 #endif
