@@ -1065,7 +1065,7 @@ For the testing purposes BME280 sensor was connected to the board and
 the following test was started:
 
 \begin{lstlisting}
-west build -p always --b rz_a2m samples/sensor/bme280
+west build -p always -b rz_a2m samples/sensor/bme280
 \end{lstlisting}
 
 After building the image can be started by using command \colorbox{lightgray}{west debug}
@@ -1123,6 +1123,62 @@ temp: 30.280000; press: 100.358199; humidity: 68.515625
 temp: 30.260000; press: 100.359214; humidity: 60.868164
 temp: 30.220000; press: 100.358734; humidity: 55.585937
 \end{lstlisting}
+
+If you want to test the parallel operation of sensors on the same I2C bus,
+you can use the following test:
+
+\begin{lstlisting}
+west build -p always -b rz_a2m samples/sensor/ina219_2sensors
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+For this test you will need 2 INA219 sensor modules. Here's what it looks like:
+
+\includegraphics[width=5in]{./media/INA219_Module.jpg}
+
+TI INA219 sensor website:
+\href{https://www.ti.com/product/INA219}{TI INA219 Page Link}
+
+Module can be bought:
+\href{https://www.ebay.com/itm/266045143022?hash=item3df186b7ee:g:WgcAAOSwV8hjndFy&amdata=enc%3AAQAIAAAA4G3Cdgx8lqumNzR84HG5F%2FRa3SAIkQfAsqucnJhd9VktjVIIbxEVn%2FcBUvOpdiEI2lvKpHxeGi%2Fhtyj10XWYiVcdqCpPFvs6ArJXy7il4Fgk0JaWghpQnfz1%2FUQwZ6J6Ne1k02G5gtKKsbf3miD9MQNgCii%2B4DnnAMjsACTISV7OSLZnCBNTBwapu4U3mQZgVKeGFjfmdjgIgRbd20NgqymaY5VOyzliPqPc2Wku7kS%2BGndGjUVem3tT7BXr4iEJeMlbZgd1ZdHncruw6ni%2F2l1071%2BoF%2FUx18XerDyZCok%2B%7Ctkp%3ABk9SR_7ws7ztYg}{INA219 Module Product}
+
+The connection schema to Subboard CN17 connector is the following:
+
+\includegraphics[width=5in]{./media/INA219_connection.png}
+
+Please note that before connecting you need to change the U2 module address to 0x41
+by soldering jumper A0 on the module. The U1 address remains unchanged (0x40).
+More information about changing the address is described here:
+\href{https://whatibroke.com/2019/08/10/change-i2c-address-of-ina219/}{INA219 I2C Address Change}
+
+As a result, you will receive the following output in the console:
+
+\begin{lstlisting}
+*** Booting Zephyr OS build v3.5.0-rc2-75-g6576263fd108 ***
+ID      Bus[V]  Pow[W]  Curr[A]
+0       3       0       0
+1       0       0       0
+0       3       0       0
+1       0       0       0
+0       3       0       0
+1       0       0       0
+0       3       0       0
+1       0       0       0
+0       3       0       0
+1       0       0       0
+0       3       0       0
+1       0       0       0
+0       3       0       0
+\end{lstlisting}
+
+This means that the sensor with ID=0 (U1) has a voltage of about 3V at the VIN+ input,
+and the sensor with ID=1 (U2) has 0V at the VIN+ input. We output to the console only the
+integer part of the values received from the sensors in order to reduce the delays
+introduced into each thread by the output function.
 
 \subsection*{6.7. DMA}\label{dma}
 \addcontentsline{toc}{subsection}{6.7. DMA}
