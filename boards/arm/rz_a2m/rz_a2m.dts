@@ -23,6 +23,7 @@
 	aliases {
 		sw0 = &sw4;
 		led0 = &green;
+		led1 = &red;
 		watchdog0 = &wdt;
 		rtc = &rtc1;
 		pwm-0 = &gpt32e0;
