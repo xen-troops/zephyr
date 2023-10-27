@@ -1,0 +1,19 @@
+/ {
+	aliases {
+		dut = &sci0;
+	};
+};
+
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
+};
+
+&sci0 {
+	dmas = <&dma0 6 DMA_RS_SCI_RXI0 0>, <&dma0 5 DMA_RS_SCI_TXI0 0>;
+	dma-names = "rx", "tx";
+	current-speed = <9600>;
+	pinctrl-0 = <&sci0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
