@@ -856,8 +856,79 @@ skip = 1, total = 1 duration = 0.001 seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.4. Watchdog support}\label{watchdog-support}
-\addcontentsline{toc}{subsection}{6.4. Watchdog support}
+\subsection*{6.4. UART support (SCI)}\label{uart-sci-support}
+\addcontentsline{toc}{subsection}{6.4. UART support (SCI)}
+
+For SCI we use pin PA\_4 as TX and PA\_5 as RX. Those pins connected to the
+Digital Image Input/output Connector (CN15) pins 15 and 16 accordingly.
+Connect those pins to the UART\-USB adapter. Pin 15 on CN15 connector should be connected to RX pin
+on your UART\-USB adapter and pin 16 on CN15 to TX pin on your UART\-USB adapter. GND pin on UART\-USB adapter
+should be connected to the pin 47 or 48 on CN15.
+
+\includegraphics[width=3.75in,height=1.94in]{./media/SCI0_1.jpg}
+
+Testing UART using basic tests can be done as follows:
+
+\begin{lstlisting}
+west build -p always -b rz_a2m -S snippets/rz-a2m-sci-uart-basic-api-test \
+tests/drivers/uart/uart_basic_api
+\end{lstlisting}
+
+\begin{lstlisting}
+*** Booting Zephyr OS build zephyr-v3.3.0-10296-g4f74aa9ca078 ***
+Running TESTSUITE uart_basic_api
+===================================================================
+START - test_uart_config_get
+This is a configure_get test. PASS - test_uart_config_get in 0.003 seconds
+===================================================================
+START - test_uart_configure PASS - test_uart_configure in 0.001 seconds
+===================================================================
+START - test_uart_fifo_fill
+This is a FIFO test.
+ PASS - test_uart_fifo_fill in 0.501 seconds
+===================================================================
+START - test_uart_fifo_read
+Please send characters to serial console
+ PASS - test_uart_fifo_read in 28.315 seconds
+===================================================================
+START - test_uart_poll_in
+Please send characters to serial console
+ PASS - test_uart_poll_in in 9.684 seconds
+===================================================================
+START - test_uart_poll_out
+This is a POLL test.
+ PASS - test_uart_poll_out in 0.002 seconds
+===================================================================
+TESTSUITE uart_basic_api succeeded
+Running TESTSUITE uart_basic_api_pending
+===================================================================
+START - test_uart_pending
+Please send characters to serial console
+d PASS - test_uart_pending in 1.505 seconds
+===================================================================
+TESTSUITE uart_basic_api_pending succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [uart_basic_api]: pass = 6, fail = 0, skip = 0, total = 6 duration = 38.506 seconds
+ - PASS - [uart_basic_api.test_uart_config_get] duration = 0.003 seconds
+ - PASS - [uart_basic_api.test_uart_configure] duration = 0.001 seconds
+ - PASS - [uart_basic_api.test_uart_fifo_fill] duration = 0.501 seconds
+ - PASS - [uart_basic_api.test_uart_fifo_read] duration = 28.315 seconds
+ - PASS - [uart_basic_api.test_uart_poll_in] duration = 9.684 seconds
+ - PASS - [uart_basic_api.test_uart_poll_out] duration = 0.002 seconds
+
+SUITE PASS - 100.00% [uart_basic_api_pending]: pass = 1, fail = 0, skip = 0, total = 1 duration = 1.505 seconds
+ - PASS - [uart_basic_api_pending.test_uart_pending] duration = 1.505 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+\end{lstlisting}
+
+\subsection*{6.5. Watchdog support}\label{watchdog-support}
+\addcontentsline{toc}{subsection}{6.5. Watchdog support}
 
 Zephyr provides API for the watchdog timer.
 
@@ -894,8 +965,8 @@ Feeding watchdog...
 Waiting for reset...
 \end{lstlisting}
 
-\subsection*{6.5. PWM support}\label{pwm-support}
-\addcontentsline{toc}{subsection}{6.5. PWM support}
+\subsection*{6.6. PWM support}\label{pwm-support}
+\addcontentsline{toc}{subsection}{6.6. PWM support}
 
 Zephyr supports Pulse Width Modulation (PWM) timer.
 
@@ -1049,8 +1120,8 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.6. I2C}\label{i2c}
-\addcontentsline{toc}{subsection}{6.6. I2C}
+\subsection*{6.7. I2C}\label{i2c}
+\addcontentsline{toc}{subsection}{6.7. I2C}
 
 Zephyr supports interface for I2C (Inter-Integrated Circuit) is a
 commonly used two-signal shared peripheral interface bus. Many
@@ -1180,8 +1251,8 @@ and the sensor with ID=1 (U2) has 0V at the VIN+ input. We output to the console
 integer part of the values received from the sensors in order to reduce the delays
 introduced into each thread by the output function.
 
-\subsection*{6.7. DMA}\label{dma}
-\addcontentsline{toc}{subsection}{6.7. DMA}
+\subsection*{6.8. DMA}\label{dma}
+\addcontentsline{toc}{subsection}{6.8. DMA}
 
 Zephyr also provides an interface for the DMA controller.
 
@@ -1404,8 +1475,8 @@ total = 1 duration = 0.071 seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.8. RTC}\label{rtc}
-\addcontentsline{toc}{subsection}{6.8. RTC}
+\subsection*{6.9. RTC}\label{rtc}
+\addcontentsline{toc}{subsection}{6.9. RTC}
 
 An RTC is a low power device which tracks time using broken-down time.
 It should not be confused with low-power counters which sometimes share
@@ -1486,8 +1557,8 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.9. OSTM}\label{ostm}
-\addcontentsline{toc}{subsection}{6.9. OSTM}
+\subsection*{6.10. OSTM}\label{ostm}
+\addcontentsline{toc}{subsection}{6.10. OSTM}
 
 The OSTM is a multi-channel 32-bit timer/counter with fixed clock source
 that can operate in either interval count down timer or free-running
@@ -1551,8 +1622,8 @@ Also, you can run:
 west build -p always -b rz_a2m tests/kernel/sleep/
 \end{lstlisting}
 
-\subsection*{6.10. BSC}\label{bsc}
-\addcontentsline{toc}{subsection}{6.10. BSC}
+\subsection*{6.11. BSC}\label{bsc}
+\addcontentsline{toc}{subsection}{6.11. BSC}
 
 The bus state controller outputs control signals for various types of
 memory and external devices that are connected to the external address
@@ -1657,8 +1728,8 @@ SUITE PASS - 100.00% [bsc_rza2_suite]: pass = 1, fail = 0, skip =
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.11. Interrupt controller}\label{interrupt-controller}
-\addcontentsline{toc}{subsection}{6.11. Interrupt controller}
+\subsection*{6.12. Interrupt controller}\label{interrupt-controller}
+\addcontentsline{toc}{subsection}{6.12. Interrupt controller}
 
 Zephyr supports interrupt controller support:
 
@@ -1795,8 +1866,8 @@ line (516) detection mode to RISING EDGE
 line 516) pressed 10 times
 \end{lstlisting}
 
-\subsection*{6.12. SPI Flash Support}\label{spi-flash-support}
-\addcontentsline{toc}{subsection}{6.12. SPI Flash Support}
+\subsection*{6.13. SPI Flash Support}\label{spi-flash-support}
+\addcontentsline{toc}{subsection}{6.13. SPI Flash Support}
 
 Zephyr provides an interface for a flash-controller driver to perform
 Write/Read/Erase operations for a serial flash connected to the device.
@@ -1871,8 +1942,8 @@ SUITE PASS - 100.00% [flash_driver_rw]: pass = 1, fail = 0, skip
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.13. MTU PWM Support}\label{mtu-pwm-support}
-\addcontentsline{toc}{subsection}{6.13. MTU PWM Support}
+\subsection*{6.14. MTU PWM Support}\label{mtu-pwm-support}
+\addcontentsline{toc}{subsection}{6.14. MTU PWM Support}
 
 MTU PWM driver supports PWM output on channels 0-4 and 6-7. The capture
 of signal on pin is supported on all channels, but we can capture only
