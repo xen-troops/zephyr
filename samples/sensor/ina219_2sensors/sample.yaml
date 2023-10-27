@@ -1,0 +1,15 @@
+#
+# Copyright (c) 2021 Leonard Pollak
+# Copyright (c) 2023 EPAM Systems
+#
+# SPDX-License-Identifier: Apache-2.0
+
+
+sample:
+  name: Sample for parallel reading of two INA219 current sensors
+  description: Demonstration of the parallel data reading from 2 INA219 sensors on the same I2C bus
+tests:
+  sample.sensor.ina219_2sensors:
+    build_only: true
+    platform_allow: rz_a2m
+    tags: sensors
