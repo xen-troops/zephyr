@@ -708,7 +708,7 @@ ZTEST_USER(uart_async_timeout, test_forever_timeout)
 }
 
 
-ZTEST_DMEM NONCACHE(uint8_t chained_write_tx_bufs[2][10]) = {"Message 1", "Message 2"};
+ZTEST_DMEM uint8_t chained_write_tx_bufs[2][10] = {"Message 1", "Message 2"};
 ZTEST_DMEM bool chained_write_next_buf = true;
 ZTEST_BMEM volatile uint8_t tx_sent;
 
