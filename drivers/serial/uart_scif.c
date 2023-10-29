@@ -133,6 +133,11 @@ struct uart_scif_data {
 #endif
 };
 
+#define SCIF_DEFAULT_SPEED   115200
+#define SCIF_DEFAULT_PARITY  UART_CFG_PARITY_NONE
+#define SCIF_DEFAULT_STOP_BITS   UART_CFG_STOP_BITS_1
+#define SCIF_DEFAULT_DATA_BITS   UART_CFG_DATA_BITS_8
+
 /* SCSMR (Serial Mode Register) */
 #define SCSMR_C_A       BIT(7)  /* Communication Mode */
 #define SCSMR_CHR       BIT(6)  /* 7-bit Character Length */
@@ -346,9 +351,10 @@ static int uart_scif_configure(const struct device *dev,
 	uint8_t reg_val8;
 	k_spinlock_key_t key;
 
-	if (cfg->parity != UART_CFG_PARITY_NONE ||
-	    cfg->stop_bits != UART_CFG_STOP_BITS_1 ||
-	    cfg->data_bits != UART_CFG_DATA_BITS_8 ||
+	if (cfg->data_bits < UART_CFG_DATA_BITS_7 ||
+	    cfg->data_bits > UART_CFG_DATA_BITS_8 ||
+	    cfg->stop_bits == UART_CFG_STOP_BITS_0_5 ||
+	    cfg->stop_bits == UART_CFG_STOP_BITS_1_5 ||
 	    cfg->flow_ctrl != UART_CFG_FLOW_CTRL_NONE) {
 		return -ENOTSUP;
 	}
@@ -362,7 +368,12 @@ static int uart_scif_configure(const struct device *dev,
 
 	/* Disable Transmit and Receive */
 	reg_val = uart_scif_read_16(dev, SCSCR);
-	reg_val &= ~(SCSCR_TE | SCSCR_RE);
+	reg_val &= ~(SCSCR_TE | SCSCR_RE | SCSCR_TIE | SCSCR_RIE);
+	if (config->type == SCIF_RZ_SCIFA_TYPE) {
+		reg_val &= ~(SCSCR_TEIE_SCIFA | SCSCR_TOIE_SCIFA);
+	} else {
+		reg_val &= ~(SCSCR_TEIE_RZ);
+	}
 	uart_scif_write_16(dev, SCSCR, reg_val);
 
 	/* Emptying Transmit and Receive FIFO */
@@ -388,6 +399,24 @@ static int uart_scif_configure(const struct device *dev,
 	reg_val = uart_scif_read_16(dev, SCSMR);
 	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP |
 		     SCSMR_CKS1 | SCSMR_CKS0);
+	switch (cfg->parity) {
+	case UART_CFG_PARITY_NONE:
+		break;
+	case UART_CFG_PARITY_ODD:
+		reg_val |= SCSMR_PE | SCSMR_O_E;
+		break;
+	case UART_CFG_PARITY_EVEN:
+		reg_val |= SCSMR_PE;
+		break;
+	default:
+		return -ENOTSUP;
+	}
+	if (cfg->stop_bits == UART_CFG_STOP_BITS_2) {
+		reg_val |= SCSMR_STOP;
+	}
+	if (cfg->data_bits == UART_CFG_DATA_BITS_7) {
+		reg_val |= SCSMR_CHR;
+	}
 	uart_scif_write_16(dev, SCSMR, reg_val);
 
 	/* Set baudrate */
@@ -1287,10 +1316,14 @@ static const struct uart_driver_api uart_scif_driver_api = {
 #define UART_SCIF_XXX_INIT(n, soc_type)							\
 	static struct uart_scif_data uart_scif_data_##n = {				\
 		.current_config = {							\
-			.baudrate = DT_INST_PROP(n, current_speed),			\
-			.parity = UART_CFG_PARITY_NONE,					\
-			.stop_bits = UART_CFG_STOP_BITS_1,				\
-			.data_bits = UART_CFG_DATA_BITS_8,				\
+			.baudrate = DT_INST_PROP_OR(n, current_speed,			\
+						 SCIF_DEFAULT_SPEED),			\
+			.parity = DT_INST_ENUM_IDX_OR(n, parity,			\
+						SCIF_DEFAULT_PARITY),			\
+			.stop_bits = DT_INST_ENUM_IDX_OR(n, stop_bits,			\
+						SCIF_DEFAULT_STOP_BITS),		\
+			.data_bits = DT_INST_ENUM_IDX_OR(n, data_bits,			\
+						SCIF_DEFAULT_DATA_BITS),		\
 			.flow_ctrl = UART_CFG_FLOW_CTRL_NONE,				\
 		},									\
 		UART_DMA_CHANNEL(n, rx, RX, PERIPHERAL, MEMORY)				\
