@@ -29,6 +29,13 @@
 			 <RZA2_PINMUX(PORTE, 1, 3)>;	/* RxD2 */
 	};
 
+	/* Additional serial sync mode */
+	/omit-if-no-ref/ scif2_usart_pins: sserial2 {
+		pinmux = <RZA2_PINMUX(PORTE, 2, 3)>,	/* TxD2 */
+			 <RZA2_PINMUX(PORTE, 1, 3)>,	/* RxD2 */
+			 <RZA2_PINMUX(PORTE, 0, 3)>;	/* SCK2 */
+	};
+
 	/* Serial Console or additional serial */
 	/omit-if-no-ref/ scif1_pins: serial1 {
 		pinmux = <RZA2_PINMUX(PORT7, 3, 4)>,	/* TxD1 */
