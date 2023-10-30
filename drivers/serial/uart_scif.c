@@ -74,6 +74,8 @@ struct uart_scif_cfg {
 	const struct pinctrl_dev_config *pcfg;
 	const struct scif_params *params;
 	uint32_t type;
+	bool usart_mode;
+	bool external_clock;
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	void (*irq_config_func)(const struct device *dev);
 #endif
@@ -144,8 +146,8 @@ struct uart_scif_data {
 #define SCSMR_PE        BIT(5)  /* Parity Enable */
 #define SCSMR_O_E       BIT(4)  /* Odd Parity */
 #define SCSMR_STOP      BIT(3)  /* Stop Bit Length */
-#define SCSMR_CKS1      BIT(1)  /* Clock Select 1 */
-#define SCSMR_CKS0      BIT(0)  /* Clock Select 0 */
+#define SCSMR_CKS_MASK  (BIT(0) | BIT(1))  /* Clock Select */
+#define SCSMR_CKS_SHIFT 0       /* Clock Select shift*/
 
 /* SCSCR (Serial Control Register) */
 #define SCSCR_TEIE_SCIFA  BIT(11) /* Transmit End Interrupt Enable on SCIFA*/
@@ -280,14 +282,31 @@ static void uart_scif_set_baudrate(const struct device *dev, uint32_t baud_rate)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	struct uart_scif_data *data = dev->data;
-	uint8_t reg_val;
+	uint16_t reg_val;
+	uint32_t koeff, n;
 
-	/* Those formulas for hardcoded parameters */
+	/* Those formulas for hardcoded bus frequency 66 MHz */
 	if (config->type == SCIF_RZ_SCIFA_TYPE) {
-		reg_val = ((data->clk_rate + 4 * baud_rate) / (8 * baud_rate) - 1);
+		if (config->usart_mode) {
+			n = (baud_rate >= 100000) ? 0 :
+			    (baud_rate >= 10000) ? 1 :
+			    (baud_rate >= 5000) ? 2 : 3;
+			koeff = 2;
+		} else {
+			n = (baud_rate >= 9600) ? 0 :
+			    (baud_rate >= 2400) ? 1 :
+			    (baud_rate >= 600) ? 2 : 3;
+			koeff = 4;
+		}
+		koeff *= 1 << (2 * n);
+		reg_val = uart_scif_read_16(dev, SCSMR);
+		reg_val &= ~(SCSMR_CKS_MASK << SCSMR_CKS_SHIFT);
+		reg_val |= (n & SCSMR_CKS_MASK) << SCSMR_CKS_SHIFT;
+		uart_scif_write_16(dev, SCSMR, reg_val);
 	} else {
-		reg_val = ((data->clk_rate + 16 * baud_rate) / (32 * baud_rate) - 1);
+		koeff = 16;
 	}
+	reg_val = ((data->clk_rate + koeff * baud_rate) / (koeff * 2 * baud_rate) - 1);
 	uart_scif_write_8(dev, SCBRR, reg_val);
 }
 
@@ -354,6 +373,12 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 		return -ENOTSUP;
 	}
 
+	if (config->usart_mode &&
+	    (cfg->data_bits != UART_CFG_DATA_BITS_8 ||
+	     cfg->parity != UART_CFG_PARITY_NONE)) {
+		return -ENOTSUP;
+	}
+
 	key = k_spin_lock(&data->lock);
 
 #ifdef CONFIG_UART_ASYNC_API
@@ -364,7 +389,7 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 	/* Disable Transmit and Receive */
 	reg_val = uart_scif_read_16(dev, SCSCR);
 	reg_val &= ~(SCSCR_TE | SCSCR_RE | SCSCR_TIE | SCSCR_RIE);
-	if (config->type == SCIF_RZ_SCIFA_TYPE) {
+	if (config->type == SCIF_SCIFA_TYPE) {
 		reg_val &= ~(SCSCR_TEIE_SCIFA | SCSCR_TOIE_SCIFA);
 	} else {
 		reg_val &= ~(SCSCR_TEIE_RZ);
@@ -388,12 +413,14 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 	/* Select internal clock */
 	reg_val = uart_scif_read_16(dev, SCSCR);
 	reg_val &= ~(SCSCR_CKE1 | SCSCR_CKE0);
+	if (config->usart_mode && config->external_clock) {
+		reg_val |= SCSCR_CKE1;
+	}
 	uart_scif_write_16(dev, SCSCR, reg_val);
 
 	/* Serial Configuration (8N1) & Clock divider selection */
 	reg_val = uart_scif_read_16(dev, SCSMR);
-	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP |
-		     SCSMR_CKS1 | SCSMR_CKS0);
+	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP);
 	switch (cfg->parity) {
 	case UART_CFG_PARITY_NONE:
 		break;
@@ -411,6 +438,9 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 	}
 	if (cfg->data_bits == UART_CFG_DATA_BITS_7) {
 		reg_val |= SCSMR_CHR;
+	}
+	if (config->usart_mode) {
+		reg_val |= SCSMR_C_A;
 	}
 	uart_scif_write_16(dev, SCSMR, reg_val);
 
@@ -1235,6 +1265,7 @@ static const struct uart_driver_api uart_scif_driver_api = {
 			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),			\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.params = &port_params[soc_type],					\
+		.usart_mode = DT_INST_PROP(n, usart_mode),				\
 		.type = soc_type,							\
 		IRQ_FUNC_INIT								\
 	}
