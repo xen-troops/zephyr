@@ -1344,9 +1344,9 @@ Zephyr also provides an interface for the DMA controller.
 This support can be tested using the following commands:
 
 \begin{lstlisting}
-west build -p always -b rz_a2m tests/drivers/chan_blen_transfer
-west build -p always -b rz_a2m tests/drivers/loop_transfer
-west build -p always -b rz_a2m tests/drivers/scatter_gather
+west build -p always -b rz_a2m tests/drivers/dma/chan_blen_transfer
+west build -p always -b rz_a2m tests/drivers/dma/loop_transfer
+west build -p always -b rz_a2m tests/drivers/dma/scatter_gather
 \end{lstlisting}
 
 After building the image can be started by using command \colorbox{lightgray}{west debug}
