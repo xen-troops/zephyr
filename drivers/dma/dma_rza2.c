@@ -184,6 +184,7 @@ struct dma_rza2_channel {
 	uint32_t total_bytes;
 	uint32_t direction;
 	int chunk;
+	struct k_spinlock lock;
 };
 
 /* DMA channel configuration table */
@@ -649,7 +650,7 @@ struct dma_rza2_data {
 
 	struct rza2_dma_link_descriptor *descr_pool;
 	uint32_t descrs_busy;
-	struct k_spinlock lock;
+	struct k_spinlock descr_lock;
 };
 
 #define DEV_DATA(dev) ((struct dma_rza2_data *)((dev)->data))
@@ -803,24 +804,24 @@ static int free_chunk(const struct device *dev, int chunk)
 	if (chunk >= CONFIG_DMA_RZA2_DESCRS_CHUNKS || chunk < 0) {
 		return -EINVAL;
 	}
-	key = k_spin_lock(&data->lock);
+	key = k_spin_lock(&data->descr_lock);
 	data->descrs_busy &= ~BIT(chunk);
-	k_spin_unlock(&data->lock, key);
+	k_spin_unlock(&data->descr_lock, key);
 
 	return 0;
 }
 
 static int get_descrs(const struct device *dev, struct rza2_dma_link_descriptor **descr)
 {
-	k_spinlock_key_t key;
 	struct dma_rza2_data *data = dev->data;
 	int chunk;
+	k_spinlock_key_t key;
 
 	if (!descr) {
 		return -EINVAL;
 	}
 
-	key = k_spin_lock(&data->lock);
+	key = k_spin_lock(&data->descr_lock);
 
 	chunk = get_free_and_set_unlocked(&data->descrs_busy);
 	if (chunk < 0) {
@@ -828,8 +829,7 @@ static int get_descrs(const struct device *dev, struct rza2_dma_link_descriptor 
 	} else {
 		*descr = &data->descr_pool[chunk * CONFIG_DMA_RZA2_MAX_DESCRS];
 	}
-
-	k_spin_unlock(&data->lock, key);
+	k_spin_unlock(&data->descr_lock, key);
 
 	return chunk;
 }
@@ -936,6 +936,7 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 	struct dma_hw_config hw_config;
 	uint32_t interval = 0;
 	uint32_t phys_addr;
+	k_spinlock_key_t key;
 
 	if (dma_cfg->dma_slot >= LAST_RESOURCE_MARKER) {
 		LOG_ERR("Incorrect dma_slot %d was provided to ch %d", dma_cfg->dma_slot, channel);
@@ -947,10 +948,6 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 	ret = check_ch(dev, channel);
 	if (ret < 0) {
 		return ret;
-	}
-
-	if (data->channels[channel].busy) {
-		return -EBUSY;
 	}
 
 	if (dma_cfg->source_chaining_en || dma_cfg->dest_chaining_en) {
@@ -976,6 +973,13 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 		return -ENOTSUP;
 	}
 
+	key = k_spin_lock(&data->channels[channel].lock);
+
+	if (data->channels[channel].busy) {
+		ret = -EBUSY;
+		goto unlock;
+	}
+
 	/* Set sel */
 	channel_cfg |= (channel & 0x7u);
 
@@ -990,7 +994,7 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 	ret = dma_get_data_size(dma_cfg->dest_data_size);
 	if (ret < 0) {
 		LOG_ERR("invalid dest_data_size %d\n", dma_cfg->dest_data_size);
-		return ret;
+		goto unlock;
 	}
 
 	channel_cfg |= ((ret << DMAC_PRV_CHCFG_SHIFT_DDS) & DMAC_PRV_CHCFG_MASK_DDS);
@@ -998,7 +1002,7 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 	ret = dma_get_data_size(dma_cfg->source_data_size);
 	if (ret < 0) {
 		LOG_ERR("invalid source_data_size %d\n", dma_cfg->source_data_size);
-		return ret;
+		goto unlock;
 	}
 
 	channel_cfg |= ((ret << DMAC_PRV_CHCFG_SHIFT_SDS) & DMAC_PRV_CHCFG_MASK_SDS);
@@ -1050,7 +1054,7 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 		ret = rza2_construct_link_chain(dev, dma_cfg, &data->channels[channel],
 						channel_cfg);
 		if (ret) {
-			return ret;
+			goto unlock;
 		};
 
 		rza2_set_nxla(dev, channel,
@@ -1062,7 +1066,8 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 		if ((not_aligned(dev, dma_cfg->head_block->dest_address)) ||
 		    (not_aligned(dev, dma_cfg->head_block->source_address))) {
 			LOG_ERR("%s: buffers are not properly aligned", __func__);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto unlock;
 		}
 
 		rza2_set_n0sa(dev, channel, Z_MEM_PHYS_ADDR(dma_cfg->head_block->source_address));
@@ -1087,7 +1092,7 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 	phys_addr = Z_MEM_PHYS_ADDR(dma_cfg->head_block->source_address);
 	/* set bus parameter for source */
 	if ((phys_addr <= DMAC_PRV_DMA_EXTERNAL_BUS_END) ||
-	    ((phys_addr >= DMAC_PRV_DMA_EXTERNAL_BUS_MIRROR_START) &&
+	   ((phys_addr >= DMAC_PRV_DMA_EXTERNAL_BUS_MIRROR_START) &&
 	    (phys_addr <= DMAC_PRV_DMA_EXTERNAL_BUS_MIRROR_END))) {
 		channel_ext |= DMAC_PRV_CHEXT_SET_SCA_NORMAL;
 	} else {
@@ -1119,8 +1124,9 @@ static int dma_rza2_config(const struct device *dev, uint32_t channel, struct dm
 
 	/* Clear status */
 	rza2_set_chctrl(dev, channel, SWRST);
-
-	return 0;
+unlock:
+	k_spin_unlock(&data->channels[channel].lock, key);
+	return ret;
 }
 
 static int dma_rza2_start(const struct device *dev, uint32_t ch)
@@ -1128,19 +1134,23 @@ static int dma_rza2_start(const struct device *dev, uint32_t ch)
 	struct dma_rza2_data *data = dev->data;
 	int ret;
 	uint32_t stat;
+	k_spinlock_key_t key;
 
 	ret = check_ch(dev, ch);
 	if (ret < 0) {
 		return ret;
 	}
 
+	key = k_spin_lock(&data->channels[ch].lock);
 	if (data->channels[ch].busy) {
-		return -EBUSY;
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	stat = rza2_get_chstat(dev, ch);
 	if (IS_SET(stat, DMAC_PRV_CHSTAT_MASK_EN) || IS_SET(stat, DMAC_PRV_CHSTAT_MASK_TACT)) {
-		return -EBUSY;
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	/* Clear status */
@@ -1155,7 +1165,10 @@ static int dma_rza2_start(const struct device *dev, uint32_t ch)
 		rza2_set_chctrl(dev, ch, SETEN);
 	}
 
-	return 0;
+unlock:
+	k_spin_unlock(&data->channels[ch].lock, key);
+
+	return ret;
 }
 
 static int dma_rza2_stop(const struct device *dev, uint32_t ch)
@@ -1163,14 +1176,17 @@ static int dma_rza2_stop(const struct device *dev, uint32_t ch)
 	struct dma_rza2_data *data = dev->data;
 	int ret;
 	uint32_t ch_cfg;
+	k_spinlock_key_t key;
 
 	ret = check_ch(dev, ch);
 	if (ret < 0) {
 		return ret;
 	}
 
+	key = k_spin_lock(&data->channels[ch].lock);
 	if (!data->channels[ch].busy) {
-		return 0;
+		ret = 0;
+		goto unlock;
 	}
 
 	rza2_set_chctrl(dev, ch, CLREN);
@@ -1184,19 +1200,23 @@ static int dma_rza2_stop(const struct device *dev, uint32_t ch)
 	rza2_set_chctrl(dev, ch, SWRST);
 
 	dma_rza2_channel_free(dev, &data->channels[ch]);
-
-	return 0;
+unlock:
+	k_spin_unlock(&data->channels[ch].lock, key);
+	return ret;
 }
 
 static int dma_rza2_suspend(const struct device *dev, uint32_t ch)
 {
 	int ret;
 	struct dma_rza2_data *data = dev->data;
+	k_spinlock_key_t key;
 
 	ret = check_ch(dev, ch);
 	if (ret < 0) {
 		return ret;
 	}
+
+	key = k_spin_lock(&data->channels[ch].lock);
 
 	if (!data->channels[ch].busy) {
 		return -EINVAL;
@@ -1204,30 +1224,33 @@ static int dma_rza2_suspend(const struct device *dev, uint32_t ch)
 
 	rza2_set_chctrl(dev, ch, SETSUS);
 
-	return 0;
+	k_spin_unlock(&data->channels[ch].lock, key);
+	return ret;
 }
 
 static int dma_rza2_resume(const struct device *dev, uint32_t ch)
 {
 	int ret;
 	struct dma_rza2_data *data = dev->data;
+	k_spinlock_key_t key;
 
 	ret = check_ch(dev, ch);
 	if (ret < 0) {
 		return ret;
 	}
 
+	key = k_spin_lock(&data->channels[ch].lock);
+
 	if (!data->channels[ch].busy) {
-		return -EINVAL;
+		ret = -EINVAL;
+	} else if (!rza2_get_ch_sus(dev, ch)) {
+		ret = -EINVAL;
+	} else {
+		rza2_set_chctrl(dev, ch, CLRSUS);
 	}
 
-	if (!rza2_get_ch_sus(dev, ch)) {
-		return -EINVAL;
-	}
-
-	rza2_set_chctrl(dev, ch, CLRSUS);
-
-	return 0;
+	k_spin_unlock(&data->channels[ch].lock, key);
+	return ret;
 }
 
 static uint32_t get_copied_bytes(struct dma_rza2_channel *chan,
