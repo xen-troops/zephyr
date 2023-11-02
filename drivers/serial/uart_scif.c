@@ -244,8 +244,7 @@ static const struct scif_params port_params[NR_REGTYPES] = {
 
 /* TODO: Make unify uart_scif_read/uart_scif_write functions */
 
-static uint8_t uart_scif_read_8(const struct device *dev,
-				uint32_t offs)
+static uint8_t uart_scif_read_8(const struct device *dev, uint32_t offs)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	uint32_t offset = config->params->regs[offs].offset;
@@ -253,8 +252,7 @@ static uint8_t uart_scif_read_8(const struct device *dev,
 	return sys_read8(DEVICE_MMIO_GET(dev) + offset);
 }
 
-static void uart_scif_write_8(const struct device *dev,
-			      uint32_t offs, uint8_t value)
+static void uart_scif_write_8(const struct device *dev, uint32_t offs, uint8_t value)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	uint32_t offset = config->params->regs[offs].offset;
@@ -262,8 +260,7 @@ static void uart_scif_write_8(const struct device *dev,
 	sys_write8(value, DEVICE_MMIO_GET(dev) + offset);
 }
 
-static uint16_t uart_scif_read_16(const struct device *dev,
-				  uint32_t offs)
+static uint16_t uart_scif_read_16(const struct device *dev, uint32_t offs)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	uint32_t offset = config->params->regs[offs].offset;
@@ -271,8 +268,7 @@ static uint16_t uart_scif_read_16(const struct device *dev,
 	return sys_read16(DEVICE_MMIO_GET(dev) + offset);
 }
 
-static void uart_scif_write_16(const struct device *dev,
-			       uint32_t offs, uint16_t value)
+static void uart_scif_write_16(const struct device *dev, uint32_t offs, uint16_t value)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	uint32_t offset = config->params->regs[offs].offset;
@@ -280,8 +276,7 @@ static void uart_scif_write_16(const struct device *dev,
 	sys_write16(value, DEVICE_MMIO_GET(dev) + offset);
 }
 
-static void uart_scif_set_baudrate(const struct device *dev,
-				   uint32_t baud_rate)
+static void uart_scif_set_baudrate(const struct device *dev, uint32_t baud_rate)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	struct uart_scif_data *data = dev->data;
@@ -326,6 +321,7 @@ static void uart_scif_poll_out(const struct device *dev, unsigned char out_char)
 {
 	struct uart_scif_data *data = dev->data;
 	uint16_t reg_val;
+
 	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
 	/* Wait for empty space in transmit FIFO */
@@ -341,14 +337,13 @@ static void uart_scif_poll_out(const struct device *dev, unsigned char out_char)
 	k_spin_unlock(&data->lock, key);
 }
 
-static int uart_scif_configure(const struct device *dev,
-			       const struct uart_config *cfg)
+static int uart_scif_configure(const struct device *dev, const struct uart_config *cfg)
 {
 	const struct uart_scif_cfg *config = dev->config;
 	struct uart_scif_data *data = dev->data;
-
 	uint16_t reg_val;
 	uint8_t reg_val8;
+
 	k_spinlock_key_t key;
 
 	if (cfg->data_bits < UART_CFG_DATA_BITS_7 ||
@@ -448,8 +443,7 @@ static int uart_scif_configure(const struct device *dev,
 }
 
 #ifdef CONFIG_UART_USE_RUNTIME_CONFIGURE
-static int uart_scif_config_get(const struct device *dev,
-				struct uart_config *cfg)
+static int uart_scif_config_get(const struct device *dev, struct uart_config *cfg)
 {
 	struct uart_scif_data *data = dev->data;
 
