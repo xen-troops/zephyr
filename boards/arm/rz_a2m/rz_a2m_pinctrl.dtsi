@@ -49,6 +49,13 @@
 	};
 
 	/* Serial Console or additional serial */
+	/omit-if-no-ref/ sci0_usart_pins: usart0 {
+		pinmux = <RZA2_PINMUX(PORTA, 4, 4)>,	/* TxD0 */
+			 <RZA2_PINMUX(PORTA, 5, 4)>,	/* RxD0 */
+			 <RZA2_PINMUX(PORTA, 6, 4)>;	/* SCK0 */
+	};
+
+	/* Serial Console or additional serial */
 	/omit-if-no-ref/ sci1_pins: uart1 {
 		pinmux = <RZA2_PINMUX(PORTA, 0, 4)>,	/* TxD1 */
 			 <RZA2_PINMUX(PORTA, 1, 4)>;	/* RxD1 */
