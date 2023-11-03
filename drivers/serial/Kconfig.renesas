@@ -16,7 +16,7 @@ config UART_SCIF
 	  Enable Renesas SCIF UART Driver.
 
 config UART_SCI
-	bool "Renesas SCI UART Driver"
+	bool "Renesas SCI UART/USART Driver"
 	default y
 	depends on DT_HAS_RENESAS_RZA2M_SCI_ENABLED
 	select SERIAL_HAS_DRIVER

@@ -11,26 +11,34 @@ properties:
   interrupts:
     required: true
 
-  current-speed:
-    required: true
-    description: |
-      Initial baud rate setting for UART. Only a fixed set of baud
-      rates are selectable on these devices.
-    enum:
-      - 4800
-      - 9600
-      - 14400
-      - 19200
-      - 28800
-      - 38400
-      - 57600
-      - 115200
-      - 230400
-      - 500000
-      - 921600
-      - 1000000
-      - 2000000
-
   clocks:
     description: |
       Clock source for calculating BRR value
+
+  dmas:
+    description: |
+      Optional TX & RX dma specifiers. Mandatory if defined CONFIG_UART_ASYNC_API
+      Each specifier will have a phandle reference to the dmac controller,
+      the channel number, slot and config.
+
+      For example dmas for TX, RX on scif3
+         dmas = <&dma0 5 DMA_RS_SCI_TXI0 0>, <&dma0 6 DMA_RS_SCI_RXI0 0>;
+
+  dma-names:
+    description: |
+      Required if the dmas property exists.  This should be "tx" and "rx"
+      to match the dmas property.
+
+      For example
+         dma-names = "tx", "rx";
+
+  usart-mode:
+    type: boolean
+    description:
+      Optional boolean parameter which turns on Clock Synchronous mode
+
+  external-clock:
+    type: boolean
+    description:
+      This parameter actual only in Clock Synchronous mode. Use external
+      source as clock
