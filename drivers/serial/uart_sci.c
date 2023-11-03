@@ -33,6 +33,8 @@ struct uart_sci_cfg {
 	struct renesas_cpg_clk mod_clk;
 	struct renesas_cpg_clk bus_clk;
 	const struct pinctrl_dev_config *pcfg;
+	bool usart_mode;
+	bool external_clock;
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	void (*irq_config_func)(const struct device *dev);
 #endif
@@ -126,8 +128,8 @@ struct uart_sci_data {
 #define SCSMR_PE	BIT(5)  /* Parity Enable */
 #define SCSMR_O_E	BIT(4)  /* Odd Parity */
 #define SCSMR_STOP	BIT(3)  /* Stop Bit Length */
-#define SCSMR_CKS1	BIT(1)  /* Clock Select 1 */
-#define SCSMR_CKS0	BIT(0)  /* Clock Select 0 */
+#define SCSMR_CKS_MASK	(BIT(0) | BIT(1))  /* Clock Select */
+#define SCSMR_CKS_SHIFT	0
 
 /* SCSCR (Serial Control Register) */
 #define SCSCR_TIE	BIT(7)  /* Transmit Interrupt Enable */
@@ -178,10 +180,30 @@ static uint8_t uart_sci_read_8(const struct device *dev, uint32_t offs)
 static void uart_sci_set_baudrate(const struct device *dev, uint32_t baud_rate)
 {
 	struct uart_sci_data *data = dev->data;
+	const struct uart_sci_cfg *config = dev->config;
 	uint8_t reg_val;
+	uint8_t koeff, n;
 
-	reg_val = (data->clk_rate + 16 * baud_rate) / (32 * baud_rate) - 1;
+	/* This formula for hardcoded bus frequency 66 MHz */
+	if (config->usart_mode) {
+		n = (baud_rate >= 100000) ? 0 :
+			(baud_rate >= 25000) ? 1 :
+			(baud_rate >= 5000) ? 2 : 3;
+		koeff = 2;
+	} else {
+		n = (baud_rate >= 9600) ? 0 :
+			(baud_rate >= 2400) ? 1 :
+			(baud_rate >= 300) ? 2 : 3;
+		koeff = 16;
+	}
+	koeff *= 1 << (2 * n);
+	reg_val = (data->clk_rate + koeff * baud_rate) / (koeff * 2 * baud_rate) - 1;
 	uart_sci_write_8(dev, SCBRR, reg_val);
+
+	reg_val = uart_sci_read_8(dev, SCSMR);
+	reg_val &= ~(SCSMR_CKS_MASK << SCSMR_CKS_MASK);
+	reg_val |= (n & SCSMR_CKS_MASK) << SCSMR_CKS_SHIFT;
+	uart_sci_write_8(dev, SCSMR, reg_val);
 }
 
 static int uart_sci_poll_in(const struct device *dev, unsigned char *p_char)
@@ -195,11 +217,11 @@ static int uart_sci_poll_in(const struct device *dev, unsigned char *p_char)
 	*p_char = uart_sci_read_8(dev, SCSSR);
 
 	reg_val = uart_sci_read_8(dev, SCSSR);
+	if (reg_val & (SCSSR_ORER | SCSSR_FER | SCSSR_PER)) {
+		reg_val &= ~(SCSSR_ORER | SCSSR_FER | SCSSR_PER);
+		uart_sci_write_8(dev, SCSSR, reg_val);
+	}
 	if (!(reg_val & SCSSR_RDRF)) {
-		if (reg_val & (SCSSR_ORER | SCSSR_FER | SCSSR_PER)) {
-			reg_val &= ~(SCSSR_ORER | SCSSR_FER | SCSSR_PER);
-			uart_sci_write_8(dev, SCSSR, reg_val);
-		}
 		ret = -1;
 		goto unlock;
 	}
@@ -222,7 +244,7 @@ static void uart_sci_poll_out(const struct device *dev, unsigned char out_char)
 	uint8_t reg_val;
 	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
-	/* Wait for empty space in transmit FIFO */
+	/* Wait for transmit register will empty */
 	while (!(uart_sci_read_8(dev, SCSSR) & SCSSR_TDRE)) {
 	}
 
@@ -238,16 +260,26 @@ static void uart_sci_poll_out(const struct device *dev, unsigned char out_char)
 static int uart_sci_configure(const struct device *dev, const struct uart_config *cfg)
 {
 	struct uart_sci_data *data = dev->data;
+	const struct uart_sci_cfg *config = dev->config;
 	uint8_t reg_val;
 
 	k_spinlock_key_t key;
 
-	if (cfg->data_bits < UART_CFG_DATA_BITS_7 ||
-	    cfg->data_bits > UART_CFG_DATA_BITS_8 ||
-	    cfg->stop_bits == UART_CFG_STOP_BITS_0_5 ||
-	    cfg->stop_bits == UART_CFG_STOP_BITS_1_5 ||
-	    cfg->flow_ctrl != UART_CFG_FLOW_CTRL_NONE) {
-		return -ENOTSUP;
+	if (config->usart_mode) {
+		if (cfg->data_bits != UART_CFG_DATA_BITS_8 ||
+		    cfg->stop_bits != UART_CFG_STOP_BITS_1 ||
+		    cfg->parity != UART_CFG_PARITY_NONE ||
+		    cfg->flow_ctrl != UART_CFG_FLOW_CTRL_NONE) {
+			return -ENOTSUP;
+		}
+	} else {
+		if (cfg->data_bits < UART_CFG_DATA_BITS_7 ||
+		    cfg->data_bits > UART_CFG_DATA_BITS_8 ||
+		    cfg->stop_bits == UART_CFG_STOP_BITS_0_5 ||
+		    cfg->stop_bits == UART_CFG_STOP_BITS_1_5 ||
+		    cfg->flow_ctrl != UART_CFG_FLOW_CTRL_NONE) {
+			return -ENOTSUP;
+		}
 	}
 
 	key = k_spin_lock(&data->lock);
@@ -262,15 +294,17 @@ static int uart_sci_configure(const struct device *dev, const struct uart_config
 	reg_val &= ~(SCSSR_PER | SCSSR_FER | SCSSR_ORER | SCSSR_RDRF);
 	uart_sci_write_8(dev, SCSSR, reg_val);
 
-	/* Select internal clock */
+	/* Select clock source */
 	reg_val = uart_sci_read_8(dev, SCSCR);
 	reg_val &= ~(SCSCR_CKE1 | SCSCR_CKE0);
+	if (config->usart_mode && config->external_clock) {
+		reg_val |= SCSCR_CKE1;
+	}
 	uart_sci_write_8(dev, SCSCR, reg_val);
 
 	/* Serial Configuration (8N1) & Clock divider selection */
 	reg_val = uart_sci_read_8(dev, SCSMR);
-	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP |
-		     SCSMR_CKS1 | SCSMR_CKS0);
+	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP);
 	switch (cfg->parity) {
 	case UART_CFG_PARITY_NONE:
 		break;
@@ -288,6 +322,9 @@ static int uart_sci_configure(const struct device *dev, const struct uart_config
 	}
 	if (cfg->data_bits == UART_CFG_DATA_BITS_7) {
 		reg_val |= SCSMR_CHR;
+	}
+	if (config->usart_mode) {
+		reg_val |= SCSMR_C_A;
 	}
 	uart_sci_write_8(dev, SCSMR, reg_val);
 	reg_val = uart_sci_read_8(dev, SCSCMR);
@@ -1149,6 +1186,8 @@ static const struct uart_driver_api uart_sci_driver_api = {
 		.bus_clk.domain =						\
 			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),		\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),			\
+		.usart_mode = DT_INST_PROP(n, usart_mode),			\
+		.external_clock = DT_INST_PROP(n, external_clock),		\
 		IRQ_FUNC_INIT							\
 	}
 
