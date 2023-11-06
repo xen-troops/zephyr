@@ -23,7 +23,12 @@
 
 LOG_MODULE_REGISTER(uart_scif, CONFIG_UART_LOG_LEVEL);
 /* TODO: Add error handling */
-/* TODO: Add multithread locking */
+/*
+ * TODO: Added locks to dma streams to prevent a race conditions while accessing to
+ * the stream data. Async api still requires full protection which potentially should
+ * be synchronized with global uart state using some kind of state machine. Callbacks
+ * also should be state dependent.
+ */
 
 struct scif_reg {
 	uint8_t offset, size;
@@ -101,6 +106,7 @@ struct dma_stream {
 	struct k_work_delayable timeout_work;
 	bool enabled;
 	const char *name;
+	struct k_spinlock lock;
 };
 
 #define RX_SRC_INCREMENT	0
@@ -379,12 +385,12 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 		return -ENOTSUP;
 	}
 
-	key = k_spin_lock(&data->lock);
-
 #ifdef CONFIG_UART_ASYNC_API
 	uart_scif_async_rx_disable(dev);
 	uart_scif_async_tx_abort(dev);
 #endif
+
+	key = k_spin_lock(&data->lock);
 
 	/* Disable Transmit and Receive */
 	reg_val = uart_scif_read_16(dev, SCSCR);
@@ -888,9 +894,10 @@ static inline void scif_async_evt_rx_rdy(struct uart_scif_data *data)
 		.data.rx.offset = data->dma_rx.offset
 	};
 
-	/* update the current pos for new data */
-	data->dma_rx.offset = data->dma_rx.counter;
-
+	K_SPINLOCK(&data->dma_rx.lock) {
+		/* update the current pos for new data */
+		data->dma_rx.offset = data->dma_rx.counter;
+	}
 	/* send event only for new data */
 	if (event.data.rx.len > 0) {
 		scif_async_user_callback(data, &event);
@@ -969,10 +976,15 @@ static void uart_scif_dma_replace_buffer(const struct device *dev)
 {
 	struct uart_scif_data *data = dev->data;
 	int ret;
+	k_spinlock_key_t key;
 
 	if (!data->async_inited) {
 		return;
 	}
+
+	dma_stop(data->dma_rx.dma_dev, data->dma_rx.dma_channel);
+
+	key = k_spin_lock(&data->dma_rx.lock);
 	/* Replace the buffer and reload the DMA */
 	LOG_DBG("Replacing RX buffer: %d", data->rx_next_buffer_len);
 
@@ -986,11 +998,14 @@ static void uart_scif_dma_replace_buffer(const struct device *dev)
 	data->rx_next_buffer = NULL;
 	data->rx_next_buffer_len = 0;
 
-	dma_stop(data->dma_rx.dma_dev, data->dma_rx.dma_channel);
 	ret = dma_config(data->dma_rx.dma_dev, data->dma_rx.dma_channel, &data->dma_rx.dma_cfg);
 	if (ret < 0) {
+		k_spin_unlock(&data->dma_rx.lock, key);
 		return;
 	}
+
+	k_spin_unlock(&data->dma_rx.lock, key);
+
 	ret = dma_start(data->dma_rx.dma_dev, data->dma_rx.dma_channel);
 	if (ret < 0) {
 		return;
@@ -1009,7 +1024,9 @@ static void uart_scif_dma_rx_flush(const struct device *dev)
 		int32_t rx_rcv_len = data->dma_rx.buffer_length - stat.pending_length;
 
 		if (rx_rcv_len > data->dma_rx.offset) {
-			data->dma_rx.counter = rx_rcv_len;
+			K_SPINLOCK(&data->dma_rx.lock) {
+				data->dma_rx.counter = rx_rcv_len;
+			}
 			scif_async_evt_rx_rdy(data);
 		}
 	}
@@ -1017,21 +1034,25 @@ static void uart_scif_dma_rx_flush(const struct device *dev)
 
 static int uart_scif_async_rx_disable(const struct device *dev)
 {
+	int ret = 0;
 	struct uart_scif_data *data = dev->data;
 	struct uart_event disabled_event = {
 		.type = UART_RX_DISABLED
 	};
 
+	k_spinlock_key_t key = k_spin_lock(&data->dma_rx.lock);
+
 	if (!data->dma_rx.enabled) {
-		scif_async_user_callback(data, &disabled_event);
-		return -EFAULT;
+		k_spin_unlock(&data->dma_rx.lock, key);
+		ret = -EFAULT;
+		goto out;
 	}
+	data->dma_rx.enabled = false;
+	k_spin_unlock(&data->dma_rx.lock, key);
 
 	uart_scif_dma_rx_flush(dev);
 
 	scif_async_evt_rx_buf_release(data);
-
-	data->dma_rx.enabled = false;
 
 	dma_stop(data->dma_rx.dma_dev, data->dma_rx.dma_channel);
 
@@ -1050,23 +1071,27 @@ static int uart_scif_async_rx_disable(const struct device *dev)
 
 	LOG_DBG("rx: disabled");
 
+out:
 	scif_async_user_callback(data, &disabled_event);
-
-	return 0;
+	return ret;
 }
 
 static int uart_scif_async_tx(const struct device *dev, const uint8_t *buf, size_t buf_size,
 			      int32_t timeout)
 {
 	struct uart_scif_data *data = dev->data;
+	k_spinlock_key_t key;
 	int ret;
 
 	if (!data->dma_tx.dma_dev || !data->async_inited) {
 		return -ENODEV;
 	}
 
+	key = k_spin_lock(&data->dma_tx.lock);
+
 	if (data->dma_tx.buffer_length != 0) {
-		return -EBUSY;
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	data->dma_tx.buffer = (uint8_t *)buf;
@@ -1079,8 +1104,10 @@ static int uart_scif_async_tx(const struct device *dev, const uint8_t *buf, size
 	data->dma_tx.dma_cfg.head_block = &data->dma_tx.blk_cfg;
 	ret = dma_config(data->dma_tx.dma_dev, data->dma_tx.dma_channel, &data->dma_tx.dma_cfg);
 	if (ret < 0) {
-		return ret;
+		goto unlock;
 	}
+
+	k_spin_unlock(&data->dma_tx.lock, key);
 
 	uart_scif_write_16(dev, SCSCR, uart_scif_read_16(dev, SCSCR) | SCSCR_TE | SCSCR_TIE);
 	sys_cache_data_flush_range((void *)buf, buf_size);
@@ -1089,6 +1116,9 @@ static int uart_scif_async_tx(const struct device *dev, const uint8_t *buf, size
 	/* Start TX timer */
 	scif_async_timer_start(&data->dma_tx.timeout_work, data->dma_tx.timeout);
 
+	return 0;
+unlock:
+	k_spin_unlock(&data->dma_tx.lock, key);
 	return ret;
 }
 
@@ -1104,15 +1134,19 @@ static int uart_scif_async_rx_enable(const struct device *dev, uint8_t *buf, siz
 				     int32_t timeout)
 {
 	struct uart_scif_data *data = dev->data;
+	k_spinlock_key_t key;
 	int ret;
 
 	if (!data->dma_rx.dma_dev || !data->async_inited) {
 		return -ENODEV;
 	}
 
+	key = k_spin_lock(&data->dma_rx.lock);
+
 	if (data->dma_rx.enabled) {
 		LOG_WRN("RX was already enabled");
-		return -EBUSY;
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	data->dma_rx.offset = 0;
@@ -1131,17 +1165,24 @@ static int uart_scif_async_rx_enable(const struct device *dev, uint8_t *buf, siz
 
 	if (ret != 0) {
 		LOG_ERR("UART ERR: RX DMA config failed!");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto unlock;
 	}
+	/* Enable RX DMA requests */
+	data->dma_rx.enabled = true;
+
+	k_spin_unlock(&data->dma_rx.lock, key);
+
 	sys_cache_data_invd_range(data->dma_rx.buffer, buf_size);
 	if (dma_start(data->dma_rx.dma_dev, data->dma_rx.dma_channel)) {
 		LOG_ERR("UART ERR: RX DMA start failed!");
+		K_SPINLOCK(&data->dma_rx.lock) {
+			data->dma_rx.enabled = false;
+		}
 		return -EFAULT;
 	}
 
 	uart_scif_write_16(dev, SCSCR, uart_scif_read_16(dev, SCSCR) | SCSCR_RE | SCSCR_RIE);
-	/* Enable RX DMA requests */
-	data->dma_rx.enabled = true;
 
 	/* Request next buffer */
 	scif_async_evt_rx_buf_request(data);
@@ -1150,23 +1191,30 @@ static int uart_scif_async_rx_enable(const struct device *dev, uint8_t *buf, siz
 	/* Start the RX timer not null */
 	LOG_DBG("async rx enabled");
 
+	return 0;
+unlock:
+	k_spin_unlock(&data->dma_rx.lock, key);
 	return ret;
 }
 
 static int uart_scif_async_rx_buf_rsp(const struct device *dev, uint8_t *buf, size_t buf_size)
 {
+	int ret = 0;
 	struct uart_scif_data *data = dev->data;
-
+	k_spinlock_key_t key = k_spin_lock(&data->dma_rx.lock);
 	if (!data->dma_rx.enabled) {
-		return -EACCES;
+		ret = -EACCES;
+		goto unlock;
 	}
 	if (data->rx_next_buffer) {
-		return -EBUSY;
+		ret = -EBUSY;
+		goto unlock;
 	}
 	data->rx_next_buffer = buf;
 	data->rx_next_buffer_len = buf_size;
-
-	return 0;
+unlock:
+	k_spin_unlock(&data->dma_rx.lock, key);
+	return ret;
 }
 
 static void dma_tx_callback(const struct device *dev, void *user_data,
@@ -1175,16 +1223,15 @@ static void dma_tx_callback(const struct device *dev, void *user_data,
 	const struct device *uart_dev = user_data;
 	struct uart_scif_data *data = uart_dev->data;
 	struct dma_status stat;
-	unsigned int key = irq_lock();
 
 	(void)k_work_cancel_delayable(&data->dma_tx.timeout_work);
 	if (!dma_get_status(data->dma_tx.dma_dev, data->dma_tx.dma_channel, &stat)) {
 		data->dma_tx.counter = data->dma_tx.buffer_length - stat.pending_length;
 	}
 	scif_async_evt_tx_done(data);
-	data->dma_tx.buffer_length = 0;
-
-	irq_unlock(key);
+	K_SPINLOCK(&data->dma_tx.lock) {
+		data->dma_tx.buffer_length = 0;
+	}
 }
 
 static void dma_rx_callback(const struct device *dev, void *user_data,
@@ -1198,8 +1245,11 @@ static void dma_rx_callback(const struct device *dev, void *user_data,
 		scif_async_evt_rx_err(data, status);
 		return;
 	}
-	/* true since this functions occurs when buffer if full */
-	data->dma_rx.counter = data->dma_rx.buffer_length;
+
+	K_SPINLOCK(&data->dma_rx.lock) {
+		/* true since this functions occurs when buffer if full */
+		data->dma_rx.counter = data->dma_rx.buffer_length;
+	}
 
 	scif_async_evt_rx_rdy(data);
 
@@ -1215,7 +1265,7 @@ static void dma_rx_callback(const struct device *dev, void *user_data,
 		k_work_reschedule(&data->dma_rx.timeout_work, K_TICKS(1));
 	}
 }
-#endif
+#endif  /* CONFIG_UART_ASYNC_API */
 
 static const struct uart_driver_api uart_scif_driver_api = {
 	.poll_in = uart_scif_poll_in,
