@@ -18,6 +18,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr/cache.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -847,7 +848,7 @@ int z_arm_mmu_init(void)
 	__set_DACR(reg_val);
 
 	invalidate_tlb_all();
-
+	sys_cache_data_invd_all();
 	/* Enable the MMU and Cache in SCTLR */
 	reg_val  = __get_SCTLR();
 	reg_val |= ARM_MMU_SCTLR_AFE_BIT;
