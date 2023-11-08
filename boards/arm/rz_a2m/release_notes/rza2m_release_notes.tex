@@ -322,9 +322,6 @@ Download SW package from the following location:
 \url{https://www.segger.com/downloads/jlink/} and follow installation
 instructions.
 
-NOTE: Please note that you should reboot (using SW1 switch) the board
-before each \colorbox{lightgray}{west debug} call to keep hardware on the initial state.
-
 The result will be gdb session via JLink server. Zephyr image will be
 loaded to RAM using Jlink.
 
@@ -340,12 +337,8 @@ start from flash memory.
 
 After that the board will start from flash after each reboot.
 
-\textbf{NOTE:} There is a known issue that after flashing that JLink
-direct debug session doesn't work if the board has valid XIP image:
-
-\url{https://jiraeu.epam.com/browse/RECRZZP-53}
-
-As a temporary workaround, the following steps can be done:
+\textbf{NOTE:} If it is needed to cleanup the Serial Flash on the board the following
+steps can be done:
 
 \begin{lstlisting}
 /opt/SEGGER/JLink_V792a/JLinkExe -nogui 1 -if swd -speed 15000 -device
