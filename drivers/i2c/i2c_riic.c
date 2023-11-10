@@ -158,9 +158,6 @@ struct riic_data {
 
 #define RIIC_BR_RESERVED	0xe0 /* Should be 1 on writes */
 
-#define I2C_FREQ_STANDARD	100000
-#define I2C_FREQ_FAST		400000
-
 #define MAX_WAIT_US		500
 
 #define TRANSFER_TIMEOUT_MS	10		/* Timeout for @riic_data::transfer_mtx */
@@ -432,6 +429,7 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	unsigned long rate;
 	int total_ticks, cks, brl, brh;
 	uint32_t scl_rise_ns, scl_fall_ns;
+	bool fast_plus = false;
 
 	/* TODO: will be removed after confirming slave mode works */
 	/* We only support Master mode */
@@ -445,21 +443,27 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 		return -EIO;
 	}
 
-	/* TODO: Add support I2C_SPEED_FAST_PLUS, I2C_SPEED_HIGH, I2C_SPEED_ULTRA speed */
 	/* Values taken from linux source sode */
 	switch (I2C_SPEED_GET(dev_config)) {
 	case I2C_SPEED_STANDARD:
-		rate = I2C_FREQ_STANDARD;
+		rate = I2C_BITRATE_STANDARD;
 		scl_rise_ns = 1000;
 		scl_fall_ns = 300;
 		break;
 	case I2C_SPEED_FAST:
 		scl_rise_ns = 300;
 		scl_fall_ns = 300;
-		rate = I2C_FREQ_FAST;
+		rate = I2C_BITRATE_FAST;
+		break;
+	case I2C_SPEED_FAST_PLUS:
+		scl_rise_ns = 120;
+		scl_fall_ns = 120;
+		rate = I2C_BITRATE_FAST_PLUS;
+		fast_plus = true;
 		break;
 	default:
-		LOG_ERR("%s: supported only I2C_SPEED_STANDARD and I2C_SPEED_FAST\n", dev->name);
+		LOG_ERR("%s: supported only I2C_SPEED_STANDARD, I2C_SPEED_FAST and "
+				"I2C_SPEED_FAST_PLUS\n", dev->name);
 		return -EIO;
 	}
 
@@ -532,6 +536,10 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 
 	riic_write(dev, RIIC_SER, 0);
 	riic_write(dev, RIIC_MR3, RIIC_MR3_RDRFS);
+
+	if (fast_plus) {
+		riic_clear_set_bit(dev, RIIC_FER, 0, RIIC_FER_FMPE);
+	}
 
 	riic_clear_set_bit(dev, RIIC_CR1, RIIC_CR1_IICRST, 0);
 	data->master_active = 0;
