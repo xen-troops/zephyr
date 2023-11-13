@@ -1,0 +1,6 @@
+name: rz-a2m-eth-test
+boards:
+  rz_a2m:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-a2m-eth-test.overlay
+      EXTRA_CONF_FILE: rz-a2m-eth-test.conf
