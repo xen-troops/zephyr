@@ -99,7 +99,7 @@ static void rza2_set_pin_function(uint8_t port, uint8_t pin, uint8_t func)
 	k_mutex_lock(&rza2_pinctrl_data.lock, K_FOREVER);
 
 	/* Set pin to 'Non-use (Hi-z input protection)'  */
-	reg16 = sys_read8(rza2_pinctrl_data.pdr_addr + RZA2_PDR(port));
+	reg16 = sys_read16(rza2_pinctrl_data.pdr_addr + RZA2_PDR(port));
 	mask16 = RZA2_PDR_MASK << (pin * 2);
 	reg16 &= ~mask16;
 	sys_write16(reg16, rza2_pinctrl_data.pdr_addr + RZA2_PDR(port));
