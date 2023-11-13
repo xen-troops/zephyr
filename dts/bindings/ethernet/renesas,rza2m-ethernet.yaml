@@ -1,0 +1,55 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas Electronics RZ/A2M EtherMAC
+
+compatible: "renesas,ether-r7s9210"
+
+include: [ethernet-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+    description: |
+      - ETHERC registers
+
+  interrupts:
+    required: true
+
+  '#address-cells':
+    description: number of address cells for the MDIO bus
+    const: 1
+
+  '#size-cells':
+    description: number of size cells on the MDIO bus
+    const: 0
+
+  clocks:
+    required: true
+
+  phy-mode:
+    type: string
+    enum:
+      - "mii"
+      - "rmii"
+    description: |
+      Specifies interface type between the Ethernet device and a physical
+      layer (PHY) device.
+    default: "rmii"
+    required: true
+
+  pinctrl-0:
+    required: true
+  pinctrl-names:
+    required: true
+
+  renesas,no-ether-link:
+    type: boolean
+    description:
+      specify when a board does not provide a proper Ether LINK signal
+
+  renesas,ether-link-active-low:
+    type: boolean
+    description:
+      specify when the Ether LINK signal is active-low instead of normal
+      active-high
