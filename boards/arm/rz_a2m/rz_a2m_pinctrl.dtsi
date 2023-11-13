@@ -109,8 +109,6 @@
 			 <RZA2_PINMUX(PORTE, 1, 7)>, /* RMII0_RXD0 */
 			 <RZA2_PINMUX(PORTE, 2, 7)>, /* RMII0_RXD1 */
 			 <RZA2_PINMUX(PORTE, 3, 7)>, /* RMII0_RXER */
-			 <RZA2_PINMUX(PORTE, 5, 1)>, /* ET0_MDC */
-			 <RZA2_PINMUX(PORTE, 6, 1)>, /* ET0_MDIO */
 			 <RZA2_PINMUX(PORTL, 0, 5)>; /* IRQ4 */
 	};
 
@@ -125,8 +123,6 @@
 			 <RZA2_PINMUX(PORTK, 4, 7)>, /* RMII1_RXD0 */
 			 <RZA2_PINMUX(PORT3, 5, 7)>, /* RMII1_RXD1 */
 			 <RZA2_PINMUX(PORT3, 1, 7)>, /* RMII1_RXER */
-			 <RZA2_PINMUX(PORT3, 3, 1)>, /* ET1_MDC */
-			 <RZA2_PINMUX(PORT3, 4, 1)>, /* ET1_MDIO */
 			 <RZA2_PINMUX(PORTL, 1, 5)>; /* IRQ5 */
 	};
 

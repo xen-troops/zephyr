@@ -8,6 +8,7 @@
 #include <arm/renesas/rz/r7s9210.dtsi>
 #include <freq.h>
 #include "rz_a2m_pinctrl.dtsi"
+#include "rz_a2m_eth.dtsi"
 
 / {
 	model = "Renesas RZ A2M board";
