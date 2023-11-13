@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	mdio-gpio0 {
+			status = "okay";
+
+			ethernet-phy@7 {
+				status = "okay";
+			};
+	};
+
+	mdio-gpio1 {
+			status = "okay";
+
+			ethernet-phy@7 {
+				status = "okay";
+			};
+	};
+};
+
+&ether0 {
+	status = "okay";
+};
+
+&ether1 {
+	status = "okay";
+};
