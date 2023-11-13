@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * The Ethernet configuration depends on SW6 DIP switch settings:
+ *   SW6-4 set to ON for Ether1
+ *   SW6-5 set to ON for Ether2
+ * Note. Enabling Ethernet nodes without proper SW6 configuration can cause unpredictable behavior.
+ *
+ * JP1/JP2 Jumper for PHY IRQ configuration (not supported yet)
+ * PD_0 Pin for PHY IRQ configuration (not supported yet)
+ *
+ * MAC addresses are printed on CH8/CH9 connectors and has to be updated manually.
+ */
+
+/ {
+	mdio-gpio0 {
+			compatible = "zephyr,mdio-gpio";
+			mdc-gpios = <&porte 5 GPIO_ACTIVE_HIGH>;
+			mdio-gpios = <&porte 6 GPIO_ACTIVE_HIGH>;
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			phy0: ethernet-phy@7 {
+				compatible = "ethernet-phy";
+				reg = <7>;
+				status = "disabled";
+			};
+	};
+
+	mdio-gpio1 {
+			compatible = "zephyr,mdio-gpio";
+			mdc-gpios = <&port3 3 GPIO_ACTIVE_HIGH>;
+			mdio-gpios = <&port3 4 GPIO_ACTIVE_HIGH>;
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			phy1: ethernet-phy@7 {
+				compatible = "ethernet-phy";
+				reg = <7>;
+				status = "disabled";
+			};
+	};
+};
+
+&ether0 {
+	pinctrl-0 = <&eth0_pins>;
+	pinctrl-names = "default";
+	renesas,no-ether-link;
+	local-mac-address = [74 90 50 C0 F1 98];
+	phy-handle = <&phy0>;
+};
+
+&ether1 {
+	pinctrl-0 = <&eth1_pins>;
+	pinctrl-names = "default";
+	renesas,no-ether-link;
+	local-mac-address = [74 90 50 C0 F1 18];
+	phy-handle = <&phy1>;
+};
