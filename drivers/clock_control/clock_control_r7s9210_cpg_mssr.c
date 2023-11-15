@@ -102,6 +102,8 @@ static struct cpg_clk_info_table mod_props[] = {
 	RENESAS_MOD_CLK_INFO_ITEM(61,	R7S9210_CLK_B),
 
 	/* ether */
+	RENESAS_MOD_CLK_INFO_ITEM(62,	R7S9210_CLK_B),
+	RENESAS_MOD_CLK_INFO_ITEM(63,	R7S9210_CLK_B),
 	RENESAS_MOD_CLK_INFO_ITEM(64,	R7S9210_CLK_B),
 	RENESAS_MOD_CLK_INFO_ITEM(65,	R7S9210_CLK_B),
 
@@ -146,8 +148,8 @@ struct stbcr_to_stbreq {
 	uint8_t stbreq_id;
 } stbcr_to_stbreq_map[] = {
 	{20,  15},   {51,  13},   {56,  10},   {60,  32},
-	{60,  33},   {61,  30},   {61,  31},   {64,  26},
-	{65,  26},   {66,  27},   {76,  20},   {76,  21},
+	{60,  33},   {61,  30},   {61,  31},
+	{62,  26},   {66,  27},   {76,  20},   {76,  21},
 	{77,  23},   {81,  25},   {90,  24},   {100, 11},
 	{101, 11},   {102, 12},   {103, 12},   {104, 22},
 };
@@ -408,6 +410,7 @@ static int rz_cpg_mstp_clock_endisable(uint32_t base, uint32_t module, bool enab
 	}
 
 	if (enable) {
+		rz_cpg_change_reg_bits(base + STBCR[stbcr_reg_idx], mstp_bitmask, enable);
 		if (stbreq_bitmask != 0) {
 			rz_cpg_change_reg_bits(base + STBREQ[req_reg_idx], stbreq_bitmask, enable);
 			reg_val = rz_cpg_wait_bit_val(ack_reg_addr,
@@ -418,9 +421,7 @@ static int rz_cpg_mstp_clock_endisable(uint32_t base, uint32_t module, bool enab
 		if (reg_val) {
 			return -EIO;
 		}
-		rz_cpg_change_reg_bits(base + STBCR[stbcr_reg_idx], mstp_bitmask, enable);
 	} else {
-		rz_cpg_change_reg_bits(base + STBCR[stbcr_reg_idx], mstp_bitmask, enable);
 		if (stbreq_bitmask != 0) {
 			rz_cpg_change_reg_bits(base + STBREQ[req_reg_idx], stbreq_bitmask, enable);
 			reg_val = rz_cpg_wait_bit_val(ack_reg_addr,
@@ -431,6 +432,7 @@ static int rz_cpg_mstp_clock_endisable(uint32_t base, uint32_t module, bool enab
 		if (!reg_val) {
 			return -EIO;
 		}
+		rz_cpg_change_reg_bits(base + STBCR[stbcr_reg_idx], mstp_bitmask, enable);
 	}
 
 	return 0;
