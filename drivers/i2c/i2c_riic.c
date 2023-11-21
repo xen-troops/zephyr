@@ -22,7 +22,8 @@ LOG_MODULE_REGISTER(riic);
 
 #include "i2c-priv.h"
 
-#define NUM_SLAVES 3
+#define NUM_SLAVES		3
+#define NO_ACTIVE_SLAVE		(-1)
 
 struct riic_config {
 	DEVICE_MMIO_ROM; /* Must be first */
@@ -38,6 +39,8 @@ struct riic_config {
 struct riic_target_config {
 	struct i2c_target_config *slave_cfg;
 	bool slave_attached;
+	bool first_read;
+	bool first_write;
 };
 #endif
 
@@ -51,6 +54,7 @@ struct riic_data {
 	int master_active;
 	uint32_t dev_config;
 #ifdef CONFIG_I2C_TARGET
+	int active_slave_num; /* -1, if no active slave */
 	struct riic_target_config slave[NUM_SLAVES];
 #endif
 };
@@ -431,12 +435,6 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	uint32_t scl_rise_ns, scl_fall_ns;
 	bool fast_plus = false;
 
-	/* TODO: will be removed after confirming slave mode works */
-	/* We only support Master mode */
-	if ((dev_config & I2C_MODE_CONTROLLER) != I2C_MODE_CONTROLLER) {
-		return -EIO;
-	}
-
 	/* TODO: This will be removed after confirming 10-bit addressing works */
 	/* We are not supporting 10-bit addressing */
 	if ((dev_config & I2C_ADDR_10_BITS) == I2C_ADDR_10_BITS) {
@@ -544,6 +542,9 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	riic_clear_set_bit(dev, RIIC_CR1, RIIC_CR1_IICRST, 0);
 	data->master_active = 0;
 	data->dev_config = dev_config;
+#ifdef CONFIG_I2C_TARGET
+	data->active_slave_num = NO_ACTIVE_SLAVE;
+#endif
 
 	k_mutex_unlock(&data->i2c_lock_mtx);
 
@@ -612,47 +613,95 @@ err:
 }
 
 #if defined(CONFIG_I2C_TARGET)
-static void riic_slave_event(const struct device *dev, int slave)
+static void riic_slave_event(const struct device *dev)
 {
 	struct riic_data *data = dev->data;
-	struct i2c_target_config *slave_cfg = data->slave[slave].slave_cfg;
+	int slave_num = data->active_slave_num;
 	const struct i2c_target_callbacks *slave_cb;
+	struct riic_target_config *slave;
+	struct i2c_target_config *slave_cfg;
 	uint8_t val;
+	uint32_t status;
+
+	if (slave_num < 0) {
+		return;
+	}
+
+	slave = &data->slave[slave_num];
+	slave_cfg = slave->slave_cfg;
 
 	if (!slave_cfg) {
-		LOG_WRN("No config for slave %d", slave);
+		LOG_WRN("No config for slave %d", slave_num);
 		return;
 	}
 	slave_cb = slave_cfg->callbacks;
 
-	if (riic_read(dev, RIIC_SR2) & RIIC_SR2_RDRF) {
+	status = riic_read(dev, RIIC_SR2);
+
+	if (status & RIIC_SR2_RDRF) {
+		/* RX data is available, read it and issue write callback */
 		val = riic_read(dev, RIIC_DRR);
-		if (slave_cb->write_received(slave_cfg, val)) {
-			riic_clear_set_bit(dev, RIIC_SR2, 0, RIIC_SR2_NACKF);
+		if (slave->first_write) {
+			/* First byte received (device address + W/R) */
+			slave->first_write = false;
+			if (slave_cb->write_requested &&
+			    slave_cb->write_requested(slave_cfg)) {
+				/* NAK further bytes */
+				riic_transmit_nack(dev);
+			}
+		} else {
+			if (slave_cb->write_received &&
+			    slave_cb->write_received(slave_cfg, val)) {
+				/* NAK further bytes */
+				riic_transmit_nack(dev);
+			}
+		}
+		riic_transmit_ack(dev);
+		return;
+	}
+
+	if (status & RIIC_SR2_TDRE) {
+		/* TX data requested, issue read callback and write out */
+		if (slave->first_read) {
+			/* First byte will send */
+			slave->first_read = false;
+			if (slave_cb->read_requested &&
+			    !slave_cb->read_requested(slave_cfg, &val)) {
+				/* No error, send byte */
+				riic_write(dev, RIIC_DRT, val);
+			}
+		} else {
+			if (slave_cb->read_processed &&
+			    !slave_cb->read_processed(slave_cfg, &val)) {
+				/* No error, send byte */
+				riic_write(dev, RIIC_DRT, val);
+			}
 		}
 		return;
 	}
 
-	if (riic_read(dev, RIIC_SR2) & RIIC_SR2_TDRE) {
-		slave_cb->read_processed(slave_cfg, &val);
-		riic_write(dev, RIIC_DRT, val);
-		return;
-	}
-
-	if (riic_read(dev, RIIC_SR2) & RIIC_SR2_STOP) {
+	/* STOP event handler must be located before the NACK event handler */
+	if (status & RIIC_SR2_STOP) {
+		/* Transaction stopped */
 		slave_cb->stop(slave_cfg);
+		slave->first_read = true;
+		slave->first_write = true;
+		data->active_slave_num = NO_ACTIVE_SLAVE;
 		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF | RIIC_SR2_STOP, 0);
 		return;
 	}
 
+	if (status & RIIC_SR2_NACKF) {
+		/* NACK from master. Dummy read DRR to release SCL line */
+		riic_read(dev, RIIC_DRR);
+		return;
+	}
 }
 
 /* Attach and start I2C as slave */
 int riic_target_register(const struct device *dev, struct i2c_target_config *config)
 {
-	const struct riic_config *cfg = dev->config;
 	struct riic_data *data = dev->data;
-	int i;
 	int slave_num = -1;
 	uint32_t val;
 
@@ -679,6 +728,11 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 	riic_clear_set_bit(dev, RIIC_SER, 0, BIT(slave_num));
 	data->slave[slave_num].slave_cfg = config;
 	data->slave[slave_num].slave_attached = true;
+	data->slave[slave_num].first_read = true;
+	data->slave[slave_num].first_write = true;
+
+	/* Enable interrupts  */
+	riic_write(dev, RIIC_IER, RIIC_IER_RIE | RIIC_IER_TIE | RIIC_IER_NAKIE | RIIC_IER_SPIE);
 
 	LOG_DBG("i2c: target registered. Address %x", config->address);
 
@@ -701,13 +755,16 @@ int riic_target_unregister(const struct device *dev, struct i2c_target_config *c
 		return -EINVAL;
 	}
 
-	if (data->master_active) {
+	if (data->master_active || data->active_slave_num == slave_num) {
 		return -EBUSY;
 	}
 
 	riic_clear_set_bit(dev, RIIC_SER, BIT(slave_num), 0);
 	data->slave[i].slave_attached = false;
 	data->slave[i].slave_cfg = NULL;
+
+	/* Disable interrupts */
+	riic_write(dev, RIIC_IER, 0);
 
 	LOG_DBG("i2c: slave unregistered");
 
@@ -722,11 +779,17 @@ static void riic_isr(const struct device *dev)
 	uint16_t timeout = 0;
 
 #if defined(CONFIG_I2C_TARGET)
+	int slave_num;
 
 	value = riic_read(dev, RIIC_SR1) & RIIC_SR1_AAS_MASK;
-	if (value) {
-		if (data->slave[__builtin_ffs(value) - 1].slave_attached && !data->master_active) {
-			riic_slave_event(dev, value);
+	slave_num = __builtin_ffs(value) - 1;
+	if (slave_num >= 0) {
+		/* Save active slave number because we cannot read it after stop bit */
+		data->active_slave_num = slave_num;
+	}
+	if (data->active_slave_num >= 0) {
+		if (data->slave[data->active_slave_num].slave_attached && !data->master_active) {
+			riic_slave_event(dev);
 			return;
 		}
 	}
@@ -768,8 +831,17 @@ static void riic_isr_sti(const struct device *dev)
 static void riic_isr_nacki(const struct device *dev)
 {
 	riic_isr(dev);
-	riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF, 0);
-	riic_wait_for_clear(dev, RIIC_SR2, RIIC_SR2_NACKF);
+
+#ifdef CONFIG_I2C_TARGET
+	/* In slave mode don't clear the NACKF flag to 0 before the STOP flag is set to 1
+	 * because this will cause the transfer start operation.
+	 */
+	if (((struct riic_data *)dev->data)->active_slave_num == NO_ACTIVE_SLAVE)
+#endif
+	{
+		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF, 0);
+		riic_wait_for_clear(dev, RIIC_SR2, RIIC_SR2_NACKF);
+	}
 }
 
 static void riic_isr_ali(const struct device *dev)
@@ -798,24 +870,25 @@ static const struct i2c_driver_api riic_driver_api = {
 };
 
 /* Device Instantiation */
-#define UART_SET_IRQ(n, name, isr)					\
+#define RIIC_SET_IRQ(n, name, isr)					\
 	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, name, irq),			\
 		    DT_INST_IRQ_BY_NAME(n, name, priority),		\
 		    isr,						\
-		    DEVICE_DT_INST_GET(n), 0);				\
+		    DEVICE_DT_INST_GET(n),				\
+		    DT_INST_IRQ_BY_NAME(n, name, flags));		\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
 
 #define RIIC_INIT(n)							\
 	static void riic_##n##_init_irq(const struct device *dev)	\
 	{								\
-		UART_SET_IRQ(n, tei, riic_isr_tei);			\
-		UART_SET_IRQ(n, ri, riic_isr);				\
-		UART_SET_IRQ(n, ti, riic_isr);				\
-		UART_SET_IRQ(n, spi, riic_isr_spi);			\
-		UART_SET_IRQ(n, sti, riic_isr_sti);			\
-		UART_SET_IRQ(n, nacki, riic_isr_nacki);			\
-		UART_SET_IRQ(n, ali, riic_isr_ali);			\
-		UART_SET_IRQ(n, tmoi, riic_isr_tmoi);			\
+		RIIC_SET_IRQ(n, tei, riic_isr_tei);			\
+		RIIC_SET_IRQ(n, ri, riic_isr);				\
+		RIIC_SET_IRQ(n, ti, riic_isr);				\
+		RIIC_SET_IRQ(n, spi, riic_isr_spi);			\
+		RIIC_SET_IRQ(n, sti, riic_isr_sti);			\
+		RIIC_SET_IRQ(n, nacki, riic_isr_nacki);			\
+		RIIC_SET_IRQ(n, ali, riic_isr_ali);			\
+		RIIC_SET_IRQ(n, tmoi, riic_isr_tmoi);			\
 	}								\
 	PINCTRL_DT_INST_DEFINE(n);					\
 	static const struct riic_config riic_cfg_##n = {		\
