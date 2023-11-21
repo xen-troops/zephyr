@@ -14,7 +14,8 @@ K_SEM_DEFINE(rx_buf_released, 0, 1);
 K_SEM_DEFINE(rx_disabled, 0, 1);
 
 #ifdef CONFIG_NOCACHE_MEMORY
-#define NONCACHE(buf) static buf __used __attribute__((__section__(".nocache")))
+/* __aligned(4) was added to eliminate the Alignment Fault when accessing NONCACHE variables. */
+#define NONCACHE(buf) static __aligned(4) buf __used __attribute__((__section__(".nocache")))
 #else
 #define NONCACHE(buf) buf
 #endif
@@ -154,11 +155,13 @@ static void *single_read_setup(void)
 
 ZTEST_USER(uart_async_single_read, test_single_read)
 {
-	NONCACHE(uint8_t rx_buf[10]) = {0};
+	NONCACHE(uint8_t rx_buf[10]);
 
 	/* Check also if sending from read only memory (e.g. flash) works. */
 	static const uint8_t tx_buf[5] = "test\0";
 
+	/* Using memset because initialization doesn't work for NONCACHE variables */
+	memset(rx_buf, 0, sizeof(rx_buf));
 	zassert_not_equal(memcmp(tx_buf, rx_buf, 5), 0,
 			  "Initial buffer check failed");
 
