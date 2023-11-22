@@ -1266,6 +1266,7 @@ static const struct uart_driver_api uart_scif_driver_api = {
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.params = &port_params[soc_type],					\
 		.usart_mode = DT_INST_PROP(n, usart_mode),				\
+		.external_clock = DT_INST_PROP(n, external_clock),			\
 		.type = soc_type,							\
 		IRQ_FUNC_INIT								\
 	}
