@@ -2218,6 +2218,257 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
+\subsection*{6.15. ETHERC Support}\label{eth-support}
+\addcontentsline{toc}{subsection}{6.15. ETHERC Support}
+
+Zephyr RZ/A2M ETHERC Ethernet driver supports:
+\begin{itemize}
+	\item TX/RX of fragmented Ethernet frames from/to upper Zephyr network core layers through internal EDMAC DMA module.
+	\item interaction with MII Ethernet PHYs for link state and parameters detection using generic phy\_mii driver.
+	\item promiscuous mode
+	\item setting MAC address
+	\item start/stop operation
+	\item net statistic (partially)
+	\item MDIO bus support through generic mdio\_gpio (CONFIG\_MDIO\_GPIO) driver
+	\item only manual testing mode
+\end{itemize}
+
+\textbf{Not} supported:
+\begin{itemize}
+	\item  broadcast storm prevention feature
+	\item  multicast filtering (drop all)
+	\item  fixed-link and ETn\_LINKSTA feature
+	\item  MII PHY IRQs (not supported by Zephyr)
+\end{itemize}
+
+Additional Zephyr snippet rz-a2m-eth-test was created and can be to enable RZ/A2M ETHERC Ethernet driver with different existing Zephyr Net sample applications.
+
+The only samples/net/promiscuous\_mode was tested with the RZ/A2M ETHERC Ethernet driver and it supports IP-traffic passing only through Ether 1 port (ETH0 channel), because promiscuous\_mode application assigns IP-address only to one network interface.
+
+Test setup:
+\begin{lstlisting}
+	RZA2MEVK [Ether1<IP-board>] <--> [EthX<IP-host>] Host PC
+\end{lstlisting}
+
+Zephyr Kconfig options needed for RZ/A2M ETHERC Ethernet driver testing (see ./snippets/rz-a2m-eth-test/rz-a2m-eth-test.conf)
+
+\begin{lstlisting}
+	# enable generic Ethernet L2 layer support
+	CONFIG_ETH_DRIVER
+	CONFIG_NET_L2_ETHERNET
+	# enable RZ/A2M ETHERC Ethernet driver
+	CONFIG_ETH_RZA2M
+	# net core rx/tx data buffers alignment
+	CONFIG_NET_BUF_DATA_ALIGN=32
+
+	# enable MDIO support an mdio_gpio driver required for CONFIG_PHY_GENERIC_MII
+	CONFIG_MDIO
+	CONFIG_MDIO_GPIO
+	# MDIO shell command (optional)
+	CONFIG_MDIO_SHELL
+
+	# enable generic phy_mii driver
+	CONFIG_PHY_GENERIC_MII
+
+	# RZA2MEVK Ether 1 IP-board
+	CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.1.1"
+	# Host PC IP-host
+	CONFIG_NET_CONFIG_PEER_IPV4_ADDR="192.168.1.100"
+\end{lstlisting}
+
+Use below command to build Net promiscuous\_mode sample application:
+
+\begin{lstlisting}
+	west build -p always -b rz_a2m -S rz-a2m-eth-test samples/net/promiscuous_mode
+\end{lstlisting}
+
+Once promiscuous\_mode is loaded it will provide console command line support and show  RZ/A2M ETHERC Ethernet driver boot log.
+
+Note. Promiscuous mode is enabled by default.
+
+Type \textbf{help} to see supported commands:
+\begin{lstlisting}
+	[00:00:00.051,000] <inf> phy_mii: PHY (7) ID 1CC816
+
+	[00:00:00.105,000] <inf> phy_mii: PHY (7) ID 1CC816
+
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204000:"Use Random MAC!!"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204000:"hw_base:E8204000 virt:0x80814000\n"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204000:"MAC 76:90:50:5e:27:fd"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204200:"hw_base:E8204200 virt:0x80813200\n"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204200:"MAC 74:90:50:c0:f1:98"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204000:"iface init done"
+	[00:00:00.107,000] <inf> eth_rza2m: ethernet@e8204200:"iface init done"
+	[00:00:00.107,000] <wrn> net_if: You have 1 IPv6 net_if addresses but 2 network interfaces
+	[00:00:00.107,000] <wrn> net_if: Consider increasing CONFIG_NET_IF_MAX_IPV6_COUNT value.
+	[00:00:00.111,000] <inf> eth_rza2m: ethernet@e8204000:"PHY net_eth_carrier_off"
+	[00:00:00.111,000] <inf> eth_rza2m: ethernet@e8204000:"Starting Device..."
+	[00:00:00.114,000] <inf> eth_rza2m: ethernet@e8204200:"PHY net_eth_carrier_off"
+	[00:00:00.114,000] <inf> eth_rza2m: ethernet@e8204200:"Starting Device..."
+	*** Booting Zephyr OS build v3.5.0-rc2-95-gb9ef2edd02a3 ***
+	[00:00:00.114,000] <inf> net_config: Initializing network
+	[00:00:00.114,000] <inf> net_config: Waiting interface 1 (0x8009461c) to be up...
+	[00:00:04.565,000] <inf> phy_mii: mdio-gpio0: PHY (7) Link speed 100 Mb, full duplex
+
+	[00:00:04.565,000] <inf> eth_rza2m: ethernet@e8204000:"PHY net_eth_carrier_on"
+	[00:00:04.566,000] <inf> net_config: Interface 1 (0x8009461c) coming up
+	[00:00:04.566,000] <inf> net_config: IPv4 address: 192.168.1.1
+	[00:00:04.666,000] <inf> net_config: IPv6 address: 2001:db8::1
+	[00:00:04.666,000] <inf> net_config: IPv6 address: 2001:db8::1
+	[00:00:04.666,000] <inf> net_promisc_sample: Promiscuous mode enabled for interface 0x8009461c
+	[00:00:04.666,000] <inf> net_promisc_sample: Promiscuous mode enabled for interface 0x80094700
+
+	uart:\~{}\$ help
+	Please press the <Tab> button to see all available commands.
+	You can also use the <Tab> button to prompt or auto-complete all commands or its subcommands.
+	You can try to call commands with <-h> or <--help> parameter for more information.
+
+	Shell supports following meta-keys:
+	Ctrl + (a key from: abcdefklnpuw)
+	Alt  + (a key from: bf)
+	Please refer to shell documentation for more details.
+
+	Available commands:
+	clear    :Clear screen.
+	device   :Device commands
+	devmem   :Read/write physical memory
+	Usage:
+	Read memory at address with optional width:
+	devmem address [width]
+	Write memory at address with mandatory width and value:
+	devmem address <width> <value>
+	help     :Prints the help message.
+	history  :Command history.
+	kernel   :Kernel commands
+	log      :Commands for controlling logger
+	mdio     :MDIO commands
+	net      :Networking commands
+	promisc  :Promiscuous mode commands
+	rem      :Ignore lines beginning with 'rem '
+	resize   :Console gets terminal screen size or assumes default in case the
+	readout fails. It must be executed after each terminal width change
+	to ensure correct text display.
+	retval   :Print return value of most recent command
+	shell    :Useful, not Unix-like shell commands.
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: Display Network interface information \textbf{net iface}
+\begin{lstlisting}
+	uart:~$ net iface 1
+
+	Interface eth0 (0x8009461c:ethernet@e8204000) (Ethernet) [1]
+	===================================
+	Link addr : 76:90:50:5E:27:FD
+	MTU       : 1500
+	Flags     : AUTO_START,IPv4,IPv6
+	Promiscuous mode : disabled
+	Ethernet capabilities supported:
+	10 Mbits
+	100 Mbits
+	Promiscuous mode
+	IPv6 unicast addresses (max 3):
+	fe80::7490:50ff:fe5e:27fd autoconf preferred infinite
+	2001:db8::1 manual preferred infinite
+	IPv6 multicast addresses (max 4):
+	ff02::1
+	ff02::1:ff5e:27fd
+	ff02::1:ff00:1
+	IPv6 prefixes (max 2):
+	<none>
+	IPv6 hop limit           : 64
+	IPv6 base reachable time : 30000
+	IPv6 reachable time      : 34467
+	IPv6 retransmit timer    : 0
+	IPv4 unicast addresses (max 1):
+	192.168.1.1 manual preferred infinite
+	IPv4 multicast addresses (max 1):
+	<none>
+	IPv4 gateway : 0.0.0.0
+	IPv4 netmask : 255.255.255.0
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: Disable Promiscuous mode
+\begin{lstlisting}
+	uart:~$ promisc off 1
+	Promiscuous mode OFF...
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: Do Host PC ping \textbf{net ping [IP-host]}
+\begin{lstlisting}
+	uart:~$ net ping 192.168.1.100
+	PING 192.168.1.100
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=1 ttl=64 time=0 ms
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=2 ttl=64 time=0 ms
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=3 ttl=64 time=0 ms
+\end{lstlisting}
+
+\textbf{Host PC}: Do RZA2MEVK ping \textbf{ping [IP-board]}
+\begin{lstlisting}
+	xtrs@xt-remote-station:~$ ping 192.168.1.1
+	PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.
+	64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.277 ms
+	64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=0.209 ms
+	64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=0.210 ms
+	64 bytes from 192.168.1.1: icmp_seq=4 ttl=64 time=0.200 ms
+	64 bytes from 192.168.1.1: icmp_seq=5 ttl=64 time=0.211 ms
+	64 bytes from 192.168.1.1: icmp_seq=6 ttl=64 time=0.209 ms
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: display ARP status \textbf{net arp}
+\begin{lstlisting}
+	uart:~$ net arp
+	Interface  Link              Address
+	[ 0] 1          C0:25:E9:1E:93:DD 192.168.1.100
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: Stop/Start network interface \textbf{net iface down/up}
+\begin{lstlisting}
+	uart:~$ net iface down 1
+	Interface 1 is down
+	[00:01:31.815,000] <inf> eth_rza2m: ethernet@e8204000:"RXF: rx_refill_thread stopped"
+	[00:01:31.815,000] <inf> eth_rza2m: ethernet@e8204000:"Stopping Device..."
+	uart:~$ net iface up 1
+	Interface 1 is up
+	[00:01:43.833,000] <inf> eth_rza2m: ethernet@e8204000:"PHY net_eth_carrier_on"
+	[00:01:43.833,000] <inf> eth_rza2m: ethernet@e8204000:"Starting Device..."
+	[00:01:43.933,000] <inf> net_config: IPv6 address: 2001:db8::1
+	uart:~$
+
+	uart:~$ net ping 192.168.1.100
+	PING 192.168.1.100
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=1 ttl=64 time=0 ms
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=2 ttl=64 time=0 ms
+	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=3 ttl=64 time=0 ms
+	uart:~$
+\end{lstlisting}
+
+\textbf{RZA2MEVK}: Display network statistic \textbf{net stats}
+\begin{lstlisting}
+	uart:~$ net stats 1
+
+	Interface 0x8009461c (Ethernet) [1]
+	===================================
+	IPv6 recv      1        sent    13      drop    1       forwarded       0
+	IPv6 ND recv   0        sent    7       drop    0
+	IPv6 MLD recv  0        sent    6       drop    0
+	IPv4 recv      55       sent    54      drop    1       forwarded       0
+	IP vhlerr      0        hblener 0       lblener 0
+	IP fragerr     0        chkerr  0       protoer 0
+	ICMP recv      54       sent    67      drop    1
+	ICMP typeer    0        chkerr  0
+	UDP recv       0        sent    0       drop    0
+	UDP chkerr     0
+	TCP bytes recv 0        sent    0       resent  0
+	TCP seg recv   0        sent    0       drop    0
+	TCP seg resent 0        chkerr  0       ackerr  0
+	TCP seg rsterr 0        rst     0
+	TCP conn drop  0        connrst 0
+	TCP pkt drop   0
+	Bytes received 7358
+	Bytes sent     7762
+	Processing err 0
+\end{lstlisting}
+
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
 
 Zephyr has an embedded test runner feature called twister. This script
