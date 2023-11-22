@@ -866,7 +866,7 @@ should be connected to the pin 47 or 48 on CN15.
 
 \includegraphics[width=3.75in,height=1.94in]{./media/SCI0_1.jpg}
 
-Testing UART using basic tests can be done as follows:
+To test SCI async API via DMA please use the following command:
 
 \begin{lstlisting}
 west build -p always -b rz_a2m -S rz-a2m-sci-uart-basic-api-test tests/drivers/uart/uart_basic_api
@@ -923,6 +923,98 @@ SUITE PASS - 100.00% [uart_basic_api_pending]: pass = 1, fail = 0, skip = 0, tot
 
 ===================================================================
 PROJECT EXECUTION SUCCESSFUL
+\end{lstlisting}
+
+Test for async api (using DMA) should be built with following command line
+\begin{lstlisting}
+west build -p always -b rz_a2m -S rz-a2m-sci-uart-async-api-test tests/drivers/uart/uart_async_api
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for
+the details.
+
+Before running test application, please check pins 15 and 16 on CN15 Connector should be connected.
+
+\begin{lstlisting}
+  *** Booting Zephyr OS build v3.5.0-rc2-93-gc5ce8bad57ec ***
+  Running TESTSUITE uart_async_chain_read
+  ===================================================================
+  START - test_chained_read
+  SKIP - test_chained_read in 0.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_chain_read succeeded
+  Running TESTSUITE uart_async_chain_write
+  ===================================================================
+  START - test_chained_write
+  PASS - test_chained_write in 0.024 seconds
+  ===================================================================
+  TESTSUITE uart_async_chain_write succeeded
+  Running TESTSUITE uart_async_double_buf
+  ===================================================================
+  START - test_double_buffer
+  SKIP - test_double_buffer in 0.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_double_buf succeeded
+  Running TESTSUITE uart_async_long_buf
+  ===================================================================
+  START - test_long_buffers
+  SKIP - test_long_buffers in 0.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_long_buf succeeded
+  Running TESTSUITE uart_async_multi_rx
+  ===================================================================
+  START - test_multiple_rx_enable
+  SKIP - test_multiple_rx_enable in 0.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_multi_rx succeeded
+  Running TESTSUITE uart_async_read_abort
+  ===================================================================
+  START - test_read_abort
+  PASS - test_read_abort in 1.159 seconds
+  ===================================================================
+  TESTSUITE uart_async_read_abort succeeded
+  Running TESTSUITE uart_async_single_read
+  ===================================================================
+  START - test_single_read
+  PASS - test_single_read in 0.332 seconds
+  ===================================================================
+  TESTSUITE uart_async_single_read succeeded
+  Running TESTSUITE uart_async_timeout
+  ===================================================================
+  START - test_forever_timeout
+  PASS - test_forever_timeout in 3.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_timeout succeeded
+  Running TESTSUITE uart_async_write_abort
+  ===================================================================
+  START - test_write_abort
+  SKIP - test_write_abort in 0.001 seconds
+  ===================================================================
+  TESTSUITE uart_async_write_abort succeeded
+  ------ TESTSUITE SUMMARY START ------
+  SUITE SKIP -   0.00% [uart_async_chain_read]: pass = 0, fail = 0, skip = 1, tots
+  - SKIP - [uart_async_chain_read.test_chained_read] duration = 0.001 seconds
+  SUITE PASS - 100.00% [uart_async_chain_write]: pass = 1, fail = 0, skip = 0, tos
+  - PASS - [uart_async_chain_write.test_chained_write] duration = 0.024 seconds
+  SUITE SKIP -   0.00% [uart_async_double_buf]: pass = 0, fail = 0, skip = 1, tots
+  - SKIP - [uart_async_double_buf.test_double_buffer] duration = 0.001 seconds
+  SUITE SKIP -   0.00% [uart_async_long_buf]: pass = 0, fail = 0, skip = 1, totals
+  - SKIP - [uart_async_long_buf.test_long_buffers] duration = 0.001 seconds
+  SUITE SKIP -   0.00% [uart_async_multi_rx]: pass = 0, fail = 0, skip = 1, totals
+  - SKIP - [uart_async_multi_rx.test_multiple_rx_enable] duration = 0.001 seconds
+  SUITE PASS - 100.00% [uart_async_read_abort]: pass = 1, fail = 0, skip = 0, tots
+  - PASS - [uart_async_read_abort.test_read_abort] duration = 1.159 seconds
+  SUITE PASS - 100.00% [uart_async_single_read]: pass = 1, fail = 0, skip = 0, tos
+  - PASS - [uart_async_single_read.test_single_read] duration = 0.332 seconds
+  SUITE PASS - 100.00% [uart_async_timeout]: pass = 1, fail = 0, skip = 0, total s
+  - PASS - [uart_async_timeout.test_forever_timeout] duration = 3.001 seconds
+  SUITE SKIP -   0.00% [uart_async_write_abort]: pass = 0, fail = 0, skip = 1, tos
+  - SKIP - [uart_async_write_abort.test_write_abort] duration = 0.001 seconds
+  ------ TESTSUITE SUMMARY END ------
+  ===================================================================
+  PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
 \subsection*{6.5. Watchdog support}\label{watchdog-support}
