@@ -1,0 +1,8 @@
+sample:
+  name: FT5316
+tests:
+  sample.input.ft5316:
+    tags: input
+    build_only: true
+    integration_platforms:
+      - rz_a2m
