@@ -130,7 +130,8 @@
 			 <RZA2_PINMUX(PORTK, 4, 7)>, /* RMII1_RXD0 */
 			 <RZA2_PINMUX(PORT3, 5, 7)>, /* RMII1_RXD1 */
 			 <RZA2_PINMUX(PORT3, 1, 7)>, /* RMII1_RXER */
-			 <RZA2_PINMUX(PORTL, 1, 5)>; /* IRQ5 */
+			 <RZA2_PINMUX(PORTL, 1, 5)>, /* IRQ5 */
+			 <RZA2_PINMUX(PORT3, 0, 3)>; /* ET1_LINKSTA */
 	};
 
 	/* IRQ3 (Touchscreen) */
