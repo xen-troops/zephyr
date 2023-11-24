@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) 2023 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	mdio-gpio1 {
+			status = "okay";
+
+			ethernet-phy@7 {
+				status = "okay";
+			};
+	};
+};
+
+&ether0 {
+	status = "okay";
+	/delete-property/ phy-handle;
+
+	fixed-link {
+		speed = <100>;
+		full-duplex;
+	};
+};
+
+&ether1 {
+	status = "okay";
+	/delete-property/ renesas,no-ether-link;
+	renesas,ether-link-active-low;
+
+	/delete-property/ phy-handle;
+	fixed-link {
+		speed = <100>;
+		full-duplex;
+	};
+};
