@@ -972,7 +972,7 @@
 			status = "disabled";
 		};
 
-		sci0: uart@e800b000 {
+		sci0: serial@e800b000 {
 			compatible = "renesas,rza2m-sci";
 			reg = <0xe800b000 0x14>;
 			interrupt-parent = <&gic>;
@@ -986,7 +986,7 @@
 			status = "disabled";
 		};
 
-		sci1: uart@e800b800 {
+		sci1: serial@e800b800 {
 			compatible = "renesas,rza2m-sci";
 			reg = <0xe800b800 0x14>;
 			interrupt-parent = <&gic>;
