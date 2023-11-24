@@ -1007,8 +1007,6 @@
 			clocks = <&cpg CPG_MOD 65>, <&cpg CPG_MOD 62>;
 
 			phy-mode = "rmii";
-			#address-cells = <1>;
-			#size-cells = <0>;
 			status = "disabled";
 		};
 
@@ -1019,8 +1017,6 @@
 			clocks = <&cpg CPG_MOD 64>, <&cpg CPG_MOD 62>;
 
 			phy-mode = "rmii";
-			#address-cells = <1>;
-			#size-cells = <0>;
 			status = "disabled";
 		};
 	};
