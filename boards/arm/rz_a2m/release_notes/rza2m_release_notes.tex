@@ -2395,6 +2395,11 @@ Type \textbf{help} to see supported commands:
 	Promiscuous mode OFF...
 \end{lstlisting}
 
+\textbf{RZA2MEVK}: Set IP address for net\_if
+\begin{lstlisting}
+	uart:~$ net ipv4 add 2 192.168.1.3 255.255.0.0
+\end{lstlisting}
+
 \textbf{RZA2MEVK}: Do Host PC ping \textbf{net ping [IP-host]}
 \begin{lstlisting}
 	uart:~$ net ping 192.168.1.100
@@ -2469,6 +2474,84 @@ Type \textbf{help} to see supported commands:
 	Bytes received 7358
 	Bytes sent     7762
 	Processing err 0
+\end{lstlisting}
+
+\subsubsection*{6.15.1 ETHERC fixed-link Support}\label{eth-fixed-support}
+\addcontentsline{toc}{subsection}{6.15.1 ETHERC fixed-link Support}
+
+The fixed-link mode can be enabled through DT:
+\begin{lstlisting}
+	&ether0 {
+		/delete-property/ phy-handle;
+
+		renesas,no-ether-link;
+		fixed-link {
+			speed = <100>;
+			full-duplex;
+		};
+	};
+\end{lstlisting}
+
+In above case RZ/A2M driver will apply link settings as specified in DT and assume Link UP is always unless LINKSTA is used.
+The fixed-link can't be used with PHY: no "phy-handle" property.
+
+LINKSTA support can be enabled by properly configuring pins and removing "renesas,no-ether-link" property from DT.
+In this case Driver will enable (LCHNGIP) LINK Signal Change Interrupt and check LINKSTA pin through PSR register.
+The "renesas,ether-link-active-low" DT property can be used to configure LINKSTA polarity.
+
+\begin{lstlisting}
+	&ether1 {
+		/delete-property/ renesas,no-ether-link;
+		/delete-property/ phy-handle;
+
+		renesas,ether-link-active-low;
+		fixed-link {
+			speed = <100>;
+			full-duplex;
+		};
+	};
+\end{lstlisting}
+
+The LINKSTA can be used as with fixed-link, as with PHY. In later case, the PHY will be requested to provide link settings and state.
+
+Use below command to build Net promiscuous\_mode sample application with fixed-link support:
+
+\begin{lstlisting}
+	west build -p always -b rz_a2m -S rz-a2m-eth-fixed-test samples/net/promiscuous_mode
+\end{lstlisting}
+
+Once promiscuous\_mode is loaded it will provide console command line support and show  RZ/A2M ETHERC Ethernet driver boot log.
+
+For Ether1 it should show Link ready state always:
+\begin{lstlisting}
+	[00:00:00.057,000] <inf> eth_rza2m: ethernet@e8204000:"PHY net_eth_carrier_on"
+	[00:00:00.057,000] <inf> eth_rza2m: ethernet@e8204000:"Starting Device..."
+\end{lstlisting}
+
+For Ether2 it should react on cable plug events.
+
+\textbf{NOTE.}
+By default, on RZA2MEVK the RTL8201FL PHY's leds configured to state LINK100/ACT100 which makes it useless for link detection (check Page 7 Reg 19 in PHY's manual).
+It can be W/A by manually configuring PHY using mdio shell commands to apply only LINK100 to the LED1 pin before plug-in cable:
+
+\begin{lstlisting}
+	- Read Page Reg 31
+	uart:~$ mdio read 7 0x1f
+	7[1f]: 0x0
+
+	- Write Reg 31 to 0x7
+	uart:~$ mdio write 7 0x1f 7
+	uart:~$ mdio read 7 0x1f
+	7[1f]: 0x7
+
+	- Read Page 7 Reg 19
+	uart:~$ mdio read 7 0x13
+	7[13]: 0x434
+
+	- Write Page 7 Reg 19 to 0x404 (clean bits 4:5)
+	uart:~$ mdio write 7 0x13 0x404
+	uart:~$ mdio read 7 0x13
+	7[13]: 0x404
 \end{lstlisting}
 
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
