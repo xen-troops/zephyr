@@ -140,10 +140,13 @@ struct rza2m_eth_cfg {
 	const struct pinctrl_dev_config *pcfg;
 	const struct device		*phy_dev;
 	uint8_t				mac_addr[6];
-	bool				no_ether_link;
-	bool				link_active_low;
 	uint32_t			irq_n;
 	void				(*irq_config)(void);
+	uint32_t			speed;
+	bool				f_no_linksta:1;
+	bool				f_linksta_active_low:1;
+	bool				f_fixed_link:1;
+	bool				f_full_duplex:1;
 };
 
 #define DEV_DATA(_dev) ((struct rza2m_eth_ctx *)((_dev)->data))
@@ -154,6 +157,7 @@ struct rza2m_eth_cfg {
 
 struct rza2m_eth_ctx {
 	DEVICE_MMIO_RAM;
+	const struct device	*dev;
 	struct net_if		*iface;
 	uint8_t			mac_addr[6];
 
@@ -174,8 +178,11 @@ struct rza2m_eth_ctx {
 	K_KERNEL_STACK_MEMBER(rx_refill_thread_stack, RX_REFILL_STACK_SIZE);
 	struct k_thread		rx_refill_thread;
 
+	struct k_work		linksta_work;
 	struct k_mutex		mutex_link;
 	uint32_t		ecmr_val;
+	uint32_t		eesipr_val;
+	uint32_t		ecsipr_val;
 	uint8_t			f_running:1;	/* Running state flag */
 	uint8_t			f_promisc:1;	/* Promisc mode state flag */
 	uint8_t			f_link:1;	/* Link is up state flag */
@@ -695,17 +702,26 @@ void rza2m_eth_isr_rx(const struct device *dev, uint32_t eesr_val)
 
 void rza2m_eth_isr(const struct device *dev)
 {
+	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
 	uint32_t eesr_val;
 	uint32_t ecsr_val;
 
-	eesr_val = rza2m_eth_read(dev, EESR) & EESR_MASK;
-	ecsr_val = rza2m_eth_read(dev, ECSR);
+	eesr_val = rza2m_eth_read(dev, EESR) & ctx->eesipr_val;
+	ecsr_val = rza2m_eth_read(dev, ECSR) & ctx->ecsipr_val;
 
 	LOG_DEV_DBG(dev, "IRQ EESR:%08X ECSR:%08X", eesr_val, ecsr_val);
 
 	/* clean up irq before processing */
 	rza2m_eth_write(dev, ecsr_val, ECSR);
 	rza2m_eth_write(dev, eesr_val, EESR);
+
+	/* LINKSTA event */
+	if (ecsr_val & ECSR_LCHNG) {
+		/* mask it */
+		ctx->ecsipr_val &= ~ECSR_LCHNG;
+		rza2m_eth_write(dev, ctx->ecsipr_val, ECSIPR);
+		k_work_submit(&ctx->linksta_work);
+	}
 
 	if (eesr_val & EESR_TX) {
 		rza2m_eth_isr_tx(dev, eesr_val);
@@ -800,7 +816,8 @@ static int rza2m_eth_start(const struct device *dev)
 	irq_enable(cfg->irq_n);
 
 	/* enable irq */
-	rza2m_eth_write(dev, (EESR_TX | EESR_RX), EESIPR);
+	rza2m_eth_write(dev, ctx->eesipr_val, EESIPR);
+	rza2m_eth_write(dev, ctx->ecsipr_val, ECSIPR);
 
 	/* handle link state */
 	k_mutex_lock(&ctx->mutex_link, K_FOREVER);
@@ -817,6 +834,10 @@ static int rza2m_eth_start(const struct device *dev)
 
 	/* enable edmac rx */
 	rza2m_eth_write(dev, EDRRR_RR, EDRRR);
+
+	if (!cfg->f_no_linksta) {
+		k_work_submit(&ctx->linksta_work);
+	}
 
 	LOG_DEV_INF(dev, "Starting Device...");
 	return 0;
@@ -850,6 +871,12 @@ static int rza2m_eth_stop(const struct device *dev)
 
 	k_sem_reset(&ctx->sem_free_rx_descs);
 	k_thread_join(&ctx->rx_refill_thread, K_FOREVER);
+
+	if (!cfg->f_no_linksta) {
+		struct k_work_sync work_sync;
+
+		k_work_cancel_sync(&ctx->linksta_work, &work_sync);
+	}
 
 	LOG_DEV_INF(dev, "Stopping Device...");
 	return 0;
@@ -899,6 +926,88 @@ static void phy_link_state_changed(const struct device *phy_dev,
 	k_mutex_unlock(&ctx->mutex_link);
 }
 
+static void rza2m_eth_linksta_work(struct k_work *item)
+{
+	const struct rza2m_eth_cfg *cfg;
+	struct phy_link_state state;
+	struct rza2m_eth_ctx *ctx;
+	const struct device *dev;
+	bool link;
+
+	ctx = CONTAINER_OF(item, struct rza2m_eth_ctx, linksta_work);
+	dev = ctx->dev;
+	cfg = dev->config;
+
+	k_mutex_lock(&ctx->mutex_link, K_FOREVER);
+
+	link = !!(rza2m_eth_read(dev, PSR) & PSR_LMON);
+	if (cfg->f_linksta_active_low)
+		link = !link;
+
+	if (ctx->f_link == link) {
+		goto exit_unlock;
+	} else if (cfg->f_fixed_link) {
+		ctx->f_link = link;
+		goto update_link;
+	}
+
+	if (cfg->phy_dev) {
+		/* process it through phy */
+		phy_get_link_state(cfg->phy_dev, &state);
+		k_mutex_unlock(&ctx->mutex_link);
+
+		phy_link_state_changed(cfg->phy_dev, &state, (void *)dev);
+		goto exit_unmask;
+	}
+
+update_link:
+	ctx->ecmr_val &= ~(ECMR_TE | ECMR_RE);
+	if (ctx->f_link) {
+		ctx->ecmr_val |= (ECMR_TE | ECMR_RE);
+		ctx->ecmr_val |= ctx->f_promisc ? ECMR_PRM : 0;
+	}
+
+	if (ctx->f_running) {
+		rza2m_eth_write(dev, ctx->ecmr_val, ECMR);
+
+		if (ctx->f_link) {
+			net_eth_carrier_on(ctx->iface);
+			LOG_DEV_INF(dev, "LINKSTA net_eth_carrier_on");
+		} else {
+			net_eth_carrier_off(ctx->iface);
+			LOG_DEV_INF(dev, "LINKSTA net_eth_carrier_off");
+		}
+	}
+
+exit_unlock:
+	k_mutex_unlock(&ctx->mutex_link);
+
+exit_unmask:
+	/* unmask it */
+	ctx->ecsipr_val |= ECSR_LCHNG;
+	rza2m_eth_write(dev, ctx->ecsipr_val, ECSIPR);
+}
+
+static void rza2m_eth_fixedl_init(const struct device *dev)
+{
+	const struct rza2m_eth_cfg *cfg = dev->config;
+	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
+
+	if (cfg->f_fixed_link) {
+		ctx->ecmr_val |= cfg->f_full_duplex ? ECMR_DM : 0;
+		ctx->ecmr_val |= (cfg->speed == 100) ? ECMR_RTM : 0;
+
+		if (cfg->f_no_linksta) {
+			ctx->f_link = 1;
+			ctx->ecmr_val |= (ECMR_TE | ECMR_RE);
+		}
+	}
+
+	if (!cfg->f_no_linksta) {
+		ctx->eesipr_val |= EESR_ECI;
+	}
+}
+
 static void rza2m_eth_iface_init(struct net_if *iface)
 {
 	const struct device *dev = net_if_get_device(iface);
@@ -914,6 +1023,11 @@ static void rza2m_eth_iface_init(struct net_if *iface)
 
 	ethernet_init(iface);
 
+	/* skip if fixed-link or LINKSTA pin enabled */
+	if (cfg->f_fixed_link || !cfg->f_no_linksta) {
+		goto skip_phy;
+	}
+
 	if (cfg->phy_dev && device_is_ready(cfg->phy_dev)) {
 		phy_link_callback_set(cfg->phy_dev, phy_link_state_changed,
 				      (void *)dev);
@@ -921,9 +1035,15 @@ static void rza2m_eth_iface_init(struct net_if *iface)
 		LOG_DEV_ERR(dev, "PHY device not ready");
 	}
 
+skip_phy:
 	net_if_set_link_addr(iface, ctx->mac_addr, sizeof(ctx->mac_addr),
 			     NET_LINK_ETHERNET);
 	net_if_carrier_off(ctx->iface);
+
+	ctx->eesipr_val = (EESR_TX | EESR_RX);
+	ctx->ecsipr_val = 0;
+
+	rza2m_eth_fixedl_init(dev);
 
 	LOG_DEV_INF(dev, "iface init done");
 }
@@ -945,6 +1065,13 @@ int eth_init(const struct device *dev)
 	int ret;
 
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE | K_MEM_PERM_RW);
+	ctx->dev = dev;
+
+	/* fixed-link is not supported with PHY */
+	if (cfg->f_fixed_link && cfg->phy_dev) {
+		LOG_DEV_ERR(dev, "invalif_cfg: fixed-link used with phy");
+		return -EINVAL;
+	}
 
 	/* Configure dt provided device signals when available */
 	ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
@@ -978,6 +1105,8 @@ int eth_init(const struct device *dev)
 
 	cfg->irq_config();
 
+	k_work_init(&ctx->linksta_work, rza2m_eth_linksta_work);
+
 	LOG_DEV_INF(dev, "hw_base:%lX virt:%p\n",
 		    DEVICE_MMIO_ROM_PTR(dev)->phys_addr, (void *)DEVICE_MMIO_GET(dev));
 	LOG_DEV_INF(dev, "MAC %02x:%02x:%02x:%02x:%02x:%02x",
@@ -988,6 +1117,18 @@ int eth_init(const struct device *dev)
 	return 0;
 }
 
+#define RZA2M_ETH_FIXED_LINK_NODE(n)							\
+	DT_INST_CHILD(n, fixed_link)
+
+#define RZA2M_ETH_IS_FIXED_LINK(n)							\
+	DT_NODE_EXISTS(RZA2M_ETH_FIXED_LINK_NODE(n))
+
+#define RZA2M_ETH_FIXED_LINK_SPEED(n)							\
+	DT_PROP_OR(RZA2M_ETH_FIXED_LINK_NODE(n), speed, (0))
+
+#define RZA2M_ETH_FIXED_LINK_FULL_DUPLEX(n)						\
+	DT_PROP_OR(RZA2M_ETH_FIXED_LINK_NODE(n), full_duplex, false)
+
 #define RZA2M_ETH_IRQ_CONFIG_FUNC(n)							\
 	static void irq_config_func_##n(void)						\
 	{										\
@@ -997,7 +1138,7 @@ int eth_init(const struct device *dev)
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));		\
 	}
 
-#define ETH_RZA2M_DEVICE_INIT(n)								\
+#define ETH_RZA2M_DEVICE_INIT(n)							\
 	PINCTRL_DT_INST_DEFINE(n);							\
 	RZA2M_ETH_IRQ_CONFIG_FUNC(n)							\
 	static struct rza2m_eth_cfg eth_cfg_##n = {					\
@@ -1013,9 +1154,13 @@ int eth_init(const struct device *dev)
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.phy_dev = DEVICE_DT_GET_OR_NULL(DT_INST_PHANDLE(n, phy_handle)),	\
 		.mac_addr = DT_INST_PROP_OR(n, local_mac_address, {0U}),		\
-		.link_active_low = DT_INST_PROP_OR(n, renesas_ether_link_active_low, false),	\
 		.irq_n = DT_INST_IRQN(n),						\
 		.irq_config = irq_config_func_##n,					\
+		.f_linksta_active_low = DT_INST_PROP_OR(n, renesas_ether_link_active_low, false), \
+		.f_no_linksta = DT_INST_PROP_OR(n, renesas_no_ether_link, true),	\
+		.f_fixed_link = RZA2M_ETH_IS_FIXED_LINK(n),				\
+		.f_full_duplex = RZA2M_ETH_FIXED_LINK_FULL_DUPLEX(n),			\
+		.speed = RZA2M_ETH_FIXED_LINK_SPEED(n),					\
 	};										\
 	static struct tx_desc_s tx_desc_q_##n[CONFIG_ETH_RZA2M_NB_TX_DESCS] __nocache;	\
 	static struct rx_desc_s rx_desc_q_##n[CONFIG_ETH_RZA2M_NB_RX_DESCS] __nocache;	\
