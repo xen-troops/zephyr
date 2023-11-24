@@ -704,19 +704,23 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 	struct riic_data *data = dev->data;
 	int slave_num = -1;
 	uint32_t val;
+	int ret = 0;
 
 	if (!config) {
 		return -EINVAL;
 	}
 
-	val = (~riic_read(dev, RIIC_SER)) & RIIC_SER_SLAVE_MASK;
-	slave_num = __builtin_ffs(val) - 1;
-	if (slave_num < 0) {
+	/* Prohibiting the target configuration during transfer. */
+	if (k_mutex_lock(&data->i2c_lock_mtx, K_MSEC(TRANSFER_TIMEOUT_MS))) {
+		LOG_ERR("Bus is busy\n");
 		return -EBUSY;
 	}
 
-	if (data->master_active) {
-		return -EBUSY;
+	val = (~riic_read(dev, RIIC_SER)) & RIIC_SER_SLAVE_MASK;
+	slave_num = __builtin_ffs(val) - 1;
+	if (slave_num < 0) {
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	if (config->flags == I2C_TARGET_FLAGS_ADDR_10_BITS) {
@@ -736,7 +740,9 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 
 	LOG_DBG("i2c: target registered. Address %x", config->address);
 
-	return 0;
+unlock:
+	k_mutex_unlock(&data->i2c_lock_mtx);
+	return ret;
 }
 
 int riic_target_unregister(const struct device *dev, struct i2c_target_config *config)
@@ -744,6 +750,13 @@ int riic_target_unregister(const struct device *dev, struct i2c_target_config *c
 	struct riic_data *data = dev->data;
 	int i;
 	int slave_num = -1;
+	int ret = 0;
+
+	/* Prohibiting the target configuration during transfer. */
+	if (k_mutex_lock(&data->i2c_lock_mtx, K_MSEC(TRANSFER_TIMEOUT_MS))) {
+		LOG_ERR("Bus is busy\n");
+		return -EBUSY;
+	}
 
 	for (i = 0; i < NUM_SLAVES; i++) {
 		if (data->slave[i].slave_attached && data->slave[i].slave_cfg == config) {
@@ -752,11 +765,13 @@ int riic_target_unregister(const struct device *dev, struct i2c_target_config *c
 		}
 	}
 	if (slave_num < 0) {
-		return -EINVAL;
+		ret = -EINVAL;
+		goto unlock;
 	}
 
-	if (data->master_active || data->active_slave_num == slave_num) {
-		return -EBUSY;
+	if (data->active_slave_num == slave_num) {
+		ret = -EBUSY;
+		goto unlock;
 	}
 
 	riic_clear_set_bit(dev, RIIC_SER, BIT(slave_num), 0);
@@ -768,7 +783,9 @@ int riic_target_unregister(const struct device *dev, struct i2c_target_config *c
 
 	LOG_DBG("i2c: slave unregistered");
 
-	return 0;
+unlock:
+	k_mutex_unlock(&data->i2c_lock_mtx);
+	return ret;
 }
 #endif /* defined(CONFIG_I2C_TARGET) */
 
