@@ -27,6 +27,9 @@
   showstringspaces=false,
   columns=fullflexible }
 
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+
 \title{RZ/A2M for Zephyr Release Notes v0.1.2}
 \author{EPAM Systems}
 \date{October, 2023}
@@ -347,12 +350,9 @@ J-Link> exec EnableEraseAllFlashBanks
 J-Link> erase 0x20000000,0x20002000
 \end{lstlisting}
 
-\section{Features support
-implemented}\label{features-support-implemented}
+\section{Features support implemented}\label{features-support-implemented}
 
-\subsection*{\texorpdfstring{6.1. Pinctrl and GPIO
-support}{6.1. Pinctrl and GPIO support}}\label{pinctrl-and-gpio-support}
-\addcontentsline{toc}{subsection}{6.1. Pinctrl and GPIO support}
+\subsection{Pinctrl and GPIO support}\label{pinctrl-and-gpio-support}
 
 Renesas RZ/A2 combined Pin Function and GPIO Controller node Pin
 multiplexing and GPIO configuration is performed on a per-pin basis.
@@ -470,8 +470,7 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.2. Clock driver support}\label{clock-driver-support}
-\addcontentsline{toc}{subsection}{6.2. Clock driver support}
+\subsection{Clock driver support}\label{clock-driver-support}
 
 The clock control API provides access to clocks in the system, including
 the ability to turn them on and off.
@@ -509,8 +508,7 @@ Notes:
 Detailed information about these calls can be found using the next link:
 \url{https://docs.zephyrproject.org/latest/hardware/peripherals/clock_control.html}
 
-\subsection*{6.3. UART support}\label{uart-support}
-\addcontentsline{toc}{subsection}{6.3. UART support}
+\subsection{UART support}\label{uart-support}
 
 Zephyr provides three different ways to access the UART peripheral.
 Depending on the method, different API functions are used according to
@@ -855,8 +853,7 @@ PROJECT EXECUTION SUCCESSFUL
 
 Zephyr doesn't have any tests for testing Clock Synchronous mode.
 
-\subsection*{6.4. UART support (SCI)}\label{uart-sci-support}
-\addcontentsline{toc}{subsection}{6.4. UART support (SCI)}
+\subsection{UART support (SCI)}\label{uart-sci-support}
 
 For SCI we use pin PA\_4 as TX and PA\_5 as RX. Those pins connected to the
 Digital Image Input/output Connector (CN15) pins 15 and 16 accordingly.
@@ -1019,8 +1016,7 @@ Before running test application, please check pins 15 and 16 on CN15 Connector s
 
 Zephyr doesn't have any tests for testing Clock Synchronous mode.
 
-\subsection*{6.5. Watchdog support}\label{watchdog-support}
-\addcontentsline{toc}{subsection}{6.5. Watchdog support}
+\subsection{Watchdog support}\label{watchdog-support}
 
 Zephyr provides API for the watchdog timer.
 
@@ -1057,8 +1053,7 @@ Feeding watchdog...
 Waiting for reset...
 \end{lstlisting}
 
-\subsection*{6.6. PWM support}\label{pwm-support}
-\addcontentsline{toc}{subsection}{6.6. PWM support}
+\subsection{PWM support}\label{pwm-support}
 
 Zephyr supports Pulse Width Modulation (PWM) timer.
 
@@ -1212,8 +1207,7 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.7. I2C}\label{i2c}
-\addcontentsline{toc}{subsection}{6.7. I2C}
+\subsection{I2C support}\label{i2c}
 
 Zephyr supports interface for I2C (Inter-Integrated Circuit) is a
 commonly used two-signal shared peripheral interface bus. Many
@@ -1343,8 +1337,7 @@ and the sensor with ID=1 (U2) has 0V at the VIN+ input. We output to the console
 integer part of the values received from the sensors in order to reduce the delays
 introduced into each thread by the output function.
 
-\subsection*{6.8. DMA}\label{dma}
-\addcontentsline{toc}{subsection}{6.8. DMA}
+\subsection{DMA}\label{dma}
 
 Zephyr also provides an interface for the DMA controller.
 
@@ -1567,8 +1560,7 @@ total = 1 duration = 0.071 seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.9. RTC}\label{rtc}
-\addcontentsline{toc}{subsection}{6.9. RTC}
+\subsection{RTC}\label{rtc}
 
 An RTC is a low power device which tracks time using broken-down time.
 It should not be confused with low-power counters which sometimes share
@@ -1649,8 +1641,7 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.10. OSTM}\label{ostm}
-\addcontentsline{toc}{subsection}{6.10. OSTM}
+\subsection{OSTM}\label{ostm}
 
 The OSTM is a multi-channel 32-bit timer/counter with fixed clock source
 that can operate in either interval count down timer or free-running
@@ -1714,8 +1705,7 @@ Also, you can run:
 west build -p always -b rz_a2m tests/kernel/sleep/
 \end{lstlisting}
 
-\subsection*{6.11. BSC}\label{bsc}
-\addcontentsline{toc}{subsection}{6.11. BSC}
+\subsection{BSC}\label{bsc}
 
 The bus state controller outputs control signals for various types of
 memory and external devices that are connected to the external address
@@ -1820,8 +1810,7 @@ SUITE PASS - 100.00% [bsc_rza2_suite]: pass = 1, fail = 0, skip =
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.12. Interrupt controller}\label{interrupt-controller}
-\addcontentsline{toc}{subsection}{6.12. Interrupt controller}
+\subsection{Interrupt controller}\label{interrupt-controller}
 
 Zephyr supports interrupt controller support:
 
@@ -1958,8 +1947,7 @@ line (516) detection mode to RISING EDGE
 line 516) pressed 10 times
 \end{lstlisting}
 
-\subsection*{6.13. SPI Flash Support}\label{spi-flash-support}
-\addcontentsline{toc}{subsection}{6.13. SPI Flash Support}
+\subsection{SPI Flash Support}\label{spi-flash-support}
 
 Zephyr provides an interface for a flash-controller driver to perform
 Write/Read/Erase operations for a serial flash connected to the device.
@@ -2034,8 +2022,7 @@ SUITE PASS - 100.00% [flash_driver_rw]: pass = 1, fail = 0, skip
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.14. MTU PWM Support}\label{mtu-pwm-support}
-\addcontentsline{toc}{subsection}{6.14. MTU PWM Support}
+\subsection{MTU PWM Support}\label{mtu-pwm-support}
 
 MTU PWM driver supports PWM output on channels 0-4 and 6-7. The capture
 of signal on pin is supported on all channels, but we can capture only
@@ -2220,8 +2207,7 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
-\subsection*{6.15. ETHERC Support}\label{eth-support}
-\addcontentsline{toc}{subsection}{6.15. ETHERC Support}
+\subsection{ETHERC Support}\label{eth-support}
 
 Zephyr RZ/A2M ETHERC Ethernet driver supports:
 \begin{itemize}
@@ -2476,8 +2462,7 @@ Type \textbf{help} to see supported commands:
 	Processing err 0
 \end{lstlisting}
 
-\subsubsection*{6.15.1 ETHERC fixed-link Support}\label{eth-fixed-support}
-\addcontentsline{toc}{subsection}{6.15.1 ETHERC fixed-link Support}
+\subsubsection{ETHERC fixed-link Support}\label{eth-fixed-support}
 
 The fixed-link mode can be enabled through DT:
 \begin{lstlisting}
