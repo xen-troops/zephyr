@@ -117,6 +117,7 @@ static const struct rza2m_eth_reg_init rza2m_eth_reg_init[] = {
 	{ RMCR,		RZA2M_ETH_CFG_RMCR_VAL },
 	{ RPADIR,	RZA2M_ETH_CFG_RPADIR_VAL },
 	{ FCFTR,	RZA2M_ETH_CFG_TC_FCFTR_VAL },
+	{ BCFRR,	CONFIG_ETH_RZA2M_NB_BC_RX_STORM_FILTER },
 
 	/* ETHERC */
 	{ RFLR,		RZA2M_ETH_CFG_RFLRL_VAL }, /* max rx frame size */
