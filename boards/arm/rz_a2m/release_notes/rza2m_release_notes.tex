@@ -2258,6 +2258,10 @@ Zephyr Kconfig options needed for RZ/A2M ETHERC Ethernet driver testing (see ./s
 	# enable generic phy_mii driver
 	CONFIG_PHY_GENERIC_MII
 
+	#enable Ethernet statistsic
+	CONFIG_NET_STATISTICS_ETHERNET=y
+	CONFIG_NET_STATISTICS_USER_API=y
+
 	# RZA2MEVK Ether 1 IP-board
 	CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.1.1"
 	# Host PC IP-host
@@ -2437,29 +2441,45 @@ Type \textbf{help} to see supported commands:
 
 \textbf{RZA2MEVK}: Display network statistic \textbf{net stats}
 \begin{lstlisting}
-	uart:~$ net stats 1
+uart:\~{}\$ net stats 1
 
-	Interface 0x8009461c (Ethernet) [1]
-	===================================
-	IPv6 recv      1        sent    13      drop    1       forwarded       0
-	IPv6 ND recv   0        sent    7       drop    0
-	IPv6 MLD recv  0        sent    6       drop    0
-	IPv4 recv      55       sent    54      drop    1       forwarded       0
-	IP vhlerr      0        hblener 0       lblener 0
-	IP fragerr     0        chkerr  0       protoer 0
-	ICMP recv      54       sent    67      drop    1
-	ICMP typeer    0        chkerr  0
-	UDP recv       0        sent    0       drop    0
-	UDP chkerr     0
-	TCP bytes recv 0        sent    0       resent  0
-	TCP seg recv   0        sent    0       drop    0
-	TCP seg resent 0        chkerr  0       ackerr  0
-	TCP seg rsterr 0        rst     0
-	TCP conn drop  0        connrst 0
-	TCP pkt drop   0
-	Bytes received 7358
-	Bytes sent     7762
-	Processing err 0
+Interface 0x800947bc (Ethernet) [1]
+===================================
+IPv6 recv      4        sent    10      drop    4       forwarded       0
+IPv6 ND recv   0        sent    7       drop    0
+IPv6 MLD recv  0        sent    3       drop    0
+IPv4 recv      92       sent    92      drop    0       forwarded       0
+IP vhlerr      0        hblener 0       lblener 0
+IP fragerr     0        chkerr  0       protoer 0
+ICMP recv      92       sent    102     drop    0
+ICMP typeer    0        chkerr  0
+UDP recv       0        sent    0       drop    0
+UDP chkerr     0
+TCP bytes recv 0        sent    0       resent  0
+TCP seg recv   0        sent    0       drop    0
+TCP seg resent 0        chkerr  0       ackerr  0
+TCP seg rsterr 0        rst     0
+TCP conn drop  0        connrst 0
+TCP pkt drop   0
+Bytes received 134176
+Bytes sent     134516
+Processing err 0
+Statistics for Ethernet interface 0x800947bc [1]
+Bytes received   : 134176
+Bytes sent       : 134516
+Packets received : 104
+Packets sent     : 110
+Bcast received   : 2
+Bcast sent       : 0
+Mcast received   : 4
+Mcast sent       : 10
+Send errors      : 0
+Receive errors   : 25
+Collisions       : 0
+Send Drops       : 0
+Send timeouts    : 0
+Send restarts    : 0
+Unknown protocol : 0
 \end{lstlisting}
 
 \subsubsection{ETHERC fixed-link Support}\label{eth-fixed-support}
@@ -2537,6 +2557,130 @@ It can be W/A by manually configuring PHY using mdio shell commands to apply onl
 	uart:~$ mdio write 7 0x13 0x404
 	uart:~$ mdio read 7 0x13
 	7[13]: 0x404
+\end{lstlisting}
+
+\subsubsection{ETHERC broadcast frame storm prevention}\label{eth-bc-filter-support}
+
+The fixed-link mode can be enabled through Kconfig option:
+\begin{lstlisting}
+	CONFIG_ETH_RZA2M_NB_BC_RX_STORM_FILTER=100
+\end{lstlisting}
+
+It sets the number of times broadcast frames can be received continuously.
+When the number of received frames exceeds the selected value the subsequent broadcast frames are discarded.
+Note that the internal counter that counts the continuous reception of broadcast frames is reset if it receives the frame other than broadcast frame.
+
+\subsubsection{ETHERC VLAN support}\label{eth-vlan-support}
+
+The VLAN support mode can be enabled through Kconfig option:
+\begin{lstlisting}
+	CONFIG_NET_VLAN=y
+	CONFIG_NET_VLAN_COUNT=2
+\end{lstlisting}
+
+Please check Zephyr documentation for VLAN support
+\url{https://docs.zephyrproject.org/latest/connectivity/networking/api/vlan.html}
+
+The testing of VLAN support is done by using VLAN sample application. Use below command to build it:
+\begin{lstlisting}
+	west build -p always -b rz_a2m -S rz-a2m-eth-test samples/net/vlan
+\end{lstlisting}
+
+Disable below options before build in snippets/rz-a2m-eth-test/rz-a2m-eth-test.conf
+\begin{lstlisting}
+	# CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.1.1"
+	# CONFIG_NET_CONFIG_PEER_IPV4_ADDR="192.168.1.100"
+
+\end{lstlisting}
+
+Please follow Zephyr documentation for VLAN sample application running
+\url{https://docs.zephyrproject.org/latest/samples/net/vlan/README.html#vlan}
+
+Result of testing:
+\begin{lstlisting}
+uart:~$ net iface
+
+Interface eth0 (0x8008b4fc) (Ethernet) [1]
+===================================
+Link addr : 74:90:50:C0:F1:98
+MTU : 1500
+Flags : AUTO_START,IPv4,IPv6
+Promiscuous mode : disabled
+VLAN tag : 100 (0x64)
+Ethernet capabilities supported:
+	Virtual LAN
+	10 Mbits
+	100 Mbits
+Promiscuous mode
+IPv6 unicast addresses (max 5):
+	2001:db8:100::1 manual preferred infinite
+	fe80::183c:beff:fef1:cb9e autoconf preferred infinite
+IPv6 multicast addresses (max 5):
+	ff02::1
+	ff02::1:ff00:1
+	ff02::1:fff1:cb9e
+IPv6 prefixes (max 2):
+	<none>
+IPv6 hop limit : 64
+IPv6 base reachable time : 30000
+IPv6 reachable time : 15542
+IPv6 retransmit timer : 0
+IPv4 unicast addresses (max 1):
+	198.51.100.1 manual preferred infinite
+IPv4 multicast addresses (max 1):
+	<none>
+IPv4 gateway : 0.0.0.0
+IPv4 netmask : 255.255.255.0
+
+Interface eth1 (0x8008b5e0) (Ethernet) [2]
+===================================
+Link addr : 74:90:50:C0:F1:98
+MTU : 1500
+Flags : AUTO_START,IPv4,IPv6
+Promiscuous mode : disabled
+VLAN tag : 200 (0xc8)
+Ethernet capabilities supported:
+	Virtual LAN
+	10 Mbits
+	100 Mbits
+	Promiscuous mode
+IPv6 unicast addresses (max 5):
+	fe80::7690:50ff:fec0:f198 autoconf preferred infinite
+	fe80::e1c9:9cff:fe35:2587 autoconf preferred infinite
+	2001:db8:200::1 manual preferred infinite
+IPv6 multicast addresses (max 5):
+	ff02::1
+	ff02::1:ffc0:f198
+	ff02::1:ff35:2587
+	ff02::1:ff00:1
+IPv6 prefixes (max 2):
+	<none>
+IPv6 hop limit : 64
+IPv6 base reachable time : 30000
+IPv6 reachable time : 30899
+IPv6 retransmit timer : 0
+IPv4 unicast addresses (max 1):
+	203.0.113.1 manual preferred infinite
+IPv4 multicast addresses (max 1):
+	<none>
+IPv4 gateway : 0.0.0.0
+IPv4 netmask : 0.0.0.0
+
+Interface eth2 (0x8008b6c4) (Ethernet) [3]
+===================================
+Interface is down.
+
+Interface eth3 (0x8008b7a8) (Ethernet) [4]
+===================================
+Interface is down.
+
+uart:~$ net ping 203.0.113.2
+PING 203.0.113.2
+28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=1 ttl=64 time=0 ms
+28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=2 ttl=64 time=0 ms
+28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=3 ttl=64 time=0 ms
+uart:~$
+
 \end{lstlisting}
 
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
