@@ -46,4 +46,13 @@ config ETH_RZA2M_NB_RX_DESCS
 	  memory. A smaller number increases the risk of an overflow and
 	  dropped packets.
 
+config ETH_RZA2M_NB_BC_RX_STORM_FILTER
+	int "Number of times broadcast frames can be received continuously"
+	default 0
+	help
+	  Sets the number of times broadcast frames can be received continuously. When the number of
+	  received frames exceeds the ETH_RZA2M_NB_BC_RX_STORM_FILTER value the subsequent broadcast
+	  frames are discarded. Note that the internal counter that counts the continuous reception
+	  of broadcast frames is reset if it receives the frames other than broadcast frames.
+
 endif # ETH_RZA2M
