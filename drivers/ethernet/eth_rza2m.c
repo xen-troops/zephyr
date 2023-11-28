@@ -186,7 +186,51 @@ struct rza2m_eth_ctx {
 	uint8_t			f_running:1;	/* Running state flag */
 	uint8_t			f_promisc:1;	/* Promisc mode state flag */
 	uint8_t			f_link:1;	/* Link is up state flag */
+
+#if defined(CONFIG_NET_STATISTICS_ETHERNET)
+	struct net_stats_eth	stats;
+#endif /* CONFIG_NET_STATISTICS_ETHERNET */
 };
+
+#if defined(CONFIG_NET_STATISTICS_ETHERNET)
+#define	RZA2M_STATS_ERR_TX(ctx)		(ctx)->stats.errors.tx++
+#define	RZA2M_STATS_ERR_TX_FIFO(ctx)	(ctx)->stats.error_details.tx_fifo_errors++;
+#define	RZA2M_STATS_ERR_TX_ABORT(ctx)	(ctx)->stats.error_details.tx_aborted_errors++;
+#define	RZA2M_STATS_ERR_TX_DROP(ctx)	(ctx)->stats.tx_dropped++;
+
+#define	RZA2M_STATS_ERR_RX(ctx)		(ctx)->stats.errors.rx++;
+#define	RZA2M_STATS_ERR_RX_DMA(ctx)	(ctx)->stats.error_details.rx_dma_failed++;
+#define	RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx)	(ctx)->stats.error_details.rx_buf_alloc_failed++;
+
+void rza2m_stats_err_rx_rfs(struct rza2m_eth_ctx *ctx, uint32_t flags)
+{
+	if (flags & RD_RFS4_RRF) {
+		ctx->stats.error_details.rx_align_errors++;
+	}
+	if (flags & RD_RFS3_RTLF) {
+		ctx->stats.error_details.rx_long_length_errors++;
+	}
+	if (flags & RD_RFS2_RTSF) {
+		ctx->stats.error_details.rx_short_length_errors++;
+	}
+	if (flags & RD_RFS1_PRE) {
+		ctx->stats.error_details.rx_frame_errors++;
+	}
+	if (flags & RD_RFS0_CERF) {
+		ctx->stats.error_details.rx_crc_errors++;
+	}
+}
+#else
+#define	RZA2M_STATS_ERR_TX(ctx)
+#define	RZA2M_STATS_ERR_TX_FIFO(ctx)
+#define	RZA2M_STATS_ERR_TX_ABORT(ctx)
+#define	RZA2M_STATS_ERR_TX_DROP(ctx)
+
+#define	RZA2M_STATS_ERR_RX(ctx)
+#define	RZA2M_STATS_ERR_RX_DMA(ctx)
+#define	RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx)
+#define rza2m_stats_err_rx_rfs(ctx, flags)
+#endif
 
 static void rza2m_eth_write(const struct device *dev, uint32_t data, int enum_index)
 {
@@ -302,11 +346,8 @@ static void rza2m_eth_tx_release(const struct device *dev, bool sent_only)
 			/* log any errors */
 			if (td_ds_flags & TD_TFE) {
 				LOG_DEV_INF(dev, "TXF:error TD0:0x%08x)", td_ds_flags);
-				eth_stats_update_errors_tx(ctx->iface);
-				/* TODO: GS: parse TFS bits */
-			} else {
-				eth_stats_update_pkts_tx(ctx->iface);
-				/* TODO: GS: log bytes */
+				RZA2M_STATS_ERR_TX(ctx);
+				RZA2M_STATS_ERR_TX_ABORT(ctx);
 			}
 		}
 
@@ -343,7 +384,7 @@ static int rza2m_eth_send(const struct device *dev, struct net_pkt *pkt)
 		k_sleep(K_MSEC(1));
 		if (n_frags > k_sem_count_get(&ctx->sem_free_tx_descs)) {
 			LOG_DEV_DBG(dev, "TX: low desc for pkt");
-			eth_stats_update_errors_tx(ctx->iface);
+			RZA2M_STATS_ERR_TX_DROP(ctx);
 			return -ENOMEM;
 		}
 	}
@@ -421,6 +462,7 @@ abort:
 		net_pkt_frag_unref(frag);
 		k_sem_give(&ctx->sem_free_tx_descs);
 	}
+	RZA2M_STATS_ERR_TX_DROP(ctx);
 
 	return -ENOMEM;
 }
@@ -456,18 +498,22 @@ static void rza2m_eth_receive(const struct device *dev)
 			ctx->rx_bytes = 0;
 			if (ctx->rx_pkt) {
 				LOG_DEV_ERR(dev, "RX:desc[%d] first desc but pkt exists", d_idx);
-				eth_stats_update_errors_rx(ctx->iface);
 				net_pkt_unref(ctx->rx_pkt);
+				RZA2M_STATS_ERR_RX(ctx);
+				RZA2M_STATS_ERR_RX_DMA(ctx);
 			}
 			ctx->rx_pkt = net_pkt_rx_alloc_on_iface(ctx->iface, K_NO_WAIT);
 			if (!ctx->rx_pkt) {
 				LOG_DEV_ERR(dev, "RX:net_pkt_rx_alloc_on_iface() failed");
-				eth_stats_update_errors_rx(ctx->iface);
+				RZA2M_STATS_ERR_RX(ctx);
+				RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx);
 			}
 		}
 
 		if (!ctx->rx_pkt) {
 			LOG_DEV_ERR(dev, "RX:desc[%d] no rx_pkt skipping", d_idx);
+			RZA2M_STATS_ERR_RX(ctx);
+			RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx);
 			continue;
 		}
 
@@ -486,13 +532,13 @@ static void rza2m_eth_receive(const struct device *dev)
 			/* submit packet if no errors */
 			if ((rx_flags & RD_RFE) && !(rx_flags & RD_RFS7_RMAF)) {
 				LOG_DEV_ERR(dev, "RX:desc[%d] error RD0:0x%08x", d_idx, rx_flags);
-				eth_stats_update_errors_rx(ctx->iface);
 				net_pkt_unref(ctx->rx_pkt);
+				RZA2M_STATS_ERR_RX(ctx);
+				rza2m_stats_err_rx_rfs(ctx, rx_flags);
 			} else {
 				LOG_DEV_DBG(dev, "RX:desc[%d] pkt len/frags=%zd:%d/%d",
 					    d_idx, net_pkt_get_len(ctx->rx_pkt), pkt_len,
 					    net_pkt_get_nbfrags(ctx->rx_pkt));
-				eth_stats_update_pkts_rx(ctx->iface);
 				net_recv_data(ctx->iface, ctx->rx_pkt);
 			}
 			ctx->rx_pkt = NULL;
@@ -518,12 +564,16 @@ static int rza2m_eth_rx_refill_desc(const struct device *dev, uint32_t d_idx)
 		frag = net_pkt_get_reserve_rx_data(RZA2M_ETH_RX_FRAG_SIZE, K_FOREVER);
 		if (!frag) {
 			LOG_DEV_ERR(dev, "RXF:net_pkt_get_reserve_rx_data() returned NULL");
+			RZA2M_STATS_ERR_RX(ctx);
+			RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx)
 			return -ENOMEM;
 		}
 		LOG_DEV_DBG(dev, "RXF:desc[%d] frag at %p", d_idx, frag->data);
 
 		if (frag->size != RZA2M_ETH_RX_FRAG_SIZE) {
 			LOG_DEV_ERR(dev, "RXF: wrong frag size");
+			RZA2M_STATS_ERR_RX(ctx);
+			RZA2M_STATS_ERR_RX_BUF_ALLOC(ctx);
 			return -ENOMEM;
 		}
 		ctx->rx_frags[d_idx] = frag;
@@ -563,17 +613,19 @@ static void rza2m_eth_rx_refill_thread(void *arg1, void *unused1, void *unused2)
 		/* wait for an empty descriptor */
 		ret = k_sem_take(&ctx->sem_free_rx_descs, K_FOREVER);
 		if (ret) {
-			LOG_DEV_DBG(dev, "RXF:can't get free RX sme to refill");
+			LOG_DEV_DBG(dev, "RXF:can't get free RX sem to refill");
 			break;
 		}
 
 		desc = &ctx->rx_desc[d_idx];
 
 		if (desc->rd0 & RD_RACT) {
-			LOG_DEV_ERR(dev,
+			LOG_DEV_DBG(dev,
 				    "RXF:desc[%d] RD0:%x: still hw owned! sem/head/tail=%d/%d/%d",
 				    d_idx, desc->rd0, k_sem_count_get(&ctx->sem_free_rx_descs),
 				    ctx->rx_desc_head, ctx->rx_desc_tail);
+			RZA2M_STATS_ERR_RX(ctx);
+			RZA2M_STATS_ERR_RX_DMA(ctx);
 			break;
 		}
 
@@ -649,14 +701,18 @@ void rza2m_eth_isr_tx(const struct device *dev, uint32_t eesr_val)
 {
 	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
 
+	(void)ctx;
+
 	if (eesr_val & EESR_TDE) {
 		LOG_DEV_INF(dev, "IRQ:EESR:%08X Transmit Descriptor Empty", eesr_val);
-		eth_stats_update_errors_tx(ctx->iface);
+		RZA2M_STATS_ERR_TX(ctx);
+		RZA2M_STATS_ERR_TX_FIFO(ctx);
 	}
 
 	if (eesr_val & EESR_TFE) {
 		LOG_DEV_INF(dev, "IRQ:EESR:%08X Transmit FIFO Underflow", eesr_val);
-		eth_stats_update_errors_tx(ctx->iface);
+		RZA2M_STATS_ERR_TX(ctx);
+		RZA2M_STATS_ERR_TX_FIFO(ctx);
 	}
 
 	 /* EESR_TABT | EESR_CND | EESR_DLC | EESR_CD | EESR_TRO are reflected in tx desc */
@@ -665,8 +721,11 @@ void rza2m_eth_isr_tx(const struct device *dev, uint32_t eesr_val)
 
 void rza2m_eth_isr_rx(const struct device *dev, uint32_t eesr_val)
 {
+	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
 	static uint8_t eesr_rde = 8;
 	static uint8_t eesr_rfcof = 8;
+
+	(void)ctx;
 
 	if (eesr_val & EESR_RDE) {
 		/* RX is not working as there is no RX descs
@@ -679,6 +738,7 @@ void rza2m_eth_isr_rx(const struct device *dev, uint32_t eesr_val)
 		} else {
 			rza2m_eth_modify(dev, EESIPR, EESR_RDE, 0);
 		}
+		RZA2M_STATS_ERR_RX(ctx);
 	}
 
 	if (eesr_val & EESR_RFCOF) {
@@ -692,6 +752,7 @@ void rza2m_eth_isr_rx(const struct device *dev, uint32_t eesr_val)
 		} else {
 			rza2m_eth_modify(dev, EESIPR, EESR_RFCOF, 0);
 		}
+		RZA2M_STATS_ERR_RX(ctx);
 	}
 
 	 /* EESR_RABT | EESR_RFE | EESR_RRF | EESR_RTLF | EESR_RTSF | EESR_PRE | EESR_CERF
@@ -784,6 +845,15 @@ static int rza2m_eth_set_cfg(const struct device *dev,
 
 	return ret;
 }
+
+#if defined(CONFIG_NET_STATISTICS_ETHERNET)
+static struct net_stats_eth *rza2m_eth_stats(const struct device *dev)
+{
+	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
+
+	return &ctx->stats;
+}
+#endif
 
 static enum ethernet_hw_caps rza2m_eth_get_caps(const struct device *dev)
 {
@@ -1055,6 +1125,9 @@ static const struct ethernet_api api_funcs = {
 	.start			= rza2m_eth_start,
 	.stop			= rza2m_eth_stop,
 	.send			= rza2m_eth_send,
+#if defined(CONFIG_NET_STATISTICS_ETHERNET)
+	.get_stats		= rza2m_eth_stats,
+#endif
 };
 
 int eth_init(const struct device *dev)
