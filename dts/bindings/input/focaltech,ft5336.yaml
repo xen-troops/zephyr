@@ -1,11 +1,12 @@
 # Copyright (c) 2020,2023 NXP
+# Copyright (c) 2023 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
 description: FT3267/FT5XX6/FT6XX6 capacitive touch panels
 
 compatible: "focaltech,ft5336"
 
-include: i2c-device.yaml
+include: [i2c-device.yaml, base.yaml, pinctrl-device.yaml]
 
 properties:
   int-gpios:
@@ -13,6 +14,7 @@ properties:
     description: |
       Interrupt GPIO. Used by the controller to signal touch data is
       available. Active low.
+
   reset-gpios:
     type: phandle-array
     description: |

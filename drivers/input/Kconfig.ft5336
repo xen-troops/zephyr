@@ -25,6 +25,12 @@ config INPUT_FT5336_PERIOD
 config INPUT_FT5336_INTERRUPT
 	bool "Interrupt"
 	help
-	  Enable interrupt support (requires GPIO).
+	  Enable interrupt support.
+
+config INPUT_FT5335_GPIO_INTERRUPT
+	depends on INPUT_FT5336_INTERRUPT
+	bool "GPIO Interrupt"
+	help
+	  Enable GPIO interrupt support.
 
 endif # INPUT_FT5336
