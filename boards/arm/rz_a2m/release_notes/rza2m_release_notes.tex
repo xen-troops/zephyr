@@ -1337,6 +1337,132 @@ and the sensor with ID=1 (U2) has 0V at the VIN+ input. We output to the console
 integer part of the values received from the sensors in order to reduce the delays
 introduced into each thread by the output function.
 
+\subsubsection{I2C Target support}\label{i2c-target-support}
+
+Zephyr supports \colorbox{lightgray}{target (slave)} mode for the I2C bus, as well as the
+so-called \colorbox{lightgray}{dual role mode}, when one bus can simultaneously
+be both a master and a slave. To test these modes, you can use the basic test:
+
+\begin{lstlisting}
+west build -p always -b rz_a2m tests/drivers/i2c/i2c_target_api/
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+This test emulates the operation of I2C EEPROM memory on the i2c2 bus in slave mode
+and attempts to perform EEPROM read/write operations using the i2c3 bus in master mode.
+After this, the roles of the i2c2 and i2c3 buses change and the test is repeated.
+For this test to work, you must first connect the i2c2 and i2c3 buses to each other
+according to the diagram:
+
+\includegraphics[width=4in]{./media/I2C_Target_connection.png}
+
+The test result is following:
+
+\begin{lstlisting}
+*** Booting Zephyr OS build v3.5.0-rc2-97-gd699393f4c85 ***
+Running TESTSUITE i2c_eeprom_target
+===================================================================
+START - test_eeprom_target
+Found EEPROM 0 on I2C bus device i2c@e803a800 at addr 54
+Found EEPROM 1 on I2C bus device i2c@e803ac00 at addr 56
+Testing dual-role
+Testing full read: Master: i2c@e803ac00, address: 0x54
+Testing full read: Master: i2c@e803a800, address: 0x56
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=0
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=0
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=1
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=1
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=2
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=2
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=3
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=3
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=4
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=4
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=5
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=5
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=6
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=6
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=7
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=7
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=8
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=8
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=9
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=9
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=10
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=10
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=11
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=11
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=12
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=12
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=13
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=13
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=14
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=14
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=15
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=15
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=16
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=16
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=17
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=17
+Testing partial read. Master: i2c@e803ac00, address: 0x54, off=18
+Testing partial read. Master: i2c@e803a800, address: 0x56, off=18
+Testing program. Master: i2c@e803ac00, address: 0x54, off=0
+Testing program. Master: i2c@e803a800, address: 0x56, off=0
+Testing program. Master: i2c@e803ac00, address: 0x54, off=1
+Testing program. Master: i2c@e803a800, address: 0x56, off=1
+Testing program. Master: i2c@e803ac00, address: 0x54, off=2
+Testing program. Master: i2c@e803a800, address: 0x56, off=2
+Testing program. Master: i2c@e803ac00, address: 0x54, off=3
+Testing program. Master: i2c@e803a800, address: 0x56, off=3
+Testing program. Master: i2c@e803ac00, address: 0x54, off=4
+Testing program. Master: i2c@e803a800, address: 0x56, off=4
+Testing program. Master: i2c@e803ac00, address: 0x54, off=5
+Testing program. Master: i2c@e803a800, address: 0x56, off=5
+Testing program. Master: i2c@e803ac00, address: 0x54, off=6
+Testing program. Master: i2c@e803a800, address: 0x56, off=6
+Testing program. Master: i2c@e803ac00, address: 0x54, off=7
+Testing program. Master: i2c@e803a800, address: 0x56, off=7
+Testing program. Master: i2c@e803ac00, address: 0x54, off=8
+Testing program. Master: i2c@e803a800, address: 0x56, off=8
+Testing program. Master: i2c@e803ac00, address: 0x54, off=9
+Testing program. Master: i2c@e803a800, address: 0x56, off=9
+Testing program. Master: i2c@e803ac00, address: 0x54, off=10
+Testing program. Master: i2c@e803a800, address: 0x56, off=10
+Testing program. Master: i2c@e803ac00, address: 0x54, off=11
+Testing program. Master: i2c@e803a800, address: 0x56, off=11
+Testing program. Master: i2c@e803ac00, address: 0x54, off=12
+Testing program. Master: i2c@e803a800, address: 0x56, off=12
+Testing program. Master: i2c@e803ac00, address: 0x54, off=13
+Testing program. Master: i2c@e803a800, address: 0x56, off=13
+Testing program. Master: i2c@e803ac00, address: 0x54, off=14
+Testing program. Master: i2c@e803a800, address: 0x56, off=14
+Testing program. Master: i2c@e803ac00, address: 0x54, off=15
+Testing program. Master: i2c@e803a800, address: 0x56, off=15
+Testing program. Master: i2c@e803ac00, address: 0x54, off=16
+Testing program. Master: i2c@e803a800, address: 0x56, off=16
+Testing program. Master: i2c@e803ac00, address: 0x54, off=17
+Testing program. Master: i2c@e803a800, address: 0x56, off=17
+Testing program. Master: i2c@e803ac00, address: 0x54, off=18
+Testing program. Master: i2c@e803a800, address: 0x56, off=18
+PASS - test_eeprom_target in 0.719 seconds
+===================================================================
+TESTSUITE i2c_eeprom_target succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [i2c_eeprom_target]: pass = 1, fail = 0, skip = 0, total =s
+- PASS - [i2c_eeprom_target.test_eeprom_target] duration = 0.719 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+\end{lstlisting}
+
 \subsection{DMA}\label{dma}
 
 Zephyr also provides an interface for the DMA controller.
