@@ -37,7 +37,9 @@ static void iface_cb(struct net_if *iface, void *user_data)
 		return;
 	}
 
-	ud->second = iface;
+	if (!ud->second) {
+		ud->second = iface;
+	}
 }
 #endif
 
