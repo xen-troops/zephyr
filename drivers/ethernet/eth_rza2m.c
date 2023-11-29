@@ -297,6 +297,47 @@ static void rza2m_eth_update_mac_addr(const struct device *dev)
 
 static void rza2m_eth_regs_dump(const struct device *dev);
 
+#if defined(CONFIG_NET_VLAN)
+static inline struct net_if *get_iface(struct rza2m_eth_ctx *ctx, uint16_t vlan_tag)
+{
+	struct net_if *iface;
+
+	iface = net_eth_get_vlan_iface(ctx->iface, vlan_tag);
+	if (!iface) {
+		return ctx->iface;
+	}
+
+	return iface;
+}
+
+static uint16_t rza2m_eth_vlan_handle(struct net_pkt *rx_pkt)
+{
+	struct net_eth_hdr *hdr = NET_ETH_HDR(rx_pkt);
+	uint16_t vlan_tag = NET_VLAN_TAG_UNSPEC;
+	struct net_eth_vlan_hdr *hdr_vlan;
+	enum net_priority prio;
+
+	(void)prio;
+
+	if (ntohs(hdr->type) == NET_ETH_PTYPE_VLAN) {
+		hdr_vlan = (struct net_eth_vlan_hdr *)NET_ETH_HDR(rx_pkt);
+
+		net_pkt_set_vlan_tci(rx_pkt, ntohs(hdr_vlan->vlan.tci));
+		vlan_tag = net_pkt_vlan_tag(rx_pkt);
+
+#if CONFIG_NET_TC_RX_COUNT > 1
+		prio = net_vlan2priority(net_pkt_vlan_priority(rx_pkt));
+		net_pkt_set_priority(rx_pkt, prio);
+#endif
+	}
+
+	return vlan_tag;
+}
+#else
+#define get_iface(ctx, vlan_tag) (ctx)->iface
+#define rza2m_eth_vlan_handle(rx_pkt)	NET_VLAN_TAG_UNSPEC
+#endif
+
 /* for debug logs */
 __maybe_unused static int net_pkt_get_nbfrags(struct net_pkt *pkt)
 {
@@ -471,6 +512,7 @@ abort:
 static void rza2m_eth_receive(const struct device *dev)
 {
 	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
+	uint16_t vlan_tag;
 	struct rx_desc_s *desc;
 	struct net_buf *frag;
 	uint32_t rx_flags;
@@ -540,7 +582,9 @@ static void rza2m_eth_receive(const struct device *dev)
 				LOG_DEV_DBG(dev, "RX:desc[%d] pkt len/frags=%zd:%d/%d",
 					    d_idx, net_pkt_get_len(ctx->rx_pkt), pkt_len,
 					    net_pkt_get_nbfrags(ctx->rx_pkt));
-				net_recv_data(ctx->iface, ctx->rx_pkt);
+				vlan_tag = rza2m_eth_vlan_handle(ctx->rx_pkt);
+				net_pkt_set_iface(ctx->rx_pkt, get_iface(ctx, vlan_tag));
+				net_recv_data(net_pkt_iface(ctx->rx_pkt), ctx->rx_pkt);
 			}
 			ctx->rx_pkt = NULL;
 		} else {
@@ -862,6 +906,9 @@ static enum ethernet_hw_caps rza2m_eth_get_caps(const struct device *dev)
 
 	caps |= ETHERNET_LINK_10BASE_T | ETHERNET_LINK_100BASE_T;
 	caps |= ETHERNET_PROMISC_MODE;
+	if (IS_ENABLED(CONFIG_NET_VLAN)) {
+		caps |= ETHERNET_HW_VLAN;
+	}
 
 	return caps;
 }
@@ -1084,6 +1131,11 @@ static void rza2m_eth_iface_init(struct net_if *iface)
 	const struct device *dev = net_if_get_device(iface);
 	const struct rza2m_eth_cfg *cfg = dev->config;
 	struct rza2m_eth_ctx *ctx = DEV_DATA(dev);
+
+	if (ctx->iface) {
+		ethernet_init(iface);
+		return;
+	}
 
 	ctx->iface = iface;
 
