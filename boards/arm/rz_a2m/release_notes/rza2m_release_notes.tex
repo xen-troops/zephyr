@@ -2895,7 +2895,77 @@ PING 203.0.113.2
 28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=2 ttl=64 time=0 ms
 28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=3 ttl=64 time=0 ms
 uart:~$
+\end{lstlisting}
 
+\subsection{Touch Panel Support}\label{touch-support}
+
+Build test application by the following command:
+\begin{lstlisting}
+west build -p always -b rz_a2m samples/subsys/input/ft5316
+\end{lstlisting}
+
+Before launch application attach display panel to Digital Image Input/output Connector (CN15).
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+After launching the application try to touch the panel by up to 5 fingers at the same time
+
+Console output:
+
+\begin{lstlisting}
+*** Booting Zephyr OS build zephyr-v3.3.0-10336-ga69164bcfb28 ***
+[0:DOWN] x:417 y:253 weight:58 direction:UP area:2 speed:0
+[0:DOWN] x:416 y:253 weight:58 direction:UP area:2 speed:0
+[0:DOWN] x:416 y:253 weight:58 direction:UP area:2 speed:0
+[0:UP] x:416 y:253 weight:58 direction:UP area:2 speed:0
+[0:DOWN] x:560 y:140 weight:59 direction:UP area:1 speed:0
+[0:DOWN] x:559 y:141 weight:59 direction:UP area:1 speed:0
+[0:DOWN] x:558 y:141 weight:58 direction:UP area:1 speed:0
+[0:DOWN] x:558 y:141 weight:58 direction:UP area:1 speed:0
+[0:UP] x:558 y:141 weight:58 direction:UP area:1 speed:0
+[0:DOWN] x:408 y:326 weight:23 direction:UP area:1 speed:0
+[0:DOWN] x:408 y:329 weight:24 direction:UP area:1 speed:0
+[1:DOWN] x:194 y:160 weight:77 direction:DOWN area:1 speed:3
+[0:DOWN] x:409 y:329 weight:25 direction:UP area:1 speed:0
+[1:DOWN] x:194 y:163 weight:76 direction:DOWN area:2 speed:3
+[0:DOWN] x:409 y:328 weight:26 direction:UP area:1 speed:0
+[1:DOWN] x:195 y:164 weight:75 direction:DOWN area:2 speed:3
+[0:DOWN] x:409 y:328 weight:27 direction:UP area:1 speed:0
+[1:DOWN] x:195 y:163 weight:74 direction:DOWN area:2 speed:3
+[0:DOWN] x:409 y:328 weight:28 direction:UP area:1 speed:0
+[1:DOWN] x:194 y:163 weight:73 direction:DOWN area:2 speed:3
+[0:DOWN] x:409 y:328 weight:28 direction:UP area:1 speed:0
+[1:DOWN] x:194 y:163 weight:72 direction:DOWN area:2 speed:3
+[0:DOWN] x:409 y:328 weight:28 direction:UP area:1 speed:0
+[1:DOWN] x:194 y:164 weight:71 direction:DOWN area:2 speed:3
+[0:DOWN] x:195 y:165 weight:70 direction:DOWN area:2 speed:3
+[1:UP] x:195 y:165 weight:70 direction:DOWN area:2 speed:3
+[0:DOWN] x:195 y:165 weight:70 direction:DOWN area:2 speed:3
+[0:UP] x:195 y:165 weight:70 direction:DOWN area:2 speed:3
+[0:DOWN] x:239 y:383 weight:25 direction:UP area:0 speed:0
+[1:DOWN] x:493 y:301 weight:36 direction:UP area:0 speed:0
+[0:DOWN] x:239 y:383 weight:25 direction:UP area:0 speed:0
+[1:DOWN] x:492 y:301 weight:36 direction:UP area:0 speed:0
+[2:DOWN] x:72 y:198 weight:41 direction:RIGHT area:0 speed:3
+[3:DOWN] x:313 y:75 weight:222 direction:DOWN area:10 speed:0
+[0:DOWN] x:239 y:384 weight:25 direction:UP area:0 speed:0
+[1:DOWN] x:492 y:301 weight:36 direction:UP area:0 speed:0
+[2:DOWN] x:72 y:197 weight:41 direction:RIGHT area:0 speed:3
+[3:DOWN] x:313 y:75 weight:221 direction:DOWN area:9 speed:0
+[4:DOWN] x:410 y:110 weight:67 direction:UP area:2 speed:0
+[0:DOWN] x:238 y:384 weight:25 direction:UP area:0 speed:0
+[1:DOWN] x:491 y:301 weight:36 direction:UP area:0 speed:0
+[2:DOWN] x:72 y:196 weight:41 direction:RIGHT area:0 speed:3
+[3:DOWN] x:312 y:75 weight:220 direction:DOWN area:8 speed:0
+[4:UP] x:312 y:75 weight:220 direction:DOWN area:8 speed:0
+[0:DOWN] x:238 y:384 weight:25 direction:UP area:0 speed:0
+[1:DOWN] x:491 y:301 weight:36 direction:UP area:0 speed:0
+[2:DOWN] x:72 y:196 weight:41 direction:RIGHT area:0 speed:3
+[3:DOWN] x:312 y:75 weight:220 direction:DOWN area:8 speed:0
+[0:UP] x:312 y:75 weight:220 direction:DOWN area:8 speed:0
 \end{lstlisting}
 
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
