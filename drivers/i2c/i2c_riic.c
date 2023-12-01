@@ -200,6 +200,8 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask)
 {
 	struct riic_data *data = dev->data;
 	int ret;
+	uint32_t int_backup;
+	uint16_t timeout = 0;
 
 	data->interrupt_mask = mask;
 	data->status_bits = riic_read(dev, RIIC_SR2);
@@ -212,11 +214,22 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask)
 	/* Reset interrupts semaphore */
 	k_sem_reset(&data->int_sem);
 
+	/* Save previous interrupts before modifying */
+	int_backup = riic_read(dev, RIIC_IER);
+
 	/* Enable interrupts */
 	riic_write(dev, RIIC_IER, mask);
 
 	/* Wait for the interrupts */
 	ret = k_sem_take(&data->int_sem, K_USEC(MAX_WAIT_US));
+
+	/* Restore previous interrupts and wait for the changes to take effect */
+	riic_write(dev, RIIC_IER, int_backup);
+	while ((riic_read(dev, RIIC_IER) != int_backup) && (timeout < 10)) {
+		k_msleep(1);
+		timeout++;
+	}
+
 	if (!ret) {
 		return 0;
 	}
@@ -648,12 +661,14 @@ static void riic_slave_event(const struct device *dev)
 			    slave_cb->write_requested(slave_cfg)) {
 				/* NAK further bytes */
 				riic_transmit_nack(dev);
+				return;
 			}
 		} else {
 			if (slave_cb->write_received &&
 			    slave_cb->write_received(slave_cfg, val)) {
 				/* NAK further bytes */
 				riic_transmit_nack(dev);
+				return;
 			}
 		}
 		riic_transmit_ack(dev);
@@ -793,33 +808,32 @@ static void riic_isr(const struct device *dev)
 {
 	struct riic_data *data = dev->data;
 	uint32_t value;
-	uint16_t timeout = 0;
 
 #if defined(CONFIG_I2C_TARGET)
 	int slave_num;
 
-	value = riic_read(dev, RIIC_SR1) & RIIC_SR1_AAS_MASK;
-	slave_num = __builtin_ffs(value) - 1;
-	if (slave_num >= 0) {
-		/* Save active slave number because we cannot read it after stop bit */
-		data->active_slave_num = slave_num;
-	}
-	if (data->active_slave_num >= 0) {
-		if (data->slave[data->active_slave_num].slave_attached && !data->master_active) {
-			riic_slave_event(dev);
-			return;
+	if (!data->master_active) {
+		/* Only for slave mode */
+		value = riic_read(dev, RIIC_SR1) & RIIC_SR1_AAS_MASK;
+		slave_num = __builtin_ffs(value) - 1;
+		if (slave_num >= 0) {
+			/* Save active slave number because we cannot read it after stop bit */
+			data->active_slave_num = slave_num;
 		}
+		if (data->active_slave_num >= 0) {
+			if (data->slave[data->active_slave_num].slave_attached &&
+					!data->master_active) {
+				riic_slave_event(dev);
+			}
+		}
+		return;
 	}
 #endif
+	/* Only for master mode */
 	value = riic_read(dev, RIIC_SR2);
 	if (value & data->interrupt_mask) {
 		data->status_bits = value & data->interrupt_mask;
 		k_sem_give(&data->int_sem);
-		riic_write(dev, RIIC_IER, 0);
-		while ((riic_read(dev, RIIC_IER)) && (timeout < 10)) {
-			k_busy_wait(USEC_PER_MSEC);
-			timeout++;
-		}
 		data->interrupt_mask = 0;
 	}
 }
