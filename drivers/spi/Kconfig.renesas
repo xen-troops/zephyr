@@ -1,4 +1,5 @@
 # Copyright (c) 2022 Renesas Electronics Corporation
+# Copyright (c) 2023 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
 config SPI_SMARTBOND
@@ -7,3 +8,11 @@ config SPI_SMARTBOND
 	depends on DT_HAS_RENESAS_SMARTBOND_SPI_ENABLED
 	help
 	  Enables SPI driver for Renesas SmartBond(tm) DA1469x series MCU.
+
+config SPI_RZA2M
+	bool "Renesas RZ/A2M Serial Peripheral Interface"
+	default y
+	depends on SOC_R7S9210
+	depends on DT_HAS_RENESAS_RSPI_RZ_ENABLED
+	help
+	  Enables SPI driver for Renesas Serial Peripheral Interface on RZ/A2M series SoC.
