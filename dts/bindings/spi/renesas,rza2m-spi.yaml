@@ -1,0 +1,29 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ/A2M SPI
+
+compatible: "renesas,rspi-rz"
+
+include: [spi-controller.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  interrupt-names:
+    required: true
+
+  clocks:
+    required: true
+
+  num-cs:
+    type: int
+    description: |
+      Total number of native chip selects.
+      Hardware limitations related to chip selects:
+        - When using GPIO chip selects, at least one native chip select must
+          be left unused, as it will be driven anyway.
