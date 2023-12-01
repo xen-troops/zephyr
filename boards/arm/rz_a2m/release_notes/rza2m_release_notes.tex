@@ -2333,6 +2333,95 @@ seconds
 PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
+\subsection{rSPI Support}\label{rspi-support}
+
+Zephyr RZ/A2M Renesas Serial Peripheral Interface (rSPI) driver supports:
+\begin{itemize}
+	\item sync transfers only
+	\item 8/16bit transfers
+\end{itemize}
+
+\textbf{Not} supported:
+\begin{itemize}
+	\item  async transfers
+	\item  DMA transfers
+\end{itemize}
+
+Zephyr Kconfig options needed for RZ/A2M ETHERC SPI driver testing:
+
+\begin{lstlisting}
+	CONFIG_SPI_RZA2M=y
+\end{lstlisting}
+
+Zephyr RZ/A2M Renesas Serial Peripheral Interface (rSPI) driver can be tested by using generic spi\_loopback test.
+
+Use below command to build SPI spi\_loopback sample application:
+
+\begin{lstlisting}
+	west build -p always tests/drivers/spi/spi_loopback
+\end{lstlisting}
+
+Once spi\_loopback is loaded it will provide console output showing the test execution process:
+\begin{lstlisting}
+I: spi@e800c800:"Init done f:66000"
+*** Booting Zephyr OS build v3.5.0-rc2-127-g618d02db1a31 ***
+Running TESTSUITE spi_loopback
+===================================================================
+START - test_spi_loopback
+I: SPI test on buffers TX/RX 0x800480a0/0x80048080, frame size = 16
+I: SPI test slow config
+I: Start complete multiple
+I: spi@e800c800:"trns: fr:500000 fa:33000 cmd:0f03"
+I: Passed
+I: Start complete loop
+I: Passed
+I: Start null tx
+I: Passed
+I: Start half start
+I: Passed
+I: Start half end
+I: Passed
+I: Start every 4
+I: Passed
+I: Start rx bigger than tx [40/1981
+I: Passed
+I: SPI test fast config
+I: Start complete multiple
+I: spi@e800c800:"trns: fr:16000000 fa:33000 cmd:0f03"
+I: Passed
+I: Start complete loop
+I: Passed
+I: Start null tx
+I: Passed
+I: Start half start
+I: Passed
+I: Start half end
+I: Passed
+I: Start every 4
+I: Passed
+I: Start rx bigger than tx
+I: Passed
+I: Start complete loop
+I: spi@e800c800:"trns: fr:500000 fa:33000 cmd:0f03"
+I: Passed
+I: Start complete loop
+I: spi@e800c800:"trns: fr:16000000 fa:33000 cmd:0f03"
+I: Passed
+I: All tx/rx passed
+PASS - test_spi_loopback in 7.567 seconds
+===================================================================
+TESTSUITE spi_loopback succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [spi_loopback]: pass = 1, fail = 0, skip = 0, total = 1 duration = 7.567 seconds
+- PASS - [spi_loopback.test_spi_loopback] duration = 7.567 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+\end{lstlisting}
+
 \subsection{ETHERC Support}\label{eth-support}
 
 Zephyr RZ/A2M ETHERC Ethernet driver supports:
