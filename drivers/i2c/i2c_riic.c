@@ -33,6 +33,8 @@ struct riic_config {
 	const struct pinctrl_dev_config *pcfg;
 	void (*init_irq_func)(const struct device *dev);
 	uint32_t bitrate;
+	uint16_t scl_rise_ns;
+	uint16_t scl_fall_ns;
 };
 
 #ifdef CONFIG_I2C_TARGET
@@ -46,7 +48,7 @@ struct riic_target_config {
 
 struct riic_data {
 	DEVICE_MMIO_RAM; /* Must be first */
-	uint32_t clk_rate; /* Peripheral clock frequency */
+	uint32_t clk_rate;
 	uint32_t interrupt_mask;
 	uint32_t status_bits;
 	struct k_sem int_sem;
@@ -445,9 +447,7 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	struct riic_data *data = dev->data;
 	uint32_t int_ref_clock = data->clk_rate;
 	int total_ticks, cks, brl, brh;
-	uint32_t scl_rise_ns, scl_fall_ns;
 	uint8_t rise_edge_ticks, fall_edge_ticks;
-	bool fast_plus = false;
 
 	/* TODO: This will be removed after confirming 10-bit addressing works */
 	/* We are not supporting 10-bit addressing */
@@ -455,22 +455,9 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 		return -EIO;
 	}
 
-	/* Values taken from I2C-bus specification and user manual (UM10204) */
-	switch (I2C_SPEED_GET(dev_config)) {
-	case I2C_SPEED_STANDARD:
-		scl_rise_ns = 1000;
-		scl_fall_ns = 300;
-		break;
-	case I2C_SPEED_FAST:
-		scl_rise_ns = 300;
-		scl_fall_ns = 300;
-		break;
-	case I2C_SPEED_FAST_PLUS:
-		scl_rise_ns = 120;
-		scl_fall_ns = 120;
-		fast_plus = true;
-		break;
-	default:
+	if (I2C_SPEED_GET(dev_config) != I2C_SPEED_STANDARD &&
+	   I2C_SPEED_GET(dev_config) != I2C_SPEED_FAST &&
+	   I2C_SPEED_GET(dev_config) != I2C_SPEED_FAST_PLUS) {
 		LOG_ERR("%s: supported only I2C_SPEED_STANDARD, I2C_SPEED_FAST and "
 				"I2C_SPEED_FAST_PLUS\n", dev->name);
 		return -EIO;
@@ -516,8 +503,10 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	 * Remove clock ticks for rise and fall times. Convert ns to clock
 	 * ticks.
 	 */
-	fall_edge_ticks = DIV_ROUND_CLOSEST((uint64_t) scl_fall_ns * int_ref_clock, 1000000000);
-	rise_edge_ticks = DIV_ROUND_CLOSEST((uint64_t) scl_rise_ns * int_ref_clock, 1000000000);
+	fall_edge_ticks =
+		DIV_ROUND_CLOSEST((uint64_t) config->scl_fall_ns * int_ref_clock, 1000000000);
+	rise_edge_ticks =
+		DIV_ROUND_CLOSEST((uint64_t) config->scl_rise_ns * int_ref_clock, 1000000000);
 	brl -= fall_edge_ticks;
 	brh -= rise_edge_ticks;
 
@@ -548,7 +537,7 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	riic_write(dev, RIIC_SER, 0);
 	riic_write(dev, RIIC_MR3, RIIC_MR3_RDRFS);
 
-	if (fast_plus) {
+	if (I2C_SPEED_GET(dev_config) == I2C_SPEED_FAST_PLUS) {
 		riic_clear_set_bit(dev, RIIC_FER, 0, RIIC_FER_FMPE);
 	}
 
@@ -927,6 +916,8 @@ static const struct i2c_driver_api riic_driver_api = {
 		.init_irq_func = riic_##n##_init_irq,			\
 		.clock_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)),	\
 		.bitrate = DT_INST_PROP(n, clock_frequency),		\
+		.scl_rise_ns = DT_INST_PROP_OR(n, scl_rising_time_ns, 0),\
+		.scl_fall_ns = DT_INST_PROP_OR(n, scl_falling_time_ns, 0),\
 		.mod_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),\
 		.mod_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),\
 		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),\
