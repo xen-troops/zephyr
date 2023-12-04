@@ -15,3 +15,13 @@ properties:
     required: true
   clocks:
     required: true
+  scl-rising-time-ns:
+    type: int
+    default: 0
+    description: |
+      Number of nanoseconds the SCL signal takes to rise; t(r) in the I2C specification.
+  scl-falling-time-ns:
+    type: int
+    default: 0
+    description: |
+      Number of nanoseconds the SCL signal takes to fall; t(f) in the I2C specification.
