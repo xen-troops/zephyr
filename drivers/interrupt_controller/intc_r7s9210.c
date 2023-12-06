@@ -99,13 +99,14 @@ static void r7s9210_isr(const void *arg)
 	k_spin_unlock(&data->lock, key);
 }
 
-/* is this irq belongs to this intc */
-static inline bool irq_line_owned_by_driver(const struct device *dev, unsigned int irq)
+/* is this irq belongs to this intc if yes - return parent irq */
+static unsigned int r7s9210_intr_get_parent_irq(const struct device *dev, unsigned int irq)
 {
 	const struct r7s9210_intc_cfg *cfg = (const struct r7s9210_intc_cfg *)dev->config;
 	unsigned int parent_line = irq_parent_level_2(irq) + 32;
 
 	irq = irq_from_level_2(irq);
+	parent_line += irq;
 
 	for (unsigned int line = 0; line < cfg->num_lines; line++) {
 		if (cfg->line_map[line].line != irq) {
@@ -113,31 +114,35 @@ static inline bool irq_line_owned_by_driver(const struct device *dev, unsigned i
 		}
 
 		if (cfg->line_map[line].parent_line == parent_line) {
-			return true;
+			return parent_line;
 		}
 	}
 
-	return false;
+	return 0;
 }
 
 /* The driver can't enable IRQ by this driver, so lets request it from the parent driver. */
 static void r7s9210_intr_enable(const struct device *dev, unsigned int irq)
 {
-	if (!irq_line_owned_by_driver(dev, irq)) {
+	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
+
+	if (!parent_irq) {
 		return;
 	}
 
-	irq_enable(irq_parent_level_2(irq) + 32);
+	irq_enable(parent_irq);
 }
 
 /* The driver can't disable IRQ by this driver, so lets request it from the parent driver. */
 static void r7s9210_intr_disable(const struct device *dev, unsigned int irq)
 {
-	if (!irq_line_owned_by_driver(dev, irq)) {
+	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
+
+	if (!parent_irq) {
 		return;
 	}
 
-	irq_disable(irq_parent_level_2(irq) + 32);
+	irq_disable(parent_irq);
 }
 
 /**
@@ -163,8 +168,9 @@ static void r7s9210_intr_set_priority(const struct device *dev, unsigned int irq
 	uint16_t cr1;
 	struct r7s9210_intc_data *data = (struct r7s9210_intc_data *)dev->data;
 	k_spinlock_key_t key;
+	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
 
-	if (!irq_line_owned_by_driver(dev, irq)) {
+	if (!parent_irq) {
 		return;
 	}
 
@@ -200,11 +206,13 @@ static void r7s9210_intr_set_priority(const struct device *dev, unsigned int irq
  */
 static int r7s9210_intr_get_line_state(const struct device *dev, unsigned int irq)
 {
-	if (!irq_line_owned_by_driver(dev, irq)) {
+	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
+
+	if (!parent_irq) {
 		return 0;
 	}
 
-	return irq_is_enabled(irq_parent_level_2(irq) + 32);
+	return irq_is_enabled(parent_irq);
 }
 
 static const struct irq_next_level_api r7s9210_intc_next_lvl = {
