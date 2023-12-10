@@ -73,7 +73,7 @@
 			 <RZA2_PINMUX(PORTD, 7, 1)>;	/* RIIC3SDA */
 	};
 
-	/* RSPI ch3 (EEPROM, Audio codec) */
+	/* RSPI ch0 (EEPROM, Audio codec) */
 	/omit-if-no-ref/ spi0_pins: spi0 {
 		pinmux = <RZA2_PINMUX(PORT8, 5, 4)>,	/* MISO0 */
 			 <RZA2_PINMUX(PORT8, 6, 4)>,	/* MOSI0 */
