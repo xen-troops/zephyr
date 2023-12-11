@@ -14,5 +14,6 @@ config SPI_RZA2M
 	default y
 	depends on SOC_R7S9210
 	depends on DT_HAS_RENESAS_RSPI_RZ_ENABLED
+	select DMA if SPI_ASYNC
 	help
 	  Enables SPI driver for Renesas Serial Peripheral Interface on RZ/A2M series SoC.

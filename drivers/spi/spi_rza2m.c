@@ -18,6 +18,10 @@ LOG_MODULE_REGISTER(spi_rza2m);
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/spi.h>
+#include <zephyr/cache.h>
+#ifdef CONFIG_SPI_ASYNC
+#include <zephyr/drivers/dma.h>
+#endif /* CONFIG_SPI_ASYNC */
 
 #include "spi_context.h"
 
@@ -122,6 +126,13 @@ struct rza2m_spi_cfg {
 	const struct pinctrl_dev_config *pcfg;
 	uint32_t			num_cs;
 	void				(*irq_config)(void);
+#ifdef CONFIG_SPI_ASYNC
+	const struct device *dma_dev;
+	uint8_t tx_dma_slot;
+	uint8_t tx_dma_channel;
+	uint8_t rx_dma_slot;
+	uint8_t rx_dma_channel;
+#endif /* CONFIG_SPI_ASYNC */
 };
 
 struct rza2m_spi_ctx {
@@ -139,6 +150,10 @@ struct rza2m_spi_ctx {
 
 	struct k_sem		sem_rx;
 	struct k_sem		sem_tx;
+
+#ifdef CONFIG_SPI_ASYNC
+	uint32_t dma_segment_len;
+#endif
 };
 
 static void rza2m_spi_write8(const struct device *dev, uint8_t data, uint16_t reg_ofs)
@@ -502,16 +517,287 @@ static int rza2m_spi_release(const struct device *dev, const struct spi_config *
 }
 
 #ifdef CONFIG_SPI_ASYNC
+static void rza2m_spi_dma_rx_done(const struct device *dma_dev, void *arg,
+				 uint32_t id, int error_code);
+
+/**
+ * @brief Function configure RX DMA channel for receive and start it
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ * @param buf Pointer to the RX buffer
+ * @param len Length of receive buffer
+ *
+ * @retval 0 if operation successful, negative errno code on failures
+ */
+static int rza2m_spi_dma_rx_load(const struct device *dev, uint8_t *buf, size_t len)
+{
+	const struct rza2m_spi_cfg *cfg = dev->config;
+	struct dma_config dma_cfg = { 0 };
+	struct dma_block_config dma_blk = { 0 };
+	static uint8_t dummy;
+	int retval;
+
+	dma_cfg.channel_direction = PERIPHERAL_TO_MEMORY;
+	dma_cfg.source_data_size = 1;
+	dma_cfg.dest_data_size = 1;
+	dma_cfg.user_data = (void *)dev;
+	dma_cfg.dma_callback = rza2m_spi_dma_rx_done;
+	dma_cfg.block_count = 1;
+	dma_cfg.head_block = &dma_blk;
+	dma_cfg.dma_slot = cfg->rx_dma_slot;
+
+	dma_blk.block_size = len;
+
+	if (buf != NULL) {
+		dma_blk.dest_address = (uint32_t) buf;
+		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	} else {
+		/* If RX buffer is absent, use static dummy variable as destination */
+		dma_blk.dest_address = (uint32_t) &dummy;
+		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+	}
+
+	dma_blk.source_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RSPI_SPDR;
+	dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+
+	retval = dma_config(cfg->dma_dev, cfg->rx_dma_channel, &dma_cfg);
+	if (retval != 0) {
+		return retval;
+	}
+
+	sys_cache_data_invd_range((void *)buf, len);
+
+	/* Enable RX interrupt */
+	rza2m_spi_write8(dev, rza2m_spi_read8(dev, RSPI_SPCR) | SPCR_SPRIE, RSPI_SPCR);
+
+	return dma_start(cfg->dma_dev, cfg->rx_dma_channel);
+}
+
+/**
+ * @brief Function configure TX DMA channel for transmitting and start it
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ * @param buf Pointer to the TX buffer
+ * @param len Length of transmit buffer
+ *
+ * @retval 0 if operation successful, negative errno code on failures
+ */
+static int rza2m_spi_dma_tx_load(const struct device *dev, const uint8_t *buf, size_t len)
+{
+	const struct rza2m_spi_cfg *cfg = dev->config;
+	struct dma_config dma_cfg = { 0 };
+	struct dma_block_config dma_blk = { 0 };
+	static const uint8_t dummy;
+	int retval;
+
+	dma_cfg.channel_direction = MEMORY_TO_PERIPHERAL;
+	dma_cfg.source_data_size = 1;
+	dma_cfg.dest_data_size = 1;
+	dma_cfg.block_count = 1;
+	dma_cfg.head_block = &dma_blk;
+	dma_cfg.dma_slot = cfg->tx_dma_slot;
+
+	dma_blk.block_size = len;
+
+	if (buf != NULL) {
+		dma_blk.source_address = (uint32_t) buf;
+		dma_blk.source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	} else {
+		/* If TX buffer is absent, use static dummy variable as source */
+		dma_blk.source_address = (uint32_t) &dummy;
+		dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+	}
+
+	dma_blk.dest_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RSPI_SPDR;
+	dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+
+	retval = dma_config(cfg->dma_dev, cfg->tx_dma_channel, &dma_cfg);
+	if (retval != 0) {
+		return retval;
+	}
+
+	sys_cache_data_flush_range((void *)buf, len);
+
+	/* Enable TX interrupt */
+	rza2m_spi_write8(dev, rza2m_spi_read8(dev, RSPI_SPCR) | SPCR_SPTIE, RSPI_SPCR);
+
+	return dma_start(cfg->dma_dev, cfg->tx_dma_channel);
+}
+
+/**
+ * @brief Function set dma_segment_len as minimum from the RX and TX
+ *	  buffers length
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ *
+ * @retval true if operation successful, false on error.
+ */
+static bool rza2m_spi_dma_advance_segment(const struct device *dev)
+{
+	struct rza2m_spi_ctx *ctx = dev->data;
+	struct spi_context *spi_ctx = &ctx->spi_ctx;
+	uint32_t segment_len;
+
+	/* Pick the shorter buffer of ones that have an actual length */
+	if (spi_ctx->rx_len != 0) {
+		segment_len = spi_ctx->rx_len;
+		if (spi_ctx->tx_len != 0) {
+			segment_len = MIN(segment_len, spi_ctx->tx_len);
+		}
+	} else {
+		segment_len = spi_ctx->tx_len;
+	}
+
+	if (segment_len == 0) {
+		return false;
+	}
+
+	segment_len = MIN(segment_len, 65535);
+
+	ctx->dma_segment_len = segment_len;
+	return true;
+}
+
+/**
+ * @brief Function load RX and TX buffers in proper order
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ *
+ * @retval 0 if operation successful, negative errno code on failure
+ */
+static int rza2m_spi_dma_advance_buffers(const struct device *dev)
+{
+	struct rza2m_spi_ctx *ctx = dev->data;
+	struct spi_context *spi_ctx = &ctx->spi_ctx;
+	uint32_t dma_segment_len = ctx->dma_segment_len;
+	int retval;
+
+	if (dma_segment_len == 0) {
+		return -EINVAL;
+	}
+
+	/* Load receive buffer first, so it can accept transmit data */
+	if (spi_ctx->rx_len) {
+		retval = rza2m_spi_dma_rx_load(dev, spi_ctx->rx_buf, dma_segment_len);
+	} else {
+		retval = rza2m_spi_dma_rx_load(dev, NULL, dma_segment_len);
+	}
+
+	if (retval != 0) {
+		return retval;
+	}
+
+	/* Now load the transmit buffer, which starts the actual bus clocking */
+	if (spi_ctx->tx_len) {
+		retval = rza2m_spi_dma_tx_load(dev, spi_ctx->tx_buf, dma_segment_len);
+	} else {
+		retval = rza2m_spi_dma_tx_load(dev, NULL, dma_segment_len);
+	}
+
+	if (retval != 0) {
+		return retval;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Callback function for DMA RX operation
+ *
+ * @param dma_dev Pointer to the device structure for the DMA driver instance
+ * @param user_data Pointer to the dma_cfg.user_data
+ * @param channel The channel number
+ * @param status DMA operation status
+ *
+ * @retval void
+ */
+static void rza2m_spi_dma_rx_done(const struct device *dma_dev, void *user_data,
+				 uint32_t channel, int status)
+{
+	const struct device *spi_dev = user_data;
+	const struct rza2m_spi_cfg *cfg = spi_dev->config;
+	struct rza2m_spi_ctx *ctx = spi_dev->data;
+	struct spi_context *spi_ctx = &ctx->spi_ctx;
+	int retval;
+
+	ARG_UNUSED(channel);
+	ARG_UNUSED(status);
+
+	/* In loopback mode data is inverted in loopback path */
+	if (ctx->spi_ctx.config->operation & SPI_MODE_LOOP) {
+		for (size_t i = 0; i < spi_ctx->rx_len; ++i) {
+			spi_ctx->rx_buf[i] = ~spi_ctx->rx_buf[i];
+		}
+	}
+
+	spi_context_update_tx(spi_ctx, 1, ctx->dma_segment_len);
+	spi_context_update_rx(spi_ctx, 1, ctx->dma_segment_len);
+
+	if (!rza2m_spi_dma_advance_segment(spi_dev)) {
+		/* Done, restore interrupts */
+		rza2m_spi_write8(spi_dev, ctx->r_spcr, RSPI_SPCR);
+		spi_context_cs_control(spi_ctx, false);
+		spi_context_complete(spi_ctx, spi_dev, 0);
+		return;
+	}
+
+	retval = rza2m_spi_dma_advance_buffers(spi_dev);
+	if (retval != 0) {
+		/* Error, stop DMA, restore interrupts, call callback */
+		dma_stop(cfg->dma_dev, cfg->tx_dma_channel);
+		dma_stop(cfg->dma_dev, cfg->rx_dma_channel);
+		rza2m_spi_write8(spi_dev, ctx->r_spcr, RSPI_SPCR);
+		spi_context_cs_control(spi_ctx, false);
+		spi_context_complete(spi_ctx, spi_dev, retval);
+		return;
+	}
+}
+
 static int rza2m_spi_transceive_async(const struct device *dev,
-				      const struct spi_config *spi_cfg,
+				      const struct spi_config *config,
 				      const struct spi_buf_set *tx_bufs,
 				      const struct spi_buf_set *rx_bufs,
 				      spi_callback_t cb,
 				      void *userdata)
 {
-	return -ENOTSUP;
+	const struct rza2m_spi_cfg *cfg = dev->config;
+	struct rza2m_spi_ctx *ctx = dev->data;
+	struct spi_context *spi_ctx = &ctx->spi_ctx;
+	int retval;
+
+	spi_context_lock(spi_ctx, true, cb, userdata, config);
+
+	retval = rza2m_spi_configure(dev, config);
+	if (retval != 0) {
+		goto err_unlock;
+	}
+
+	/* Assert SSL signal */
+	spi_context_cs_control(spi_ctx, true);
+
+	/* TODO: Convert DMA to Link Mode */
+	/* Set current TX and RX buffer from SPI buffers array */
+	spi_context_buffers_setup(spi_ctx, tx_bufs, rx_bufs, 1);
+
+	rza2m_spi_dma_advance_segment(dev);
+	retval = rza2m_spi_dma_advance_buffers(dev);
+	if (retval == 0) {
+		return 0;
+	}
+
+	/* Error, stop DMA, restore interrupts */
+	dma_stop(cfg->dma_dev, cfg->tx_dma_channel);
+	dma_stop(cfg->dma_dev, cfg->rx_dma_channel);
+	rza2m_spi_write8(dev, ctx->r_spcr, RSPI_SPCR);
+
+	/* Deassert SSL signal */
+	spi_context_cs_control(spi_ctx, false);
+
+err_unlock:
+	spi_context_release(spi_ctx, retval);
+	return retval;
 }
-#endif
+#endif /* CONFIG_SPI_ASYNC */
 
 static const struct spi_driver_api rza2m_spi_driver_api = {
 	.transceive = rza2m_spi_transceive,
@@ -588,6 +874,17 @@ static int rza2m_spi_init(const struct device *dev)
 		irq_enable(DT_INST_IRQ_BY_NAME(n, tx, irq));				\
 	}
 
+#ifdef CONFIG_SPI_ASYNC
+#define SPI_RZA2M_DMA_CHANNELS(n)							\
+	.dma_dev = DEVICE_DT_GET(DT_INST_DMAS_CTLR_BY_NAME(n, tx)),			\
+	.tx_dma_slot = DT_INST_DMAS_CELL_BY_NAME(n, tx, slot),				\
+	.tx_dma_channel = DT_INST_DMAS_CELL_BY_NAME(n, tx, channel),			\
+	.rx_dma_slot = DT_INST_DMAS_CELL_BY_NAME(n, rx, slot),				\
+	.rx_dma_channel = DT_INST_DMAS_CELL_BY_NAME(n, rx, channel),
+#else
+#define SPI_RZA2M_DMA_CHANNELS(n)
+#endif
+
 #define RZA2M_SPI_DEVICE(n)								\
 	PINCTRL_DT_INST_DEFINE(n);							\
 	RZA2M_SPI_IRQ_CONFIG_FUNC(n)							\
@@ -599,6 +896,7 @@ static int rza2m_spi_init(const struct device *dev)
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.num_cs = DT_INST_PROP_OR(n, num_cs, 1),				\
 		.irq_config = rza2m_irq_config_##n,					\
+		SPI_RZA2M_DMA_CHANNELS(n)						\
 	};										\
 	static struct rza2m_spi_ctx rza2m_spi_##id##_data = {				\
 			SPI_CONTEXT_INIT_LOCK(rza2m_spi_##id##_data, spi_ctx),		\

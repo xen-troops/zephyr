@@ -27,3 +27,20 @@ properties:
       Hardware limitations related to chip selects:
         - When using GPIO chip selects, at least one native chip select must
           be left unused, as it will be driven anyway.
+
+  dmas:
+    description: |
+      Optional TX & RX dma specifiers. Mandatory if defined CONFIG_SPI_ASYNC
+      Each specifier will have a phandle reference to the dmac controller,
+      the channel number, slot and config.
+
+      For example dmas for TX, RX on SPI0:
+         dmas = <&dma0 1 DMA_RS_SPTI0 0>, <&dma0 0 DMA_RS_SPRI0 0>;
+
+  dma-names:
+    description: |
+      Required if the dmas property exists.  This should be "tx" and "rx"
+      to match the dmas property.
+
+      For example:
+         dma-names = "tx", "rx";

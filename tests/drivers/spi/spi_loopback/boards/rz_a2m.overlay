@@ -5,6 +5,8 @@
 
 &spi0 {
 	status = "okay";
+	dmas = <&dma0 1 DMA_RS_SPTI0 0>, <&dma0 0 DMA_RS_SPRI0 0>;
+	dma-names = "tx", "rx";
 
 	slow@0 {
 		compatible = "test-spi-loopback-slow";
@@ -17,4 +19,9 @@
 		reg = <0>;
 		spi-max-frequency = <16000000>;
 	};
+};
+
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
 };
