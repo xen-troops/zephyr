@@ -572,6 +572,8 @@ static int spi_async_call(struct spi_dt_spec *spec)
 	};
 	int ret;
 
+	(void)memset(buffer_rx, 0xff, BUF_SIZE);
+
 	LOG_INF("Start async call");
 
 	ret = spi_transceive_signal(spec->bus, &spec->config, &tx, &rx, &async_sig);
@@ -591,6 +593,15 @@ static int spi_async_call(struct spi_dt_spec *spec)
 	if (result) {
 		LOG_ERR("Call code %d", ret);
 		zassert_false(result, "SPI transceive failed");
+		return -1;
+	}
+
+	if (memcmp(buffer_tx, buffer_rx, BUF_SIZE)) {
+		to_display_format(buffer_tx, BUF_SIZE, buffer_print_tx);
+		to_display_format(buffer_rx, BUF_SIZE, buffer_print_rx);
+		LOG_ERR("Buffer contents are different: %s", buffer_print_tx);
+		LOG_ERR("                           vs: %s", buffer_print_rx);
+		zassert_false(1, "Buffer contents are different");
 		return -1;
 	}
 
