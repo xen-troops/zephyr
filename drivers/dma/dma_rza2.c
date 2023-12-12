@@ -908,10 +908,17 @@ static int rza2_construct_link_chain(const struct device *dev, struct dma_config
 	return 0;
 }
 
-static void dma_rza2_channel_free(const struct device *dev, struct dma_rza2_channel *ch)
+static void dma_rza2_channel_free(const struct device *dev, int ch_num)
 {
+	struct dma_rza2_data *data = dev->data;
+	struct dma_rza2_channel *ch = &data->channels[ch_num];
 	ch->busy = false;
 	free_chunk(dev, ch->chunk);
+
+	/* If peripheral is selected by a DMARS register, the interrupt requests
+	 * are masked. So, we must clear DMAS register after complete.
+	 */
+	rza2_set_dmars(dev, ch_num, 0);
 }
 
 static inline int check_ch(const struct device *dev, uint32_t ch)
@@ -1184,6 +1191,8 @@ static int dma_rza2_stop(const struct device *dev, uint32_t ch)
 	}
 
 	key = k_spin_lock(&data->channels[ch].lock);
+	dma_rza2_channel_free(dev, ch);
+
 	if (!data->channels[ch].busy) {
 		ret = 0;
 		goto unlock;
@@ -1199,7 +1208,6 @@ static int dma_rza2_stop(const struct device *dev, uint32_t ch)
 
 	rza2_set_chctrl(dev, ch, SWRST);
 
-	dma_rza2_channel_free(dev, &data->channels[ch]);
 unlock:
 	k_spin_unlock(&data->channels[ch].lock, key);
 	return ret;
@@ -1381,7 +1389,7 @@ static void dma_rza2_isr_common(const struct device *dev, int ch)
 		if (!IS_SET(stat, DMAC_PRV_CHSTAT_MASK_END) ||
 		    IS_SET(stat, DMAC_PRV_CHSTAT_MASK_EN)) {
 			rza2_set_chctrl(dev, ch, CHCTRL_CLEAR);
-			dma_rza2_channel_free(dev, &data->channels[ch]);
+			dma_rza2_channel_free(dev, ch);
 			if (data->channels[ch].complete_callback_en == 0 &&
 			    data->channels[ch].dma_callback) {
 				data->channels[ch].dma_callback(dev, data->channels[ch].user_data,
@@ -1391,7 +1399,7 @@ static void dma_rza2_isr_common(const struct device *dev, int ch)
 			return;
 		}
 
-		dma_rza2_channel_free(dev, &data->channels[ch]);
+		dma_rza2_channel_free(dev, ch);
 		if (data->channels[ch].complete_callback_en == 0 &&
 		    data->channels[ch].dma_callback) {
 			data->channels[ch].dma_callback(dev, data->channels[ch].user_data, ch,
@@ -1418,7 +1426,7 @@ static void dma_rza2_isr_common(const struct device *dev, int ch)
 		if (ret == DMA_LINK_TR_END && IS_SET(stat, DMAC_PRV_CHSTAT_MASK_EN) == 0) {
 			chctrl = rza2_get_chctrl(dev, ch);
 			rza2_set_chctrl(dev, ch, chctrl | CLREND);
-			dma_rza2_channel_free(dev, &data->channels[ch]);
+			dma_rza2_channel_free(dev, ch);
 			/* CALL FINAL CALLBACK*/
 			if (data->channels[ch].complete_callback_en == 0 &&
 			    data->channels[ch].dma_callback) {
@@ -1431,7 +1439,7 @@ static void dma_rza2_isr_common(const struct device *dev, int ch)
 
 err:
 	rza2_set_chctrl(dev, ch, CHCTRL_CLEAR);
-	dma_rza2_channel_free(dev, &data->channels[ch]);
+	dma_rza2_channel_free(dev, ch);
 	if (data->channels[ch].err_callback_en == 0 && data->channels[ch].dma_callback) {
 		data->channels[ch].dma_callback(dev, data->channels[ch].user_data, ch, -EIO);
 	}
@@ -1455,7 +1463,7 @@ static void dma_rza2_err_isr(const struct device *dev)
 		    data->channels[ch].dma_callback) {
 			data->channels[ch].dma_callback(dev, data->channels[ch].user_data, ch,
 							DMA_STATUS_BLOCK);
-			dma_rza2_channel_free(dev, &data->channels[ch]);
+			dma_rza2_channel_free(dev, ch);
 		}
 	}
 }
