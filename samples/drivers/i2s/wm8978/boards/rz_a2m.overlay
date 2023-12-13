@@ -1,0 +1,36 @@
+/ {
+	aliases {
+		i2s-node0 = &ssif0;
+		test = &scif2;
+	};
+};
+
+&pinctrl {
+	rspi_pins: rspi_audio {
+		pinmux = <RZA2_PINMUX(PORT8, 4, 4)>,	/* SSL */
+			 <RZA2_PINMUX(PORT8, 6, 4)>,	/* MOSI */
+			 <RZA2_PINMUX(PORT8, 7, 4)>;	/* RSPCK */
+	};
+};
+
+&ssif0 {
+	pinctrl-0 = <&ssi0_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&dma0 {
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+	pinctrl-0 = <&rspi_pins>;
+	pinctrl-names = "default";
+	codec: wm8978@0 {
+		compatible = "wolfson,wm8978";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		status = "okay";
+	};
+};
