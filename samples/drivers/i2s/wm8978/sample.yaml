@@ -1,0 +1,15 @@
+sample:
+  name: WM8978 sample
+tests:
+  sample.drivers.i2s.wm8978:
+    tags: wm8978
+    filter: dt_nodelabel_enabled("codec")
+    integration_platforms:
+      - rz_a2m
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "wm8978 sample"
+        - "Exiting"
