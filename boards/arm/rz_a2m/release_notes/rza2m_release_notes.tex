@@ -2971,6 +2971,303 @@ Console output:
 [0:UP] x:312 y:75 weight:220 direction:DOWN area:8 speed:0
 \end{lstlisting}
 
+\subsection{USB Device Support}\label{usb-support}
+
+Zephyr USB device driver implementation allows RZ/A2M board to work as the usb device.
+It implements older Zephyr Device API:
+\url{https://docs.zephyrproject.org/latest/connectivity/usb/device/api/usb_dc.html}
+
+Because the requirement is to support CDC\_ECM and CDC\_RNDIS protocols. Zephyr currently
+do not support RNDIS for the new device api.
+
+\includegraphics[width=6.5in,height=4in]{./media/usb.jpg}
+
+\subsubsection{USB Testusb support}\label{testusb-usb-support}
+
+Testing USB device on Zephyr can be done using testusb sample, please see
+\url{https://docs.zephyrproject.org/latest/samples/subsys/usb/testusb/README.html}
+for the details.
+
+Board configuration: Board is expected to be connected to the PC via SCIF4 (UART) as the console
+connection and USB-F (CN13).
+
+Zephyr is using USB1 by default and can be switched to use USB0 on the device-tree:
+\begin{lstlisting}
+ /{
+	chosen {
+		zephyr,usb-device = &usbd0;
+	};
+ };
+\end{lstlisting}
+
+Host PC preparation is the following:
+\begin{lstlisting}
+modprobe usbtest vendor=0x2fe3 product=0x0009
+\end{lstlisting}
+
+Also, \colorbox{lightgray}{testusb} application is required to start testing.
+This application can be built from the linux source code.
+The following example shows how it can be built from rza\_linux\-4\.19
+
+\begin{lstlisting}
+git clone git@github.com:renesas-rz/rza_linux-4.19.git
+cd tools/usb
+make testusb
+cp -rf ./testusb ~/
+\end{lstlisting}
+
+Next step is to start \colorbox{lightgray}{testusb} sample on RZ/A2M board:
+\begin{lstlisting}
+west build -b rz_a2m -p always samples/subsys/usb/testusb
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+Then start testusb application on the Host PC:
+\begin{lstlisting}
+~/testusb -D /dev/bus/usb/001/014 -c 1
+\end{lstlisting}
+
+The result will be:
+
+\begin{lstlisting}
+/home/xtrs/testusb: /dev/bus/usb/001/014 may see only control tests
+/dev/bus/usb/001/014 test 0,    0.000009 secs
+/dev/bus/usb/001/014 test 9,    0.694125 secs
+/dev/bus/usb/001/014 test 10,    3.240690 secs
+\end{lstlisting}
+
+The correct usb device can be get by monitoring \colorbox{lightgray}{/dev/bus/usb/001}.
+new device will appear when testusb sample is running on RZ/A2M.
+
+usbmon can be started using the following commands:
+\begin{lstlisting}
+modprobe usbmon
+cat /sys/kernel/debug/usb/usbmon/1u | grep -e  "1:000" -e "Ci" -e "Co"
+\end{lstlisting}
+
+\textbf{NOTE:} Provided commands expecs USB to be connected to the host bus 1.
+
+\subsubsection{USB ECHO Server}\label{usb-echo-server}
+
+Zephyr includes sample called echo\_server, which can be built with ECM and
+RNDIS support as the main device. This example starts simple echo\_server on RZ/A2M board, which can be accessed from host via netusb.
+
+This server can be built with the following commands:
+Building for CDC-ECM:
+\begin{lstlisting}
+west build -b rz_a2m -p always samples/net/sockets/echo_server -- -DEXTRA_CONF_FILE=overlay-netusb.conf
+\end{lstlisting}
+Building for RNDIS:
+\begin{lstlisting}
+west build -b rz_a2m -p always samples/net/sockets/echo_server -- -DEXTRA_CONF_FILE=overlay-netusb-rndis.conf
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+After starting the provided test, new interface will appear in Linux Host.
+The following lines will appear in dmesg:
+\begin{lstlisting}
+[612943.199295] usb 1-9: new high-speed USB device number 97 using xhci_hcd
+[612943.348216] usb 1-9: New USB device found, idVendor=2fe3, idProduct=0100, bcdDevice= 3.05
+[612943.348222] usb 1-9: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[612943.348226] usb 1-9: Product: USB-DEV
+[612943.348229] usb 1-9: Manufacturer: ZEPHYR
+[612943.348232] usb 1-9: SerialNumber: 0123456789ABCDEF
+[612943.351125] cdc_ether 1-9:1.0 eth0: register 'cdc_ether' at usb-0000:00:14.0-9, CDC Ethernet Device, 00:00:5e:00:53:01
+[612943.359961] cdc_ether 1-9:1.0 enx00005e005301: renamed from eth0
+\end{lstlisting}
+
+and new interface will appear in \colorbox{lightgray}{ip a} command output:
+\begin{lstlisting}
+163: enx00005e005301: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 1000
+	link/ether 00:00:5e:00:53:01 brd ff:ff:ff:ff:ff:ff
+	inet 192.0.2.2/24 scope global enx00005e005301
+	valid_lft forever preferred_lft forever
+	inet6 fe80::200:5eff:fe00:5301/64 scope link
+	valid_lft forever preferred_lft forever
+\end{lstlisting}
+
+Then ipaddress should be set to the new interface:
+\begin{lstlisting}
+ip addr add dev enx00005e005301 192.0.2.2/24
+ip link set dev enx00005e005301 up
+\end{lstlisting}
+
+Test sequence:
+
+\begin{enumerate}
+	\def\labelenumi{\arabic{enumi}.}
+	\item
+	Use \colorbox{lightgray}{ping} to ensure that board has a connection:
+\begin{lstlisting}
+ping 192.0.2.1
+\end{lstlisting}
+	Result:
+\begin{lstlisting}
+root@xt-remote-station:~# ping 192.0.2.1 -s 220
+PING 192.0.2.1 (192.0.2.1) 212(240) bytes of data.
+220 bytes from 192.0.2.1: icmp_seq=1 ttl=64 time=0.317 ms
+220 bytes from 192.0.2.1: icmp_seq=2 ttl=64 time=0.238 ms
+\end{lstlisting}
+	\item
+	Use \colorbox{lightgray}{echo-client} to test TCP and UDC communication:
+\begin{lstlisting}
+./echo-client -i enx00005e005301 192.0.2.1
+\end{lstlisting}
+
+	\textbf{NOTE:} echo-client can be built from the following repo:
+	\url{https://github.com/zephyrproject-rtos/net-tools.git}
+	Details:
+	\url{https://github.com/zephyrproject-rtos/net-tools/blob/master/README.md}
+
+	The result will be:
+\begin{lstlisting}
+Binding to 192.0.2.2
+.......
+Average round trip 487 us
+Sent 7 packets
+\end{lstlisting}
+
+\end{enumerate}
+
+\subsubsection{Zperf test}\label{zperf-usb}
+
+Zephyr supports iperf compatible sample that gives an ability to test communication using iperf.
+Please refer to the following link for details:
+
+\url{https://docs.zephyrproject.org/latest/connectivity/networking/api/zperf.html#zperf}
+
+This sample is Iperf-2.0.5 compatible so please use the following link to install iperf on host:
+
+\url{https://iperf.fr/iperf-download.php}
+
+Zperf test can be built using the following commands:
+
+Building for CDC-ECM:
+\begin{lstlisting}
+west build -b rz_a2m -p always samples/net/zperf -- -DEXTRA_CONF_FILE=overlay-netusb.conf
+\end{lstlisting}
+Building for RNDIS:
+\begin{lstlisting}
+west build -b rz_a2m -p always samples/net/zperf -- -DEXTRA_CONF_FILE=overlay-netusb-rndis.conf
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the
+details.
+
+Please set IP address on host before starting as if was done on \hyperref[usb-echo-server]{USB ECHO Server} section.
+
+Then start iperf server for TCP on the Host:
+\begin{lstlisting}
+iperf -s -B 192.0.2.2 -i 1
+\end{lstlisting}
+
+On Zephyr console run the following command:
+\begin{lstlisting}
+zperf tcp upload 192.0.2.2 5001 5 1K 100M
+\end{lstlisting}
+
+The result of test will appear on Host console:
+\begin{lstlisting}
+------------------------------------------------------------
+Server listening on TCP port 5001
+Binding to local address 192.0.2.2
+TCP window size:  128 KByte (default)
+------------------------------------------------------------
+[  4] local 192.0.2.2 port 5001 connected with 192.0.2.1 port 63980
+[ ID] Interval       Transfer     Bandwidth
+[  4]  0.0- 1.0 sec  4.33 MBytes  36.0 Mbits/sec
+[  4]  1.0- 2.0 sec  4.38 MBytes  36.3 Mbits/sec
+[  4]  2.0- 3.0 sec  4.36 MBytes  36.2 Mbits/sec
+[  4]  3.0- 4.0 sec  4.36 MBytes  36.2 Mbits/sec
+[  4]  0.0- 5.0 sec  21.8 MBytes  36.2 Mbits/sec
+\end{lstlisting}
+
+Then start iperf server for UDP on the Host:
+\begin{lstlisting}
+iperf -s -l 1K -u -B 192.0.2.2 -i 1
+\end{lstlisting}
+
+On Zephyr console run the following command:
+\begin{lstlisting}
+zperf udp upload 192.0.2.2 5001 5 1K 100M
+\end{lstlisting}
+
+The result of test will appear on Host console:
+\begin{lstlisting}
+------------------------------------------------------------
+Server listening on UDP port 5001
+Binding to local address 192.0.2.2
+Receiving 1024 byte datagrams
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.0.2.2 port 5001 connected with 192.0.2.1 port 59550
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3]  0.0- 1.0 sec  5.49 MBytes  46.1 Mbits/sec   0.033 ms    0/ 5626 (0%)
+[  3]  1.0- 2.0 sec  5.49 MBytes  46.0 Mbits/sec   0.034 ms    0/ 5620 (0%)
+[  3]  2.0- 3.0 sec  5.49 MBytes  46.0 Mbits/sec   0.034 ms    0/ 5618 (0%)
+[  3]  3.0- 4.0 sec  5.49 MBytes  46.0 Mbits/sec   0.034 ms    0/ 5619 (0%)
+[  3]  0.0- 5.0 sec  27.4 MBytes  46.0 Mbits/sec   0.035 ms    0/28083 (0%)
+\end{lstlisting}
+
+Run Zperf download test:
+Start zperf download command on Zephyr side:
+\begin{lstlisting}
+zperf udp download 5001
+\end{lstlisting}
+
+Start iperf client on Host:
+\begin{lstlisting}
+iperf -c 192.0.2.1 -u -t 10 -i 1
+\end{lstlisting}
+
+Result on Host:
+\begin{lstlisting}
+------------------------------------------------------------
+Client connecting to 192.0.2.1, UDP port 5001
+Sending 1470 byte datagrams
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 192.0.2.2 port 34046 connected with 192.0.2.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 1.0 sec   129 KBytes  1.06 Mbits/sec
+[  3]  1.0- 2.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  2.0- 3.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  3.0- 4.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  4.0- 5.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  5.0- 6.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  6.0- 7.0 sec   129 KBytes  1.06 Mbits/sec
+[  3]  7.0- 8.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  8.0- 9.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  9.0-10.0 sec   128 KBytes  1.05 Mbits/sec
+[  3]  0.0-10.0 sec  1.25 MBytes  1.05 Mbits/sec
+[  3] Sent 893 datagrams
+[  3] Server Report:
+[  3]  0.0-10.0 sec  1.25 MBytes  1.05 Mbits/sec   0.040 ms    0/  892 (0%)
+\end{lstlisting}
+
+Result on Zephyr console:
+\begin{lstlisting}
+New session started.
+End of session!
+duration:              5.01 s
+received packets:    892
+nb packets lost:       0
+nb packets outorder:   0
+jitter:                        40 us
+rate:                  1022 Kbps
+uart:~$
+\end{lstlisting}
+
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
 
 Zephyr has an embedded test runner feature called twister. This script
