@@ -90,6 +90,13 @@
 		clock-frequency = <0>;
 	};
 
+	usb_x1_clk: usb_x1 {
+		#clock-cells = <0>;
+		compatible = "fixed-clock";
+		/* If clk present, value (48000000) must be set by board */
+		clock-frequency = <0>;
+	};
+
 	soc {
 		compatible = "simple-bus";
 		interrupt-parent = <&gic>;
@@ -1060,6 +1067,32 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			status = "disabled";
+		};
+
+		usbd0: usbd0@e8219000 {
+			compatible = "renesas,rza2-usbd";
+			reg = <0xe8219000 0x1000>, <0xe8218000 0x1000>;
+			reg-names = "dev_reg", "host_reg";
+			num-bidir-endpoints = <8>;
+			maximum-speed = "high-speed";
+			clocks = <&cpg CPG_MOD 61>, <&usb_x1_clk>;
+			clock-names = "default", "usb_x1";
+			interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 31 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "usbf", "usbh";
+		};
+
+		usbd1: usbd@e821b000 {
+			compatible = "renesas,rza2-usbd";
+			reg = <0xe821b000 0x1000>, <0xe821a000 0x1000>;
+			reg-names = "dev_reg", "host_reg";
+			num-bidir-endpoints = <8>;
+			maximum-speed = "high-speed";
+			clocks = <&cpg CPG_MOD 60>, <&usb_x1_clk>;
+			clock-names = "default", "usb_x1";
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 36 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "usbf", "usbh";
 		};
 	};
 };
