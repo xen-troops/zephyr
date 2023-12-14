@@ -2337,14 +2337,9 @@ PROJECT EXECUTION SUCCESSFUL
 
 Zephyr RZ/A2M Renesas Serial Peripheral Interface (rSPI) driver supports:
 \begin{itemize}
-	\item sync transfers only
 	\item 8/16bit transfers
-\end{itemize}
-
-\textbf{Not} supported:
-\begin{itemize}
-	\item  async transfers
-	\item  DMA transfers
+	\item async transfers
+	\item DMA transfers
 \end{itemize}
 
 Zephyr Kconfig options needed for RZ/A2M ETHERC SPI driver testing:
@@ -2358,7 +2353,7 @@ Zephyr RZ/A2M Renesas Serial Peripheral Interface (rSPI) driver can be tested by
 Use below command to build SPI spi\_loopback sample application:
 
 \begin{lstlisting}
-	west build -p always tests/drivers/spi/spi_loopback
+	west build -b rz_a2m -p always tests/drivers/spi/spi_loopback
 \end{lstlisting}
 
 Once spi\_loopback is loaded it will provide console output showing the test execution process:
