@@ -1,0 +1,48 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config USB_DC_RZA2
+	bool "USB device controller driver for RZ/A2 board series"
+	default y
+	depends on DT_HAS_RENESAS_RZA2_USBD_ENABLED
+	help
+	  USB device controller driver for RZ/A2 Soc series.
+
+if USB_DC_RZA2
+
+config USB_DC_RZA2_STACK_SIZE
+	int "USBD controller driver internal thread stack size"
+	depends on USB_DC_RZA2
+	default 2048
+	help
+	  RZ/A2 USBD device controller driver internal thread stack size.
+
+config USB_DC_RZA2_THREAD_PRIORITY
+	int "RZA2 USBD controller driver thread priority"
+	depends on USB_DC_RZA2
+	default 8
+	help
+	  RZA2 USBD device controller driver thread priority
+
+config USBD_RZA2_MESSAGE_COUNT
+	int "RZA2 USBD controller driver internal msg queue size"
+	depends on USB_DC_RZA2
+	default 10
+	help
+	  RZA2 USBD controller driver internal msg queue size
+
+config USBD_RZA2_BULK_TRN_COUNT
+	int "RZA2 USBD controller Bulk Transaction Counter value"
+	depends on USB_DC_RZA2
+	default 3
+	help
+	  RZA2 USBD controller Bulk Transaction Counter value PIPEnTRN.TRNCNT
+
+config USBD_RZA2_BUSWAIT
+	int "RZA2 USBD controller BUSWAIT value"
+	depends on USB_DC_RZA2
+	default 7
+	help
+	  RZA2 USBD controller BUSWAIT value SYSCFG1.BUSWAIT
+
+endif #USB_DC_RZA2
