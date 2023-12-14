@@ -1,0 +1,33 @@
+# Copyright (c) 2023 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: RZ/A2 USB device controller driver
+
+compatible: "renesas,rza2-usbd"
+
+include: [base.yaml, usb-ep.yaml, pinctrl-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  reg-names:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  pinctrl-0:
+    required: true
+
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+
+  interrupts:
+    required: true
+
+  interrupt-names:
+    required: true
