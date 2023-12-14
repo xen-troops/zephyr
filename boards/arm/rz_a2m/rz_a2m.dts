@@ -19,6 +19,7 @@
 		zephyr,shell-uart = &scif4;
 		zephyr,sram = &ram;
 		zephyr,flash = &flash0;
+		zephyr,usb-device = &usbd1;
 	};
 
 	aliases {
@@ -120,6 +121,11 @@
 	clock-frequency = <32768>;
 };
 
+/* USB_X1 */
+&usb_x1_clk {
+	clock-frequency = <48000000>;
+};
+
 &ostm1 {
 	status = "okay";
 };
@@ -169,5 +175,15 @@
 
 &spi0 {
 	pinctrl-0 = <&spi0_pins>;
+	pinctrl-names = "default";
+};
+
+&usbd0 {
+	pinctrl-0 = <&usb0_pins>;
+	pinctrl-names = "default";
+};
+
+&usbd1 {
+	pinctrl-0 = <&usb1_pins>;
 	pinctrl-names = "default";
 };
