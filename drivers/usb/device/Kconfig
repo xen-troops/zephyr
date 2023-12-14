@@ -203,6 +203,8 @@ config USB_NATIVE_POSIX
 	help
 	  Native Posix USB Device Controller Driver.
 
+source "drivers/usb/device/Kconfig.renesas"
+
 module = USB_DRIVER
 module-str = usb driver
 source "subsys/logging/Kconfig.template.log_config"
