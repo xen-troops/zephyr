@@ -838,7 +838,6 @@ static int rza2m_spi_init(const struct device *dev)
 		LOG_DEV_ERR(dev, "Failed to get clk rate");
 		return ret;
 	}
-	ctx->clk_rate /= 1000;
 
 	ret = spi_context_cs_configure_all(&ctx->spi_ctx);
 	if (ret < 0) {
@@ -854,7 +853,7 @@ static int rza2m_spi_init(const struct device *dev)
 
 	spi_context_unlock_unconditionally(&ctx->spi_ctx);
 
-	LOG_DEV_INF(dev, "Init done fck:%uKHz", ctx->clk_rate);
+	LOG_DEV_INF(dev, "Init done fck:%uHz", ctx->clk_rate);
 
 	return 0;
 }
