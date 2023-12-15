@@ -3022,6 +3022,7 @@ west build -b rz_a2m -p always samples/subsys/usb/testusb
 
 After building the image can be started by using command \colorbox{lightgray}{west debug}
 and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+
 \hyperref[building-and-flashing]{Building and Flashing} for the
 details.
 
@@ -3277,6 +3278,184 @@ rate:                  1022 Kbps
 uart:~$
 \end{lstlisting}
 
+\subsection{I2S support}\label{i2s-support}
+
+Build test application by the following command:
+\begin{lstlisting}
+west build -p always -b rz_a2m tests/drivers/i2s/i2s_api
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for
+the details.
+
+Before running test application, please check pin connections:
+\begin{enumerate}
+  \def\labelenumi{\arabic{enumi})}
+  \item
+    Pin 11 on CN17 connect to pin 21 on CN15
+  \item
+    Pin 12 on CN17 connect to pin 20 on CN15
+  \item
+    Pin 13 on CN17 connect to pin 18 on CN15
+  \end{enumerate}
+
+\begin{center}
+\includegraphics[width=5in,height=2.7in]{./media/CN15.jpg}
+\newline
+CN15 connector
+\newline
+\includegraphics[width=5in,height=3.09in]{./media/CN17.jpg}
+\newline
+CN17 connector
+\end{center}
+
+Ensure that SW6-1, SW6-2 and SW6-4 are ``OFF'' on the SUBBOARD.
+
+Console output:
+
+\begin{lstlisting}
+  *** Booting Zephyr OS build zephyr-v3.3.0-10377-gb77183940ad3 ***
+  Running TESTSUITE i2s_dir_both_loopback
+  ===================================================================
+  START - test_i2s_dir_both_transfer_long
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_transfer_long in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_transfer_restart
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_transfer_restart in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_transfer_rx_overrun
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_transfer_rx_overrun in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_transfer_short
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_transfer_short in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_transfer_tx_underrun
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_transfer_tx_underrun in 0.004 seconds
+  ===================================================================
+  TESTSUITE i2s_dir_both_loopback succeeded
+  Running TESTSUITE i2s_dir_both_states
+  ===================================================================
+  START - test_i2s_dir_both_state_error_neg
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_state_error_neg in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_state_running_neg
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_state_running_neg in 0.004 seconds
+  ===================================================================
+  START - test_i2s_dir_both_state_stopping_neg
+  I2S_DIR_BOTH value is not supported.
+   SKIP - test_i2s_dir_both_state_stopping_neg in 0.004 seconds
+  ===================================================================
+  TESTSUITE i2s_dir_both_states succeeded
+  Running TESTSUITE i2s_loopback
+  ===================================================================
+  START - test_i2s_rx
+  1->OK
+  1<-OK
+   PASS - test_i2s_rx in 0.006 seconds
+  ===================================================================
+  START - test_i2s_rx_empty_timeout
+   PASS - test_i2s_rx_empty_timeout in 2.001 seconds
+  ===================================================================
+  START - test_i2s_rx_sync_start
+   SKIP - test_i2s_rx_sync_start in 0.001 seconds
+  ===================================================================
+  START - test_i2s_transfer_long
+   SKIP - test_i2s_transfer_long in 0.001 seconds
+  ===================================================================
+  START - test_i2s_transfer_restart
+   SKIP - test_i2s_transfer_restart in 0.001 seconds
+  ===================================================================
+  START - test_i2s_transfer_rx_overrun
+   SKIP - test_i2s_transfer_rx_overrun in 0.001 seconds
+  ===================================================================
+  START - test_i2s_transfer_short
+   SKIP - test_i2s_transfer_short in 0.001 seconds
+  ===================================================================
+  START - test_i2s_transfer_tx_underrun
+   SKIP - test_i2s_transfer_tx_underrun in 0.001 seconds
+  ===================================================================
+  TESTSUITE i2s_loopback succeeded
+  Running TESTSUITE i2s_states
+  ===================================================================
+  START - test_i2s_state_error_neg
+   SKIP - test_i2s_state_error_neg in 0.001 seconds
+  ===================================================================
+  START - test_i2s_state_not_ready_neg
+  E: START trigger RX: invalid state 0
+  E: DRAIN trigger: invalid state
+  E: STOP trigger invalid state
+  E: DROP trigger RX: invalid state 0
+  E: PREPARE trigger: invalid state
+  E: START trigger TX: invalid state 0
+  E: DRAIN trigger: invalid state
+  E: STOP trigger invalid state
+  E: DROP trigger TX: invalid state 0
+  E: PREPARE trigger: invalid state
+   PASS - test_i2s_state_not_ready_neg in 0.031 seconds
+  ===================================================================
+  START - test_i2s_state_ready_neg
+  E: DRAIN trigger: invalid state
+  E: STOP trigger invalid state
+  E: PREPARE trigger: invalid state
+  E: DRAIN trigger: invalid state
+  E: STOP trigger invalid state
+  E: PREPARE trigger: invalid state
+   PASS - test_i2s_state_ready_neg in 0.018 seconds
+  ===================================================================
+  START - test_i2s_state_running_neg
+   SKIP - test_i2s_state_running_neg in 0.001 seconds
+  ===================================================================
+  START - test_i2s_state_stopping_neg
+   SKIP - test_i2s_state_stopping_neg in 0.001 seconds
+  ===================================================================
+  TESTSUITE i2s_states succeeded
+
+  ------ TESTSUITE SUMMARY START ------
+
+  SUITE SKIP -   0.00% [i2s_dir_both_loopback]: pass = 0, fail = 0, skip = 5, total = 5 duration = 0.020 seconds
+   - SKIP - [i2s_dir_both_loopback.test_i2s_dir_both_transfer_long] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_loopback.test_i2s_dir_both_transfer_restart] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_loopback.test_i2s_dir_both_transfer_rx_overrun] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_loopback.test_i2s_dir_both_transfer_short] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_loopback.test_i2s_dir_both_transfer_tx_underrun] duration = 0.004 seconds
+
+  SUITE SKIP -   0.00% [i2s_dir_both_states]: pass = 0, fail = 0, skip = 3, total = 3 duration = 0.012 seconds
+   - SKIP - [i2s_dir_both_states.test_i2s_dir_both_state_error_neg] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_states.test_i2s_dir_both_state_running_neg] duration = 0.004 seconds
+   - SKIP - [i2s_dir_both_states.test_i2s_dir_both_state_stopping_neg] duration = 0.004 seconds
+
+  SUITE PASS - 100.00% [i2s_loopback]: pass = 2, fail = 0, skip = 6, total = 8 duration = 2.013 seconds
+   - PASS - [i2s_loopback.test_i2s_rx] duration = 0.006 seconds
+   - PASS - [i2s_loopback.test_i2s_rx_empty_timeout] duration = 2.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_rx_sync_start] duration = 0.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_transfer_long] duration = 0.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_transfer_restart] duration = 0.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_transfer_rx_overrun] duration = 0.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_transfer_short] duration = 0.001 seconds
+   - SKIP - [i2s_loopback.test_i2s_transfer_tx_underrun] duration = 0.001 seconds
+
+  SUITE PASS - 100.00% [i2s_states]: pass = 2, fail = 0, skip = 3, total = 5 duration = 0.052 seconds
+   - SKIP - [i2s_states.test_i2s_state_error_neg] duration = 0.001 seconds
+   - PASS - [i2s_states.test_i2s_state_not_ready_neg] duration = 0.031 seconds
+   - PASS - [i2s_states.test_i2s_state_ready_neg] duration = 0.018 seconds
+   - SKIP - [i2s_states.test_i2s_state_running_neg] duration = 0.001 seconds
+   - SKIP - [i2s_states.test_i2s_state_stopping_neg] duration = 0.001 seconds
+
+  ------ TESTSUITE SUMMARY END ------
+
+  ===================================================================
+  PROJECT EXECUTION SUCCESSFUL
+\end{lstlisting}
+
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
 
 Zephyr has an embedded test runner feature called twister. This script
@@ -3380,6 +3559,8 @@ Current project status can be got from Jira Project:
 	& & Adjust maximum speed for zperf upload \\
 	\hline
 	21 Dec 2023 & & Add picture with touchpanel \\
+	\hline
+	27 Dec 2023 & & Add i2s support \\
 	\hline
 \end{tabular}
 
