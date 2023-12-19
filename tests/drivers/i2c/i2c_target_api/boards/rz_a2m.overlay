@@ -4,10 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
+};
+
 &i2c2 {
 	pinctrl-0 = <&i2c2_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+	dmas = <&dma0 3 DMA_RS_INTRIIC_TI2 0>, <&dma0 3 DMA_RS_INTRIIC_RI2 0>;
+	dma-names = "tx", "rx";
 
 	eeprom0: eeprom@54 {
 		compatible = "zephyr,i2c-target-eeprom";
@@ -20,6 +27,8 @@
 	pinctrl-0 = <&i2c3_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+	dmas = <&dma0 2 DMA_RS_INTRIIC_TI3 0>, <&dma0 2 DMA_RS_INTRIIC_RI3 0>;
+	dma-names = "tx", "rx";
 
 	eeprom1: eeprom@56 {
 		compatible = "zephyr,i2c-target-eeprom";
