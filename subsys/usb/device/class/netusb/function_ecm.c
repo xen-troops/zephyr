@@ -28,7 +28,8 @@ LOG_MODULE_REGISTER(usb_ecm, CONFIG_USB_DEVICE_NETWORK_LOG_LEVEL);
 #define ECM_IN_EP_IDX			2
 
 
-static uint8_t tx_buf[NET_ETH_MAX_FRAME_SIZE], rx_buf[NET_ETH_MAX_FRAME_SIZE];
+static uint8_t tx_buf[NET_ETH_MAX_FRAME_SIZE] __net_buf_align;
+static uint8_t rx_buf[NET_ETH_MAX_FRAME_SIZE] __net_buf_align;
 
 struct usb_cdc_ecm_config {
 	struct usb_association_descriptor iad;
