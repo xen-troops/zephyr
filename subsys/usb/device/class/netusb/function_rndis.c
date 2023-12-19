@@ -169,12 +169,12 @@ static uint32_t drv_version = 1U;
  */
 #define RNDIS_BUF_SIZE (NET_ETH_MAX_FRAME_SIZE + sizeof(struct rndis_payload_packet))
 
-static uint8_t tx_buf[RNDIS_BUF_SIZE];
+static uint8_t tx_buf[RNDIS_BUF_SIZE] __net_buf_align;
 
 /**
  * TODO: package reception can be optimized to avoid rx_buf usage.
  */
-static uint8_t rx_buf[RNDIS_BUF_SIZE];
+static uint8_t rx_buf[RNDIS_BUF_SIZE] __net_buf_align;
 
 static uint32_t object_id_supported[] = {
 	RNDIS_OBJECT_ID_GEN_SUPP_LIST,
