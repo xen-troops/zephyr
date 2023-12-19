@@ -14,7 +14,8 @@
 		reg = <0x38>;
 		pinctrl-0 = <&irq3_pins>;
 		pinctrl-names = "default";
-		interrupts = <GIC_SPI 7 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
+		interrupt-parent = <&intc>;
+		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
 		status = "okay";
 	};
 };
