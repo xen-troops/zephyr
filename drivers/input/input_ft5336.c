@@ -336,7 +336,8 @@ static int ft5336_init(const struct device *dev)
 #define INTERRUPT_DEF(index) \
 			.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(index),			\
 			.irq_num = DT_INST_IRQN(index),					\
-			.irq_prio = DT_INST_IRQ(index, priority),			\
+			.irq_prio = COND_CODE_1(DT_INST_IRQ_HAS_CELL(index, priority),  \
+						(DT_INST_IRQ(index, priority)), (0)),	\
 			.irq_flags = DT_INST_IRQ(index, flags),
 #endif
 #endif
