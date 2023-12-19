@@ -4,6 +4,11 @@
 	};
 };
 
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
+};
+
 &i2c3 {
 	pinctrl-0 = <&i2c3_pins>;
 	pinctrl-names = "default";
@@ -11,6 +16,8 @@
 	clock-frequency = <1000000>;
 	scl-rising-time-ns = <180>;
 	scl-falling-time-ns = <100>;
+	dmas = <&dma0 2 DMA_RS_INTRIIC_TI3 0>, <&dma0 2 DMA_RS_INTRIIC_RI3 0>;
+	dma-names = "tx", "rx";
 
 	ina219addr40: ina219@40 {
 		status = "okay";
