@@ -1360,6 +1360,12 @@ according to the diagram:
 
 \includegraphics[width=4in]{./media/I2C_Target_connection.png}
 
+By default the test runs the I2C driver in DMA mode. If you want to test it running in synchronous mode, disable following configuration in the file tests/drivers/i2c/i2c\_target\_api/boards/rz\_a2m.conf:
+
+\begin{lstlisting}
+	CONFIG_I2C_RIIC_DMA_DRIVEN=n
+\end{lstlisting}
+
 The test result is following:
 
 \begin{lstlisting}
