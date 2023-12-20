@@ -1322,14 +1322,32 @@ static int dma_rza2_get_status(const struct device *dev, uint32_t ch, struct dma
 	return 0;
 }
 
-/* TODO get_attributes callback should be implemened */
+int dma_rza2_get_attribute(const struct device *dev, uint32_t type, uint32_t *value)
+{
+	const struct dma_rza2_config *cfg = dev->config;
+
+	switch (type) {
+	case DMA_ATTR_BUFFER_ADDRESS_ALIGNMENT:
+		*value = cfg->addr_alignment;
+		break;
+	case DMA_ATTR_MAX_BLOCK_COUNT:
+		*value = CONFIG_DMA_RZA2_MAX_DESCRS;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static const struct dma_driver_api dma_rza2_driver_api = {
 	.config = dma_rza2_config,
 	.start = dma_rza2_start,
 	.stop = dma_rza2_stop,
 	.get_status = dma_rza2_get_status,
 	.suspend = dma_rza2_suspend,
-	.resume = dma_rza2_resume
+	.resume = dma_rza2_resume,
+	.get_attribute = dma_rza2_get_attribute
 };
 
 #define DMA_LINK_TR_END        1
