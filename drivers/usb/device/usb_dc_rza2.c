@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
+#include <zephyr/cache.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
@@ -20,6 +21,7 @@
 #include <zephyr/spinlock.h>
 #define LOG_LEVEL CONFIG_USB_DRIVER_LOG_LEVEL
 #include <zephyr/logging/log.h>
+
 LOG_MODULE_REGISTER(usb_dc_rza2);
 
 #include "usb_dc_rza2.h"
@@ -32,6 +34,12 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(USB_DEV_NODE, okay), "No chosen usb device");
 #define LOG_DEV_INF(dev, format, ...)	LOG_INF("%s:"#format, (dev)->name, ##__VA_ARGS__)
 #define LOG_DEV_DBG(dev, format, ...)	LOG_DBG("%s:"#format, (dev)->name, ##__VA_ARGS__)
 
+#define USB_DMA_CFG_MAGIC 0x60 /* Those bits should always be 1 */
+#define USB_DMA_CFG_B_32  2    /* Burst size 32 bit */
+
+/*
+ * INTSTS0 register mask to cleanup all used status bits.
+ */
 #define INTSTS0_MAGIC 0xF800
 #define IRQ_INIT_STATE (BEMPE | BRDYE | DVSE | CTRE | VBSE | NRDYE)
 
@@ -165,6 +173,22 @@ static const struct pipe_trx_config g_pipe_trx[] = {
 	[PIPE15] = {D_PIPEFTRN, D_PIPEFTRE},
 };
 
+struct usbd_rza2_dma_chan_regs {
+	uint32_t chcfg;
+	uint32_t chctrl;
+	uint32_t chitvl;
+	uint32_t chext;
+	uint32_t nsa;
+	uint32_t nda;
+	uint32_t ntb;
+	uint32_t crda;
+};
+
+static const struct usbd_rza2_dma_chan_regs dma_chan_regs[] = {
+	{D_CHCFG_0, D_CHCTRL_0, D_CHITVL_0, D_CHEXT_0, D_N0SA_0, D_N0DA_0, D_N0TB_0, D_CRDA_0},
+	{D_CHCFG_1, D_CHCTRL_1, D_CHITVL_1, D_CHEXT_1, D_N0SA_1, D_N0DA_1, D_N0TB_1, D_CRDA_1}
+};
+
 struct usb_rza2_setup_packet {
 	uint8_t requestType;
 	uint8_t request;
@@ -222,6 +246,13 @@ struct usbd_rza2_fifo {
 	uint32_t sel_off;
 	uint32_t ctr_off;
 	struct k_spinlock lock;
+
+	/* Used for RX Synchronization in DMA */
+	struct k_sem sem;
+	/* Used guarding simultaneous access to RX and TX in DMA */
+	struct k_sem guard;
+	uint8_t pipe;
+	bool finished: 1;
 };
 
 struct usbd_rza2_irq_en {
@@ -262,6 +293,8 @@ struct usb_device_data {
 	bool is_susp: 1;
 	bool can_susp: 1;
 
+	struct usbd_rza2_fifo d0fifo;
+	struct usbd_rza2_fifo d1fifo;
 };
 
 #define DEV_DATA(dev) ((struct usb_device_data *)((dev)->data))
@@ -1152,6 +1185,300 @@ unlock:
 	return ret;
 }
 
+static void usbf_bset32(const struct device *dev, uint32_t reg, uint32_t mask, uint32_t data)
+{
+	uint32_t val = usbf_read32(dev, reg);
+
+	val &= ~mask;
+	val |= data & mask;
+
+	usbf_write32(dev, reg, val);
+}
+
+static int usbd_rza2_fifo_sel_d(const struct device *dev, uint8_t pipe, struct usbd_rza2_fifo *fifo)
+{
+	uint16_t mask = (DnFIFOSEL_MBW | DnFIFOSEL_CURPIPE | DnFIFOSEL_DCLRM | DnFIFOSEL_REW |
+			 DnFIFOSEL_RCNT);
+	uint16_t r_val = CFIFOSEL_USB_MBW_32 | pipe;
+	int timeout = 1024;
+
+	/* Set CURPIPE and MBW, little endian */
+	usbf_bset(dev, fifo->sel_off, r_val, mask);
+
+	/* check ISEL and CURPIPE value */
+	while (timeout--) {
+		if (r_val == (mask & usbf_read(dev, fifo->sel_off))) {
+			return 0;
+		}
+		k_busy_wait(10);
+	}
+
+	LOG_DEV_ERR(dev, "fifo select error pipe:%d", pipe);
+	return -EIO;
+}
+
+static void usbf_rza2_dma_config(const struct device *dev, struct usbd_rza2_fifo *dfifo)
+{
+	uint32_t mask = DCTRL_PR | DCTRL_LVINT | DCTRL_LDPR | DCTRL_LWPR;
+
+	usbf_bset32(dev, D_DCTRL, mask, DCTRL_PR | DCTRL_LVINT);
+	usbf_write32(dev, D_DSCITVL, 0);
+}
+
+static void usbf_rza2_dma_clean(const struct device *dev, struct usbd_rza2_fifo *fifo,
+				uint8_t dma_idx)
+{
+	uint32_t mask = CHCTRL_SWRST | CHCTRL_CLRRQ | CHCTRL_CLREND | CHCTRL_CLRTC | CHCTRL_CLRDER;
+
+	usbf_bset(dev, fifo->sel_off, DnFIFOSEL_DREQE, 0);
+
+	usbf_bset32(dev, dma_chan_regs[dma_idx].chctrl, mask, mask);
+
+	mask = CHCTRL_CLRSUS | CHCTRL_SETREN | CHCTRL_SETSSWPRQ | CHCTRL_SETINTM | CHCTRL_CLRINTM |
+	       CHCTRL_SETDMARQM | CHCTRL_CLRDMARQM;
+
+	usbf_bset32(dev, dma_chan_regs[dma_idx].chctrl, mask, 0);
+
+	/*disable dma */
+	usbf_write32(dev, dma_chan_regs[dma_idx].chctrl, CHCTRL_CLREN);
+}
+
+static void usbf_rza2_dma_chan_config(const struct device *dev, bool rx)
+{
+	uint32_t base = USB_DMA_CFG_MAGIC; /* set bits 6 and 5 to 1 */
+	int dma_idx = rx;
+
+	base |= (USB_DMA_CFG_B_32) << CHCFG_DDS_SHIFT;
+	base |= (USB_DMA_CFG_B_32) << CHCFG_SDS_SHIFT;
+
+	if (rx) {
+		base |= CHCFG_SAD;
+		/* D1FIFO used for rx and D0FIFO used for tx */
+		base |= CHCFG_SEL;
+	} else {
+		base |= CHCFG_DAD;
+		base |= CHCFG_REQD;
+	}
+
+	usbf_write32(dev, dma_chan_regs[dma_idx].chcfg, base);
+	usbf_write32(dev, dma_chan_regs[dma_idx].chitvl, 0);
+	usbf_write32(dev, dma_chan_regs[dma_idx].chext, 0);
+}
+
+static int usbd_rza2_tx_dma(const struct device *dev, uint8_t pipe, const uint8_t *buf,
+			    uint32_t buf_len)
+{
+	struct usb_device_data *data = DEV_DATA(dev);
+	struct usbd_rza2_pipe_cfg *pipe_cfg = &data->pipe_cfg[pipe];
+	struct usbd_rza2_fifo *fifo = &data->d0fifo;
+	uint32_t len;
+	uint32_t saddr;
+	int ret;
+
+	k_sem_take(&fifo->guard, K_FOREVER);
+
+	usbf_rza2_dma_clean(dev, fifo, 0);
+
+	len = MIN(buf_len, pipe_cfg->ep_cfg.ep_mps);
+
+	usbf_rza2_dma_config(dev, fifo);
+
+	usbf_rza2_dma_chan_config(dev, false);
+
+	sys_cache_data_flush_range((void *)buf, len);
+	saddr = (uint32_t)Z_MEM_PHYS_ADDR(buf);
+	usbf_write32(dev, dma_chan_regs[0].nsa, saddr);
+	usbf_write32(dev, dma_chan_regs[0].nda, 0);
+
+	/*
+	 * These bits specify the total number of transfer bytes.
+	 * (Note: Do not start a DMA transaction with 0 set in these bits.)
+	 */
+	usbf_write32(dev, dma_chan_regs[0].ntb, len);
+
+	ret = usbd_rza2_fifo_sel_d(dev, pipe, fifo);
+	if (ret < 0) {
+		ret = -EAGAIN;
+		goto unlock;
+	}
+
+	if (!buf_len) {
+		LOG_DEV_WRN(dev, "tx: ZLP on non dcp pipe:%d", pipe);
+	}
+
+	ret = usbd_rza2_dpipe_can_access(dev, pipe);
+	if (ret < 0) {
+		/* inaccessible pipe is not an error */
+		ret = -EAGAIN;
+		LOG_DEV_WRN(dev, "tx: pipe%d is not accessible", pipe);
+		goto unlock;
+	}
+
+	ret = usbd_rza2_fifo_is_ready(dev, fifo);
+	if (ret < 0) {
+		ret = -EAGAIN;
+		goto unlock;
+	}
+
+	fifo->finished = !(len < buf_len);
+	fifo->pipe = pipe;
+
+	usbf_bset32(dev, dma_chan_regs[0].chctrl, CHCTRL_SETEN, CHCTRL_SETEN);
+	usbf_bset(dev, fifo->sel_off, DnFIFOSEL_DREQE, DnFIFOSEL_DREQE);
+
+	return len;
+
+unlock:
+	k_sem_give(&fifo->guard);
+	return ret;
+}
+
+#if CONFIG_USBD_RZA2_USE_DMA
+/*
+ * Interrupt hadnler for D1FIFO used for RX transfer
+ */
+static void usbd_rza2_dma0_isr(const struct device *dev)
+{
+	struct usbd_rza2_fifo *dfifo = &DEV_DATA(dev)->d0fifo;
+	uint8_t pipe;
+
+	usbf_bset32(dev, dma_chan_regs[0].chctrl, CHCTRL_CLREND | CHCTRL_CLRRQ,
+		    CHCTRL_CLREND | CHCTRL_CLRRQ);
+
+	/* Clear dreque */
+	usbf_bset(dev, dfifo->sel_off, DnFIFOSEL_DREQE, 0);
+
+	if (dfifo->finished) {
+		/* Short Packet */
+		usbf_bset(dev, dfifo->ctr_off, CFIFOCTR_BVAL, CFIFOCTR_BVAL);
+	}
+
+	pipe = dfifo->pipe;
+
+	usbd_rza2_tx_irq_ctrl(dev, pipe, true);
+	usbd_rza2_dpipe_pid_set(dev, pipe, PID_BUF);
+
+	k_sem_give(&dfifo->guard);
+}
+
+/*
+ * Interrupt hadnler for D1FIFO used for RX transfer
+ */
+static void usbd_rza2_dma1_isr(const struct device *dev)
+{
+	struct usbd_rza2_fifo *dfifo = &DEV_DATA(dev)->d1fifo;
+	uint32_t daddr_b;
+	uint32_t dlen;
+
+	usbf_bset32(dev, dma_chan_regs[1].chctrl, CHCTRL_CLREND | CHCTRL_CLRRQ,
+		    CHCTRL_CLREND | CHCTRL_CLRRQ);
+	usbf_bset(dev, dfifo->sel_off, DnFIFOSEL_DREQE, 0);
+
+	daddr_b = usbf_read32(dev, dma_chan_regs[1].nda);
+	dlen = usbf_read32(dev, dma_chan_regs[1].crda) - daddr_b;
+
+	sys_cache_data_invd_range((void *)Z_MEM_VIRT_ADDR(daddr_b), dlen);
+
+	k_sem_give(&dfifo->guard);
+	k_sem_give(&dfifo->sem);
+}
+
+static void usbd_rza2_dmaerr_isr(const struct device *dev)
+{
+	struct usbd_rza2_msg msg;
+
+	msg.type = USBD_RZA2_CB_STATUS;
+	msg.cmd = USB_DC_ERROR;
+	k_msgq_put(&DEV_DATA(dev)->queue, &msg, K_NO_WAIT);
+}
+
+#endif /* CONFIG_USBD_RZA2_USE_DMA */
+
+int usb_dc_ep_read_wait_dma(const struct device *dev, uint8_t pipe, uint8_t *buf_data,
+			    uint32_t max_data_len, uint32_t *read_bytes)
+{
+	struct usb_device_data *data = DEV_DATA(dev);
+	struct usbd_rza2_pipe_cfg *pipe_cfg = &data->pipe_cfg[pipe];
+	struct usbd_rza2_fifo *fifo = &data->d1fifo;
+	uint32_t len;
+	int recv_len;
+	uint32_t daddr;
+	int ret;
+
+	k_sem_take(&fifo->guard, K_FOREVER);
+
+	usbf_rza2_dma_clean(dev, fifo, 1);
+
+	ret = usbd_rza2_fifo_sel_d(dev, pipe, fifo);
+	if (ret < 0) {
+		ret = -EAGAIN;
+		goto unlock;
+	}
+
+	ret = usbd_rza2_dpipe_can_access(dev, pipe);
+	if (ret < 0) {
+		ret = -EAGAIN;
+		goto unlock;
+	}
+
+	if (!usbd_rza2_dpipe_has_data(dev, pipe)) {
+		LOG_DEV_INF(dev, "rx: pipe %x:%d is empty", pipe_cfg->ep_cfg.ep_addr, pipe);
+		ret = -ENODATA;
+		goto unlock;
+	}
+
+	ret = usbd_rza2_fifo_is_ready(dev, fifo);
+	if (ret < 0) {
+		ret = -EAGAIN;
+		goto unlock;
+	}
+
+	recv_len = usbd_rza2_fifo_get_rd_len(dev, fifo);
+
+	if (!buf_data && !max_data_len) {
+		*read_bytes = recv_len;
+		goto unlock;
+	}
+
+	len = MIN(max_data_len, recv_len);
+
+	if (recv_len == 0) {
+		usbd_rza2_fifo_clear(dev, fifo);
+		goto unlock;
+	}
+
+	usbf_rza2_dma_config(dev, fifo);
+
+	usbf_rza2_dma_chan_config(dev, true);
+
+	daddr = (uint32_t)Z_MEM_PHYS_ADDR(buf_data);
+	usbf_write32(dev, dma_chan_regs[1].nsa, 0);
+	usbf_write32(dev, dma_chan_regs[1].nda, daddr);
+	usbf_write32(dev, dma_chan_regs[1].ntb, len);
+
+	usbf_bset32(dev, dma_chan_regs[1].chctrl, CHCTRL_SETEN, CHCTRL_SETEN);
+	usbf_bset(dev, fifo->sel_off, DnFIFOSEL_DREQE, DnFIFOSEL_DREQE);
+
+	if (k_sem_take(&fifo->sem, K_MSEC(CONFIG_USBD_RZA2_DMA_TIMEOUT)) != 0) {
+		LOG_DEV_ERR(dev, "Transaction not finished");
+		ret = -ETIMEDOUT;
+		goto unlock;
+	}
+
+	sys_cache_data_invd_range(buf_data, len);
+
+	if (read_bytes) {
+		*read_bytes = len;
+	}
+
+	LOG_DEV_DBG(dev, "rx: ep%x:%d, req %d, read %d bytes", pipe_cfg->ep_cfg.ep_addr, pipe,
+		    max_data_len, len);
+	return 0;
+unlock:
+	k_sem_give(&fifo->guard);
+	return ret;
+}
+
 static const struct device *usbd_rza2_get_device(void)
 {
 	return DEVICE_DT_GET(USB_DEV_NODE);
@@ -1528,7 +1855,14 @@ int usb_dc_ep_write(const uint8_t ep_addr, const uint8_t *const data, const uint
 	if (USB_EP_IS_CTRL(ep_addr)) {
 		ret = usbd_rza2_tx0(dev, data, data_len);
 	} else {
-		ret = usbd_rza2_tx(dev, ep_data->pipe, data, data_len);
+		enum usb_dc_ep_transfer_type t_type =
+			DEV_DATA(dev)->pipe_cfg[ep_data->pipe].ep_cfg.ep_type;
+
+		if (IS_ENABLED(CONFIG_USBD_RZA2_USE_DMA) && t_type != USB_DC_EP_INTERRUPT) {
+			ret = usbd_rza2_tx_dma(dev, ep_data->pipe, data, data_len);
+		} else {
+			ret = usbd_rza2_tx(dev, ep_data->pipe, data, data_len);
+		}
 	}
 
 	if (ret < 0) {
@@ -1707,7 +2041,16 @@ int usb_dc_ep_read_wait(uint8_t ep_addr, uint8_t *buf_data, uint32_t max_data_le
 	if (USB_EP_IS_CTRL(ep_addr)) {
 		ret = usb_dc_ep_read_wait0(dev, buf_data, max_data_len, read_bytes);
 	} else {
-		ret = usb_dc_ep_read_waitn(dev, ep_data->pipe, buf_data, max_data_len, read_bytes);
+		enum usb_dc_ep_transfer_type t_type =
+			DEV_DATA(dev)->pipe_cfg[ep_data->pipe].ep_cfg.ep_type;
+
+		if (IS_ENABLED(CONFIG_USBD_RZA2_USE_DMA) && t_type != USB_DC_EP_INTERRUPT) {
+			ret = usb_dc_ep_read_wait_dma(dev, ep_data->pipe, buf_data, max_data_len,
+						      read_bytes);
+		} else {
+			ret = usb_dc_ep_read_waitn(dev, ep_data->pipe, buf_data, max_data_len,
+						   read_bytes);
+		}
 	}
 
 unlock_err:
@@ -1992,9 +2335,7 @@ static int usbd_rza2_irq_ctrt(const struct device *dev, struct usbd_rza2_irq_sta
 	case CS_IDST:
 		break;
 	case CS_RDDS:
-		/* fall through */
 	case CS_WRDS:
-		/* fall through */
 	case CS_WRND:
 		data->ep_data_out[USB_EP_TYPE_CONTROL].state = USB_DC_EP_SETUP;
 		msg.ep_addr = USB_CONTROL_EP_OUT;
@@ -2006,8 +2347,6 @@ static int usbd_rza2_irq_ctrt(const struct device *dev, struct usbd_rza2_irq_sta
 		/* status stage - finalize */
 		usbd_rza2_ctrl_transfer_done(dev);
 		break;
-	default:
-		/* fall through */
 	};
 
 	return 0;
@@ -2361,6 +2700,16 @@ static int usbd_rza2_usb_enable(const struct device *dev)
 	data->cfifo.sel_off = D_CFIFOSEL;
 	data->cfifo.ctr_off = D_CFIFOCTR;
 
+	/* Init DFIFO */
+	data->d0fifo.sel_off = D_D0FIFOSEL;
+	data->d0fifo.ctr_off = D_D0FIFOCTR;
+	k_sem_init(&data->d0fifo.guard, 1, 1);
+
+	data->d1fifo.sel_off = D_D1FIFOSEL;
+	data->d1fifo.ctr_off = D_D1FIFOCTR;
+	k_sem_init(&data->d1fifo.guard, 1, 1);
+	k_sem_init(&data->d1fifo.sem, 0, 1);
+
 	/* Start callback thread */
 	k_msgq_init(&data->queue, (char *)data->usb_msgs, sizeof(struct usbd_rza2_msg),
 		    CONFIG_USBD_RZA2_MESSAGE_COUNT);
@@ -2445,12 +2794,22 @@ static int usbd_rza2_driver_init(const struct device *dev)
 		    isr, DEVICE_DT_INST_GET(n), 0);                                                \
 	irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
 
+#if CONFIG_USBD_RZA2_USE_DMA
+#define USBD_RZA2_DMA_ISR(n)                                                                       \
+	USBD_RZA2_SET_IRQ(n, dma0, usbd_rza2_dma0_isr);                                            \
+	USBD_RZA2_SET_IRQ(n, dma1, usbd_rza2_dma1_isr);                                            \
+	USBD_RZA2_SET_IRQ(n, dmaerr, usbd_rza2_dmaerr_isr);
+#else
+#define USBD_RZA2_DMA_ISR(n)
+#endif /* CONFIG_USBD_RZA2_USE_DMA */
+
 #define USBD_RZA2_GET_RATE(inst) DT_INST_PROP_BY_PHANDLE_IDX(inst, clocks, 1, clock_frequency)
 
 #define USBD_RZA2_DEVICE_DEFINE(n)                                                                 \
 	static void usbd_rza2_init_irq_##n(const struct device *dev)                               \
 	{                                                                                          \
 		USBD_RZA2_SET_IRQ(n, usbf, usbd_rza2_isr);                                         \
+		USBD_RZA2_DMA_ISR(n)                                                               \
 	}                                                                                          \
 	static struct usbd_rza2_ep_data ep_data_out_##n[DT_INST_PROP(n, num_bidir_endpoints)];     \
 	static struct usbd_rza2_ep_data ep_data_in_##n[DT_INST_PROP(n, num_bidir_endpoints)];      \
