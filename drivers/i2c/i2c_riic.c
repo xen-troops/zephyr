@@ -17,6 +17,10 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
 #include <zephyr/spinlock.h>
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
+#include <zephyr/cache.h>
+#include <zephyr/drivers/dma.h>
+#endif
 
 LOG_MODULE_REGISTER(riic);
 
@@ -35,6 +39,12 @@ struct riic_config {
 	uint32_t bitrate;
 	uint16_t scl_rise_ns;
 	uint16_t scl_fall_ns;
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
+	const struct device *dma_dev;
+	uint8_t write_dma_slot;
+	uint8_t read_dma_slot;
+	uint8_t dma_channel;
+#endif
 };
 
 #ifdef CONFIG_I2C_TARGET
@@ -51,7 +61,7 @@ struct riic_data {
 	uint32_t clk_rate;
 	uint32_t interrupt_mask;
 	uint32_t status_bits;
-	struct k_sem int_sem;
+	struct k_sem sem;
 	struct k_mutex i2c_lock_mtx; /* For I2C transfer locking mechanism */
 	int master_active;
 	uint32_t dev_config;
@@ -192,13 +202,29 @@ static int riic_wait_for_clear(const struct device *dev, uint32_t offs, uint16_t
 	return 0;
 }
 
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
+static int riic_wait_for_set(const struct device *dev, uint32_t offs, uint16_t mask)
+{
+	uint32_t timeout = 0;
+
+	while (!(riic_read(dev, offs) & mask) && (timeout < 10)) {
+		k_busy_wait(USEC_PER_MSEC);
+		timeout++;
+	}
+	if (timeout == 10) {
+		return -EIO;
+	}
+	return 0;
+}
+#endif /* CONFIG_I2C_RIIC_DMA_DRIVEN */
+
 static inline void riic_clear_set_bit(const struct device *dev, uint32_t offs,
 				      uint16_t clear, uint16_t set)
 {
 	riic_write(dev, offs, (riic_read(dev, offs) & ~clear) | set);
 }
 
-static int riic_wait_for_state(const struct device *dev, uint8_t mask)
+static int riic_wait_for_state(const struct device *dev, uint8_t mask, bool forever)
 {
 	struct riic_data *data = dev->data;
 	int ret;
@@ -214,16 +240,16 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask)
 	}
 
 	/* Reset interrupts semaphore */
-	k_sem_reset(&data->int_sem);
+	k_sem_reset(&data->sem);
 
 	/* Save previous interrupts before modifying */
 	int_backup = riic_read(dev, RIIC_IER);
 
-	/* Enable interrupts */
-	riic_write(dev, RIIC_IER, mask);
+	/* Enable additionally interrupts */
+	riic_write(dev, RIIC_IER, mask | int_backup);
 
 	/* Wait for the interrupts */
-	ret = k_sem_take(&data->int_sem, K_USEC(MAX_WAIT_US));
+	ret = k_sem_take(&data->sem, (forever) ? K_FOREVER : K_USEC(MAX_WAIT_US));
 
 	/* Restore previous interrupts and wait for the changes to take effect */
 	riic_write(dev, RIIC_IER, int_backup);
@@ -260,7 +286,7 @@ static inline void riic_transmit_nack(const struct device *dev)
 static int riic_finish(const struct device *dev)
 {
 	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
-	riic_wait_for_state(dev, RIIC_IER_SPIE);
+	riic_wait_for_state(dev, RIIC_IER_SPIE, false);
 	if (riic_read(dev, RIIC_CR2) & RIIC_SR2_START) {
 		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_START, 0);
 	}
@@ -274,19 +300,19 @@ static int riic_set_addr(const struct device *dev, uint16_t chip, uint16_t flags
 	struct riic_data *data = dev->data;
 
 	k_busy_wait(MAX_WAIT_US);
-	if (riic_wait_for_state(dev, RIIC_IER_TIE)) {
+	if (riic_wait_for_state(dev, RIIC_IER_TIE, false)) {
 		riic_finish(dev);
 		return 1;
 	}
 	/* Set slave address & transfer mode */
 	if (flags & I2C_MSG_ADDR_10_BITS) {
 		riic_write(dev, RIIC_DRT, 0xf0 | ((chip >> 5) & 0x6) | read);
-		riic_wait_for_state(dev, RIIC_IER_TIE);
+		riic_wait_for_state(dev, RIIC_IER_TIE, false);
 		riic_write(dev, RIIC_DRT, chip & 0xff);
 	} else {
 		riic_write(dev, RIIC_DRT, ((chip & 0x7f) << 1) | read);
 	}
-	riic_wait_for_state(dev, RIIC_IER_NAKIE);
+	riic_wait_for_state(dev, RIIC_IER_NAKIE, false);
 	if (data->status_bits & RIIC_SR2_NACKF) {
 		return 1;
 	}
@@ -296,23 +322,262 @@ static int riic_set_addr(const struct device *dev, uint16_t chip, uint16_t flags
 	return 1;
 }
 
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
+/**
+ * @brief Callback function for DMA read operation
+ *
+ * @param dma_dev Pointer to the device structure for the DMA driver instance
+ * @param user_data Pointer to the dma_cfg.user_data
+ * @param channel The channel number
+ * @param status DMA operation status
+ *
+ * @retval void
+ */
+static void riic_read_done(const struct device *dma_dev, void *user_data,
+			   uint32_t channel, int status)
+{
+	const struct device *dev = user_data;
+	struct riic_data *data = dev->data;
+
+	ARG_UNUSED(dma_dev);
+	ARG_UNUSED(channel);
+	ARG_UNUSED(status);
+
+	k_sem_give(&data->sem);
+}
+
+/**
+ * @brief Function configure DMA channel for read and start it
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ * @param buf Pointer to the current message for reading
+ *
+ * @retval 0 if operation successful, negative errno code on failures
+ */
+static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
+{
+	struct riic_data *data = dev->data;
+	const struct riic_config *cfg = dev->config;
+	struct dma_config dma_cfg = { 0 };
+	struct dma_block_config dma_blk = { 0 };
+	bool is_rie_on;
+	int error;
+
+	if (msg->len == 0) {
+		return -EIO;
+	}
+
+	/* Before reading, wait for slave address transmission to complete */
+	if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
+		return -EIO;
+	}
+
+	/* TODO: disable RDRFS for whole driver and make the appropriate changes
+	 * to the master and slave API.
+	 */
+	/* Disable RDRFS to automatically send ACK/NACK after each byte */
+	riic_clear_set_bit(dev, RIIC_MR3, RIIC_MR3_RDRFS, 0);
+
+	if (msg->len > 1) {
+		/* Use DMA only for transfers bigger than 1 byte */
+		dma_cfg.channel_direction = PERIPHERAL_TO_MEMORY;
+		dma_cfg.source_data_size = 1;
+		dma_cfg.dest_data_size = 1;
+		dma_cfg.user_data = (void *)dev;
+		dma_cfg.dma_callback = riic_read_done;
+		dma_cfg.block_count = 1;
+		dma_cfg.head_block = &dma_blk;
+		dma_cfg.dma_slot = cfg->read_dma_slot;
+
+		/* Last byte will received below in sync mode */
+		dma_blk.block_size = msg->len - 1;
+		dma_blk.dest_address = (uint32_t)msg->buf;
+		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+		dma_blk.source_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RIIC_DRR;
+		dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+
+		error = dma_config(cfg->dma_dev, cfg->dma_channel, &dma_cfg);
+		if (error) {
+			LOG_ERR("Read DMA configure on %s failed: %d", dev->name, error);
+			return error;
+		}
+
+		sys_cache_data_invd_range((void *)msg->buf, msg->len);
+
+		/* Set ACK transmitting after each byte */
+		riic_transmit_ack(dev);
+
+		error = dma_start(cfg->dma_dev, cfg->dma_channel);
+		if (error != 0) {
+			LOG_ERR("Read DMA start on %s failed: %d", dev->name, error);
+			dma_stop(cfg->dma_dev, cfg->dma_channel);
+			return error;
+		}
+
+		is_rie_on = !!(riic_read(dev, RIIC_IER) && RIIC_IER_RIE);
+		if (!is_rie_on) {
+			/* Enable Receive Data Full interrupt for DMA operation if needed */
+			riic_clear_set_bit(dev, RIIC_IER, 0, RIIC_IER_RIE);
+			riic_wait_for_set(dev, RIIC_IER, RIIC_IER_RIE);
+		}
+
+		/* Dummy read for clearing RDRF flag. This start data reading transaction */
+		riic_read(dev, RIIC_DRR);
+
+		/* Waiting for DMA operation to complete */
+		k_sem_take(&data->sem, K_FOREVER);
+
+		/* Stop DMA and restore interrupts */
+		dma_stop(cfg->dma_dev, cfg->dma_channel);
+		if (!is_rie_on) {
+			/* Disable Receive Data Full interrupt if needed */
+			riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_RIE, 0);
+			riic_wait_for_clear(dev, RIIC_IER, RIIC_IER_RIE);
+		}
+	} else {
+		/* Dummy read for clearing RDRF flag. This start data reading transaction */
+		riic_read(dev, RIIC_DRR);
+	}
+
+	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
+
+	/* Set NACK transmitting after last byte */
+	riic_transmit_nack(dev);
+
+	/* Receive last byte */
+	if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
+		return -EIO;
+	}
+	msg->buf[msg->len - 1] = riic_read(dev, RIIC_DRR) & 0xff;
+
+	/* Terminate transaction */
+	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
+
+	/* Restore RDRFS */
+	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_RDRFS);
+
+	return 0;
+}
+
+/**
+ * @brief Function configure DMA channel for write and start it
+ *
+ * @param dev Pointer to the device structure for the driver instance
+ * @param buf Pointer to the current message for writing
+ *
+ * @retval 0 if operation successful, negative errno code on failures
+ */
+static int riic_dma_write(const struct device *dev, struct i2c_msg *msg)
+{
+	const struct riic_config *cfg = dev->config;
+	struct dma_config dma_cfg = { 0 };
+	struct dma_block_config dma_blk = { 0 };
+	bool is_tie_on = false;
+	int error;
+
+	if (msg->len == 0) {
+		return -EIO;
+	}
+
+	/* Wait for Transmit Data Register Empty */
+	if (riic_wait_for_state(dev, RIIC_IER_TIE, false)) {
+		return -EIO;
+	}
+
+	if (msg->len > 1) {
+		/* Use DMA only for transfers bigger than 1 byte */
+		dma_cfg.channel_direction = MEMORY_TO_PERIPHERAL;
+		dma_cfg.source_data_size = 1;
+		dma_cfg.dest_data_size = 1;
+		dma_cfg.user_data = (void *)dev;
+		dma_cfg.dma_callback = NULL;
+		dma_cfg.block_count = 1;
+		dma_cfg.head_block = &dma_blk;
+		dma_cfg.dma_slot = cfg->write_dma_slot;
+
+		/* First byte will send below in sync mode */
+		dma_blk.block_size = msg->len - 1;
+		dma_blk.source_address = (uint32_t)(msg->buf + 1);
+		dma_blk.source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+		dma_blk.dest_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RIIC_DRT;
+		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+
+		error = dma_config(cfg->dma_dev, cfg->dma_channel, &dma_cfg);
+		if (error) {
+			LOG_ERR("Write DMA configure on %s failed: %d", dev->name, error);
+			return error;
+		}
+
+		sys_cache_data_flush_range((void *)msg->buf, msg->len);
+
+		error = dma_start(cfg->dma_dev, cfg->dma_channel);
+		if (error) {
+			dma_stop(cfg->dma_dev, cfg->dma_channel);
+			LOG_ERR("Write DMA start on %s failed: %d", dev->name, error);
+			return error;
+		}
+
+		is_tie_on = !!(riic_read(dev, RIIC_IER) && RIIC_IER_TIE);
+		if (!is_tie_on) {
+			/* Enable Transmit Data Empty interrupt for DMA operation if needed */
+			riic_clear_set_bit(dev, RIIC_IER, 0, RIIC_IER_TIE);
+			riic_wait_for_set(dev, RIIC_IER, RIIC_IER_TIE);
+		}
+	}
+
+	/* Send first buffer byte (this will trigger DMA if it enabled) */
+	riic_write(dev, RIIC_DRT, msg->buf[0]);
+
+	/* Wait for transmitting complete */
+	riic_wait_for_state(dev, RIIC_IER_TEIE, true);
+
+	if (msg->len > 1) {
+		/* Stop DMA and restore interrupts */
+		dma_stop(cfg->dma_dev, cfg->dma_channel);
+		if (!is_tie_on) {
+			/* Disable Transmit Data Empty interrupt if needed */
+			riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_TIE, 0);
+			riic_wait_for_clear(dev, RIIC_IER, RIIC_IER_TIE);
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_I2C_RIIC_DMA_DRIVEN */
+
 static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 {
-	uint32_t i;
-	int ret = 0;
-	uint32_t status;
-
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
 	if ((msg->flags & I2C_MSG_RW_MASK) == I2C_MSG_READ) {
-		if (riic_wait_for_state(dev, RIIC_IER_RIE)) {
+		/* Master read operation via DMA */
+		if (riic_dma_read(dev, msg)) {
 			return -EIO;
 		}
+	} else {
+		/* Master write operation via DMA */
+		if (riic_dma_write(dev, msg)) {
+			return -EIO;
+		}
+	}
+#else /* CONFIG_I2C_RIIC_DMA_DRIVEN */
+	uint32_t i, status;
+
+	if ((msg->flags & I2C_MSG_RW_MASK) == I2C_MSG_READ) {
+		/* Master read operation in sync mode */
+		/* Before reading, wait for slave address transmission to complete */
+		if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
+			return -EIO;
+		}
+
 		if (msg->len == 1) {
 			riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
 		}
-		/* Dummy read */
+
+		/* Dummy read for clearing RDRF flag */
 		riic_read(dev, RIIC_DRR);
+
 		for (i = 0; i < msg->len; i++) {
-			if (riic_wait_for_state(dev, RIIC_IER_RIE)) {
+			if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
 				status = riic_read(dev, RIIC_SR2);
 				return -EIO;
 			}
@@ -330,16 +595,18 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 			msg->buf[i] = riic_read(dev, RIIC_DRR) & 0xff;
 		}
 	} else {
-		/* Writing as master */
+		/* Master write operation in sync mode */
 		for (i = 0; i < msg->len; i++) {
-			if (riic_wait_for_state(dev, RIIC_IER_TIE)) {
+			if (riic_wait_for_state(dev, RIIC_IER_TIE, false)) {
 				return -EIO;
 			}
 			riic_write(dev, RIIC_DRT, msg->buf[i]);
 		}
-		riic_wait_for_state(dev, RIIC_IER_TEIE);
+		riic_wait_for_state(dev, RIIC_IER_TEIE, false);
 	}
-	return ret;
+#endif /* CONFIG_I2C_RIIC_DMA_DRIVEN */
+
+	return 0;
 }
 
 #define OPERATION(msg) (((struct i2c_msg *)msg)->flags & I2C_MSG_RW_MASK)
@@ -568,7 +835,7 @@ static int riic_init(const struct device *dev)
 	uint32_t bitrate_cfg;
 	int ret;
 
-	k_sem_init(&data->int_sem, 0, 1);
+	k_sem_init(&data->sem, 0, 1);
 
 	k_mutex_init(&data->i2c_lock_mtx);
 
@@ -692,12 +959,18 @@ static void riic_slave_event(const struct device *dev)
 		slave->first_write = true;
 		data->active_slave_num = NO_ACTIVE_SLAVE;
 		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF | RIIC_SR2_STOP, 0);
+
+		/* Re-enable NACK Reception Interrupt */
+		riic_clear_set_bit(dev, RIIC_IER, 0, RIIC_IER_NAKIE);
 		return;
 	}
 
 	if (status & RIIC_SR2_NACKF) {
 		/* NACK from master. Dummy read DRR to release SCL line */
 		riic_read(dev, RIIC_DRR);
+
+		/* Temporary disable NACK Reception Interrupt until stop not received */
+		riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_NAKIE, 0);
 		return;
 	}
 }
@@ -822,7 +1095,7 @@ static void riic_isr(const struct device *dev)
 	value = riic_read(dev, RIIC_SR2);
 	if (value & data->interrupt_mask) {
 		data->status_bits = value & data->interrupt_mask;
-		k_sem_give(&data->int_sem);
+		k_sem_give(&data->sem);
 		data->interrupt_mask = 0;
 	}
 }
@@ -898,6 +1171,16 @@ static const struct i2c_driver_api riic_driver_api = {
 		    DT_INST_IRQ_BY_NAME(n, name, flags));		\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
 
+#ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
+#define RIIC_DMA_CHANNELS(n)						\
+	.dma_dev = DEVICE_DT_GET(DT_INST_DMAS_CTLR_BY_NAME(n, tx)),	\
+	.write_dma_slot = DT_INST_DMAS_CELL_BY_NAME(n, tx, slot),	\
+	.read_dma_slot = DT_INST_DMAS_CELL_BY_NAME(n, rx, slot),	\
+	.dma_channel = DT_INST_DMAS_CELL_BY_NAME(n, tx, channel),
+#else
+#define RIIC_DMA_CHANNELS(n)
+#endif
+
 #define RIIC_INIT(n)							\
 	static void riic_##n##_init_irq(const struct device *dev)	\
 	{								\
@@ -923,6 +1206,7 @@ static const struct i2c_driver_api riic_driver_api = {
 		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),\
 		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),		\
+		RIIC_DMA_CHANNELS(n)					\
 	};								\
 									\
 	static struct riic_data riic_data_##n;				\
