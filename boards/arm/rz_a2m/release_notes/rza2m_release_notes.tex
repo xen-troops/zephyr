@@ -2979,6 +2979,13 @@ It implements older Zephyr Device API:
 
 Because the requirement is to support CDC\_ECM and CDC\_RNDIS protocols. Zephyr currently
 do not support RNDIS for the new device api.
+This driver supports USB communication using USB DMA Controller. It is enabled by default and can be disabled by adding the following line to the project configuration file:
+
+\begin{lstlisting}
+CONFIG_USBD_RZA2_USE_DMA=n
+\end{lstlisting}
+
+Connection schema:
 
 \includegraphics[width=6.5in,height=4in]{./media/usb.jpg}
 
@@ -3050,6 +3057,16 @@ cat /sys/kernel/debug/usb/usbmon/1u | grep -e  "1:000" -e "Ci" -e "Co"
 \end{lstlisting}
 
 \textbf{NOTE:} Provided commands expecs USB to be connected to the host bus 1.
+
+\textbf{NOTE:} If usbmon fails with error in dmesg:
+\begin{lstlisting}
+[1390873.104152] Lockdown: cat: debugfs access is restricted; see man kernel_lockdown.7
+\end{lstlisting}
+Then secure boot should be disabled:
+\begin{lstlisting}
+mokutil --disable-validation
+\end{lstlisting}
+And then reboot and follow guidance on the screen.
 
 \subsubsection{USB ECHO Server}\label{usb-echo-server}
 
@@ -3173,7 +3190,7 @@ iperf -s -B 192.0.2.2 -i 1
 
 On Zephyr console run the following command:
 \begin{lstlisting}
-zperf tcp upload 192.0.2.2 5001 5 1K 100M
+zperf tcp upload 192.0.2.2 5001 5 1K 60M
 \end{lstlisting}
 
 The result of test will appear on Host console:
@@ -3199,7 +3216,7 @@ iperf -s -l 1K -u -B 192.0.2.2 -i 1
 
 On Zephyr console run the following command:
 \begin{lstlisting}
-zperf udp upload 192.0.2.2 5001 5 1K 100M
+zperf udp upload 192.0.2.2 5001 5 1K 60M
 \end{lstlisting}
 
 The result of test will appear on Host console:
@@ -3259,7 +3276,7 @@ Result on Zephyr console:
 \begin{lstlisting}
 New session started.
 End of session!
-duration:              5.01 s
+duration:              10.01 s
 received packets:    892
 nb packets lost:       0
 nb packets outorder:   0
