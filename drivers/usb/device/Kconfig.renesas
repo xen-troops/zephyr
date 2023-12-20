@@ -45,4 +45,19 @@ config USBD_RZA2_BUSWAIT
 	help
 	  RZA2 USBD controller BUSWAIT value SYSCFG1.BUSWAIT
 
+config USBD_RZA2_USE_DMA
+	bool "DMA support for USB device driver"
+	default y
+	help
+	  RZ/A2 has internal DMA controller for USB that is part
+	  of the USB controller and can be used to transfer data
+	  to pipe
+
+config USBD_RZA2_DMA_TIMEOUT
+	int "Time in MSEC to wait for transaction end"
+	default 50
+	help
+	  During usb_read operation it is waiting up to the provided value
+	  before reporting busy state
+
 endif #USB_DC_RZA2
