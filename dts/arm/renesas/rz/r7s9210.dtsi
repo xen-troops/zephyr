@@ -1077,9 +1077,12 @@
 			maximum-speed = "high-speed";
 			clocks = <&cpg CPG_MOD 61>, <&usb_x1_clk>;
 			clock-names = "default", "usb_x1";
-			interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
-				     <GIC_SPI 31 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
-			interrupt-names = "usbf", "usbh";
+			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 32 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 33 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 34 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 35 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "usbh", "usbf", "dma0", "dma1", "dmaerr";
 		};
 
 		usbd1: usbd@e821b000 {
@@ -1090,9 +1093,12 @@
 			maximum-speed = "high-speed";
 			clocks = <&cpg CPG_MOD 60>, <&usb_x1_clk>;
 			clock-names = "default", "usb_x1";
-			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
-				     <GIC_SPI 36 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
-			interrupt-names = "usbf", "usbh";
+			interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 37 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 38 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 39 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL IRQ_DEFAULT_PRIORITY>;
+			interrupt-names = "usbh", "usbf", "dma0", "dma1", "dmaerr";
 		};
 	};
 };
