@@ -11,17 +11,38 @@ include: [i2c-controller.yaml, pinctrl-device.yaml]
 properties:
   reg:
     required: true
+
   interrupts:
     required: true
+
   clocks:
     required: true
+
   scl-rising-time-ns:
     type: int
     default: 0
     description: |
       Number of nanoseconds the SCL signal takes to rise; t(r) in the I2C specification.
+
   scl-falling-time-ns:
     type: int
     default: 0
     description: |
       Number of nanoseconds the SCL signal takes to fall; t(f) in the I2C specification.
+
+  dmas:
+    description: |
+      Optional TX & RX dma specifiers. Mandatory if defined CONFIG_I2C_RIIC_DMA_DRIVEN
+      Each specifier will have a phandle reference to the dmac controller,
+      the channel number, slot and config. Use same channel for TX and RX.
+
+      For example dmas for TX, RX on I2C3:
+         dmas = <&dma0 2 DMA_RS_INTRIIC_TI3 0>, <&dma0 2 DMA_RS_INTRIIC_RI3 0>;
+
+  dma-names:
+    description: |
+      Required if the dmas property exists.  This should be "tx" and "rx"
+      to match the dmas property.
+
+      For example:
+         dma-names = "tx", "rx";
