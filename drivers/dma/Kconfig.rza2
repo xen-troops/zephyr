@@ -28,8 +28,8 @@ config DMA_RZA2_DESCRS_CHUNKS
 	  When RZ/A2 DMAC works in Link Mode, it accepts a linked list of descriptors that
 	  includes information about data blocks to transfer. Zephyr recommends avoiding
 	  the use of HEAP for data allocation; that's why this driver uses a preallocated
-	  pool for the descriptors. This configuration specifies the number of descriptors
-	  per allocated chunk that can be assigned to each channel.
+	  pool for the descriptors. This configuration specifies the maximum number of chunks
+	  (chunk can be used as pool for each channel).
 
 config DMA_RZA2_MAX_DESCRS
 	int "Dma RZA2 maximum descriptors per channel"
