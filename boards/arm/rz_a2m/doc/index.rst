@@ -31,7 +31,7 @@ Connections and IOs
 RZ A2M board
 ------------
 
-Vies of the EVK board:
+Views of the EVK board:
 
 .. figure:: img/view.jpg
    :align: center
@@ -57,7 +57,8 @@ hardware features:
 | CLOCK     | clock_control                |                                     |
 +-----------+------------------------------+-------------------------------------+
 | UART      | uart                         | serial port-polling;                |
-|           |                              | serial port-interrupt               |
+|           |                              | serial port-interrupt;              |
+|           |                              | serial port-asynchronous            |
 +-----------+------------------------------+-------------------------------------+
 | GPIO      | gpio                         |                                     |
 +-----------+------------------------------+-------------------------------------+
@@ -65,7 +66,7 @@ hardware features:
 +-----------+------------------------------+-------------------------------------+
 | PWM       | pwm                          | capture/pwm saw-waves               |
 +-----------+------------------------------+-------------------------------------+
-| I2C       | i2c controller               | 10-bit addresses/target API         |
+| I2C       | i2c controller               | 10-bit addresses/target API/DMA mode|
 +-----------+------------------------------+-------------------------------------+
 | DMA       | Direct Memory Access         |                                     |
 +-----------+------------------------------+-------------------------------------+
@@ -75,9 +76,21 @@ hardware features:
 +-----------+------------------------------+-------------------------------------+
 | BSC       | Bus state controller         |                                     |
 +-----------+------------------------------+-------------------------------------+
+| INT       | Interrupt controller         |                                     |
++-----------+------------------------------+-------------------------------------+
 | MTU       | pwm                          | period capture/pwm saw-waves        |
 +-----------+------------------------------+-------------------------------------+
 | Flash     | Flash controller             | One serial flash connected          |
++-----------+------------------------------+-------------------------------------+
+| SPI       | Serial Peripheral Interface  | 8 or 16bit/async/DMA transfers      |
++-----------+------------------------------+-------------------------------------+
+| ETHERC    | Ethernet controller          | fixed-link/brodcast/VLAN            |
++-----------+------------------------------+-------------------------------------+
+| Touch     | Touch panel controller       |                                     |
++-----------+------------------------------+-------------------------------------+
+| USB       | USB 2.0 controller           |                                     |
++-----------+------------------------------+-------------------------------------+
+| I2S       | Serial Sound Interface       |                                     |
 +-----------+------------------------------+-------------------------------------+
 
 Other hardware features have not been enabled yet for this board.
