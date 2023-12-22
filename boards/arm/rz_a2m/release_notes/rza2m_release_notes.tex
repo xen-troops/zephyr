@@ -2365,31 +2365,14 @@ Use below command to build SPI spi\_loopback sample application:
 
 Once spi\_loopback is loaded it will provide console output showing the test execution process:
 \begin{lstlisting}
-I: spi@e800c800:"Init done f:66000"
-*** Booting Zephyr OS build v3.5.0-rc2-127-g618d02db1a31 ***
+I: spi@e800c800:"Init done fck:66000KHz"
+*** Booting Zephyr OS build v3.5.0-rc2-177-g213d3b15c9fe ***
 Running TESTSUITE spi_loopback
 ===================================================================
 START - test_spi_loopback
-I: SPI test on buffers TX/RX 0x800480a0/0x80048080, frame size = 16
+I: SPI test on buffers TX/RX 0x800380a0/0x80038080, frame size = 8, DMA enabled
 I: SPI test slow config
 I: Start complete multiple
-I: spi@e800c800:"trns: fr:500000 fa:33000 cmd:0f03"
-I: Passed
-I: Start complete loop
-I: Passed
-I: Start null tx
-I: Passed
-I: Start half start
-I: Passed
-I: Start half end
-I: Passed
-I: Start every 4
-I: Passed
-I: Start rx bigger than tx [40/1981
-I: Passed
-I: SPI test fast config
-I: Start complete multiple
-I: spi@e800c800:"trns: fr:16000000 fa:33000 cmd:0f03"
 I: Passed
 I: Start complete loop
 I: Passed
@@ -2403,25 +2386,39 @@ I: Start every 4
 I: Passed
 I: Start rx bigger than tx
 I: Passed
-I: Start complete loop
-I: spi@e800c800:"trns: fr:500000 fa:33000 cmd:0f03"
+I: Start async call
+I: Passed
+I: SPI test fast config
+I: Start complete multiple
 I: Passed
 I: Start complete loop
-I: spi@e800c800:"trns: fr:16000000 fa:33000 cmd:0f03"
+I: Passed
+I: Start null tx
+I: Passed
+I: Start half start
+I: Passed
+I: Start half end
+I: Passed
+I: Start every 4
+I: Passed
+I: Start rx bigger than tx
+I: Passed
+I: Start async call
+I: Passed
+I: Start complete loop
+I: Passed
+I: Start complete loop
 I: Passed
 I: All tx/rx passed
-PASS - test_spi_loopback in 7.567 seconds
+PASS - test_spi_loopback in 0.066 seconds
 ===================================================================
 TESTSUITE spi_loopback succeeded
-
 ------ TESTSUITE SUMMARY START ------
-
-SUITE PASS - 100.00% [spi_loopback]: pass = 1, fail = 0, skip = 0, total = 1 duration = 7.567 seconds
-- PASS - [spi_loopback.test_spi_loopback] duration = 7.567 seconds
-
+SUITE PASS - 100.00% [spi_loopback]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.066 secods
+- PASS - [spi_loopback.test_spi_loopback] duration = 0.066 seconds
 ------ TESTSUITE SUMMARY END ------
-
 ===================================================================
+PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
 \subsection{ETHERC Support}\label{eth-support}
