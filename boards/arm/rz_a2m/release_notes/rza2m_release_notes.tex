@@ -2348,9 +2348,10 @@ Zephyr RZ/A2M Renesas Serial Peripheral Interface (rSPI) driver supports:
 	\item DMA transfers
 \end{itemize}
 
-Zephyr Kconfig options needed for RZ/A2M ETHERC SPI driver testing:
+Zephyr Kconfig options needed for RZ/A2M SPI driver testing:
 
 \begin{lstlisting}
+	CONFIG_SPI=y
 	CONFIG_SPI_RZA2M=y
 \end{lstlisting}
 
@@ -2435,19 +2436,19 @@ Zephyr RZ/A2M ETHERC Ethernet driver supports:
 	\item net statistic (partially)
 	\item MDIO bus support through generic mdio\_gpio (CONFIG\_MDIO\_GPIO) driver
 	\item only manual testing mode
+	\item  broadcast storm prevention feature
+	\item  fixed-link and ETn\_LINKSTA feature
 \end{itemize}
 
 \textbf{Not} supported:
 \begin{itemize}
-	\item  broadcast storm prevention feature
 	\item  multicast filtering (drop all)
-	\item  fixed-link and ETn\_LINKSTA feature
 	\item  MII PHY IRQs (not supported by Zephyr)
 \end{itemize}
 
 Additional Zephyr snippet rz-a2m-eth-test was created and can be to enable RZ/A2M ETHERC Ethernet driver with different existing Zephyr Net sample applications.
 
-The only samples/net/promiscuous\_mode was tested with the RZ/A2M ETHERC Ethernet driver and it supports IP-traffic passing only through Ether 1 port (ETH0 channel), because promiscuous\_mode application assigns IP-address only to one network interface.
+The samples/net/promiscuous\_mode was tested with the RZ/A2M ETHERC Ethernet driver and it supports IP-traffic passing only through Ether 1 port (ETH0 channel), because promiscuous\_mode application assigns IP-address only to one network interface.
 
 Test setup:
 \begin{lstlisting}
@@ -2491,8 +2492,10 @@ Use below command to build Net promiscuous\_mode sample application:
 \end{lstlisting}
 
 Once promiscuous\_mode is loaded it will provide console command line support and show  RZ/A2M ETHERC Ethernet driver boot log.
+Zephyr is using Ether1 interface as default. It assignes IP address, as specified in the config file provided above, to the Ether1 interface as \colorbox{lightgray}{192.168.1.1}.
+The IP address to Ether2 interface us not set by default and should be assigned manually.
 
-Note. Promiscuous mode is enabled by default.
+\textbf{Note.} Promiscuous mode is enabled by default.
 
 Type \textbf{help} to see supported commands:
 \begin{lstlisting}
@@ -2560,6 +2563,11 @@ Type \textbf{help} to see supported commands:
 	shell    :Useful, not Unix-like shell commands.
 \end{lstlisting}
 
+\textbf{Host PC}: Assign IP address to the connected network interface (eth1 in our Host PC):
+\begin{lstlisting}
+	sudo ip addr add dev eth1 192.168.1.100/24
+\end{lstlisting}
+
 \textbf{RZA2MEVK}: Display Network interface information \textbf{net iface}
 \begin{lstlisting}
 	uart:~$ net iface 1
@@ -2601,19 +2609,15 @@ Type \textbf{help} to see supported commands:
 	Promiscuous mode OFF...
 \end{lstlisting}
 
-\textbf{RZA2MEVK}: Set IP address for net\_if
+\textbf{RZA2MEVK}: Do Host PC ping \textbf{net ping [IP-host]} through ether1 port:
 \begin{lstlisting}
-	uart:~$ net ipv4 add 2 192.168.1.3 255.255.0.0
-\end{lstlisting}
-
-\textbf{RZA2MEVK}: Do Host PC ping \textbf{net ping [IP-host]}
-\begin{lstlisting}
-	uart:~$ net ping 192.168.1.100
+	uart:~$ net ping -I 1 192.168.1.100
 	PING 192.168.1.100
 	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=1 ttl=64 time=0 ms
 	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=2 ttl=64 time=0 ms
 	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=3 ttl=64 time=0 ms
 \end{lstlisting}
+\textbf{Note}: If ether2 port is used then set \textbf{-I 2} to select interface ether2.
 
 \textbf{Host PC}: Do RZA2MEVK ping \textbf{ping [IP-board]}
 \begin{lstlisting}
@@ -2647,7 +2651,7 @@ Type \textbf{help} to see supported commands:
 	[00:01:43.933,000] <inf> net_config: IPv6 address: 2001:db8::1
 	uart:~$
 
-	uart:~$ net ping 192.168.1.100
+	uart:~$ net ping -I 1 192.168.1.100
 	PING 192.168.1.100
 	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=1 ttl=64 time=0 ms
 	28 bytes from 192.168.1.100 to 192.168.1.1: icmp_seq=2 ttl=64 time=0 ms
@@ -2698,9 +2702,14 @@ Send restarts    : 0
 Unknown protocol : 0
 \end{lstlisting}
 
+\textbf{RZA2MEVK}: Set IP address for net\_if
+\begin{lstlisting}
+uart:~$ net ipv4 add 2 192.168.1.3 255.255.0.0
+\end{lstlisting}
+
 \subsubsection{ETHERC fixed-link Support}\label{eth-fixed-support}
 
-The fixed-link mode can be enabled through DT:
+Fixed-link mode is disabled by default. To use fixed-link mode please to the following modifications to the result device-tree (see ./snippets/rz-a2m-eth-fixed-test/rz-a2m-eth-fixed-test.overlay):
 \begin{lstlisting}
 	&ether0 {
 		/delete-property/ phy-handle;
@@ -2712,13 +2721,21 @@ The fixed-link mode can be enabled through DT:
 		};
 	};
 \end{lstlisting}
+The result device-tree can be modified by using the device-tree extensions for Zephyr application.
+
+Please refer to the link:
+\url{https://docs.zephyrproject.org/latest/build/dts/howtos.html#set-devicetree-overlays}
+for the deatils about how the Device-tree can be extended.
+
+The detailed information about Device-tree types in Zephyr can be found on the following link.
+\url{https://docs.zephyrproject.org/latest/build/dts/intro-input-output.html#dt-input-files}
 
 In above case RZ/A2M driver will apply link settings as specified in DT and assume Link UP is always unless LINKSTA is used.
 The fixed-link can't be used with PHY: no "phy-handle" property.
 
 LINKSTA support can be enabled by properly configuring pins and removing "renesas,no-ether-link" property from DT.
 In this case Driver will enable (LCHNGIP) LINK Signal Change Interrupt and check LINKSTA pin through PSR register.
-The "renesas,ether-link-active-low" DT property can be used to configure LINKSTA polarity.
+The "renesas,ether-link-active-low" DT property can be used to configure LINKSTA polarity (see ./snippets/rz-a2m-eth-fixed-test/rz-a2m-eth-fixed-test.overlay).
 
 \begin{lstlisting}
 	&ether1 {
@@ -2777,10 +2794,14 @@ It can be W/A by manually configuring PHY using mdio shell commands to apply onl
 
 \subsubsection{ETHERC broadcast frame storm prevention}\label{eth-bc-filter-support}
 
-The fixed-link mode can be enabled through Kconfig option:
+The BC storm filter can be enabled through Kconfig option:
 \begin{lstlisting}
 	CONFIG_ETH_RZA2M_NB_BC_RX_STORM_FILTER=100
 \end{lstlisting}
+
+\label{prj.conf} This configuration parameter can be set in the application prj.conf file.
+Full information about Zephyr configuration can be found here:
+\url{https://docs.zephyrproject.org/latest/develop/application/index.html#application-kconfig}
 
 It sets the number of times broadcast frames can be received continuously.
 When the number of received frames exceeds the selected value the subsequent broadcast frames are discarded.
@@ -2793,6 +2814,8 @@ The VLAN support mode can be enabled through Kconfig option:
 	CONFIG_NET_VLAN=y
 	CONFIG_NET_VLAN_COUNT=2
 \end{lstlisting}
+
+Please refer to \ref{prj.conf} for application prj.conf modification details.
 
 Please check Zephyr documentation for VLAN support
 \url{https://docs.zephyrproject.org/latest/connectivity/networking/api/vlan.html}
@@ -2890,7 +2913,7 @@ Interface eth3 (0x8008b7a8) (Ethernet) [4]
 ===================================
 Interface is down.
 
-uart:~$ net ping 203.0.113.2
+uart:~$ net ping -I 2 203.0.113.2
 PING 203.0.113.2
 28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=1 ttl=64 time=0 ms
 28 bytes from 203.0.113.2 to 203.0.113.1: icmp_seq=2 ttl=64 time=0 ms
