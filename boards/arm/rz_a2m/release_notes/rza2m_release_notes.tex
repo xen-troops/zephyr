@@ -3456,6 +3456,53 @@ Console output:
   PROJECT EXECUTION SUCCESSFUL
 \end{lstlisting}
 
+\subsubsection{I2S test with codec}\label{i2s-codec-test}
+
+Build test application by the following command:
+\begin{lstlisting}
+west build -p always -b rz_a2m samples/drivers/i2s/wm8978
+\end{lstlisting}
+
+After building the image can be started by using command \colorbox{lightgray}{west debug}
+and then \colorbox{lightgray}{continue} from the GDB. Please refer to
+\hyperref[building-and-flashing]{Building and Flashing} for the details.
+
+\begin{center}
+\includegraphics[width=5in,height=3.22in]{./media/codec.jpg}
+\newline
+Headset and microphone
+\newline
+\end{center}
+
+Before run application plug headset jack connector to the CN4 and microphone
+(or other sound source) jack connector to the CN3.
+
+\begin{lstlisting}
+  [00:00:00.000,000] <inf> spi_rza2m: spi@e800c800:"Init done fck:66000000Hz"
+  *** Booting Zephyr OS build zephyr-v3.3.0-10413-g7eb56f5b7139 ***
+  sizeof 315424
+  codec device wm8978@0
+  i2s device ssif@e8048000
+  Set up button at gpio@5 pin 6
+  uart:~$
+\end{lstlisting}
+
+Enter command:
+\begin{lstlisting}
+codec play
+\end{lstlisting}
+
+In headset you should hear sample sound.
+
+Enter command:
+\begin{lstlisting}
+codec record
+\end{lstlisting}
+
+In headset you should hear sound from microphone.
+
+Press SW4 button to stop play.
+
 \section{Zephyr tests subsystem}\label{zephyr-tests-subsystem}
 
 Zephyr has an embedded test runner feature called twister. This script
@@ -3561,6 +3608,8 @@ Current project status can be got from Jira Project:
 	21 Dec 2023 & & Add picture with touchpanel \\
 	\hline
 	27 Dec 2023 & & Add i2s support \\
+	\hline
+	28 Dec 2023 & & Add wm8978 codec sample \\
 	\hline
 \end{tabular}
 
