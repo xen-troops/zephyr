@@ -109,7 +109,7 @@ int main(void)
 	return 0;
 }
 
-static int shell_play(const struct shell *shell, size_t argc, char **argv)
+static int shell_play(const struct shell *p_shell, size_t argc, char **argv)
 {
 	uint8_t *buf = (uint8_t *)LR_44_1K16B_S;
 	int i, ret;
@@ -120,7 +120,7 @@ static int shell_play(const struct shell *shell, size_t argc, char **argv)
 		return 0;
 	}
 
-	shell_print(shell, "Press key (SW4SW) to terminate demo");
+	shell_print(p_shell, "Press key (SW4SW) to terminate demo");
 
 	i = 0;
 	ret = i2s_buf_write(dev_i2s, buf, BLOCK_SIZE);
@@ -157,12 +157,12 @@ static int shell_play(const struct shell *shell, size_t argc, char **argv)
 		i += BLOCK_SIZE;
 		buf_num++;
 	}
-	shell_print(shell, "Play finished\n");
+	shell_print(p_shell, "Play finished\n");
 	i2s_trigger(dev_i2s, I2S_DIR_TX, I2S_TRIGGER_DROP);
 	return 0;
 }
 
-static int shell_record(const struct shell *shell, size_t argc, char **argv)
+static int shell_record(const struct shell *p_shell, size_t argc, char **argv)
 {
 	int ret;
 	uint32_t rx_size;
@@ -177,13 +177,13 @@ static int shell_record(const struct shell *shell, size_t argc, char **argv)
 		return 0;
 	}
 
-	shell_print(shell, "Press key (SW4) to terminate demo");
+	shell_print(p_shell, "Press key (SW4) to terminate demo");
 
 	stop_play = 0;
 
 	ret = i2s_trigger(dev_i2s, I2S_DIR_RX, I2S_TRIGGER_START);
 	if (ret) {
-		shell_print(shell, "RX start failed %d\n", ret);
+		shell_print(p_shell, "RX start failed %d\n", ret);
 		stop_play = 1;
 	}
 
@@ -191,7 +191,7 @@ static int shell_record(const struct shell *shell, size_t argc, char **argv)
 		ret = i2s_buf_read(dev_i2s, rx_buffer, &rx_size);
 		if (ret < 0) {
 			if (ret != -EAGAIN) {
-				shell_print(shell, "Read error %d\n", ret);
+				shell_print(p_shell, "Read error %d\n", ret);
 				goto out;
 			}
 			continue;
@@ -199,14 +199,14 @@ static int shell_record(const struct shell *shell, size_t argc, char **argv)
 
 		ret = i2s_buf_write(dev_i2s, rx_buffer, rx_size);
 		if (ret < 0) {
-			shell_print(shell, "Write error %d\n", ret);
+			shell_print(p_shell, "Write error %d\n", ret);
 			goto out;
 		}
 	}
 
 	ret = i2s_trigger(dev_i2s, I2S_DIR_TX, I2S_TRIGGER_START);
 	if (ret) {
-		shell_print(shell, "TX start failed %d\n", ret);
+		shell_print(p_shell, "TX start failed %d\n", ret);
 		goto out;
 	}
 
@@ -214,7 +214,7 @@ static int shell_record(const struct shell *shell, size_t argc, char **argv)
 		ret = i2s_buf_read(dev_i2s, rx_buffer, &rx_size);
 		if (ret < 0) {
 			if (ret != -EAGAIN) {
-				shell_print(shell, "Read error %d\n", ret);
+				shell_print(p_shell, "Read error %d\n", ret);
 				goto out;
 			}
 			continue;
@@ -222,12 +222,12 @@ static int shell_record(const struct shell *shell, size_t argc, char **argv)
 
 		ret = i2s_buf_write(dev_i2s, rx_buffer, BLOCK_SIZE);
 		if (ret < 0) {
-			shell_print(shell, "Write error %d\n", ret);
+			shell_print(p_shell, "Write error %d\n", ret);
 			break;
 		}
 	}
 out:
-	shell_print(shell, "Record/Playback finished\n");
+	shell_print(p_shell, "Record/Playback finished\n");
 	i2s_trigger(dev_i2s, I2S_DIR_TX, I2S_TRIGGER_DROP);
 	i2s_trigger(dev_i2s, I2S_DIR_RX, I2S_TRIGGER_DROP);
 	return ret;

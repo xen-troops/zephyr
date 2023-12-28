@@ -220,7 +220,7 @@ static int ssif_configure(const struct device *dev, enum i2s_dir dir,
 	uint32_t system_word = i2s_cfg->word_size >= 16U ? 32U : 16U;
 	uint32_t syswd_per_smp = 2;
 	int channel_div;
-	struct stream *stream;
+	struct stream *p_stream;
 	uint32_t dot_clk, dwl, swl, division;
 	uint16_t ckdv;
 	uint32_t reset_mask;
@@ -228,11 +228,11 @@ static int ssif_configure(const struct device *dev, enum i2s_dir dir,
 	switch (dir) {
 	case I2S_DIR_RX:
 		reset_mask = SSIFCR_RFRST;
-		stream = &data->rx;
+		p_stream = &data->rx;
 		break;
 	case I2S_DIR_TX:
 		reset_mask = SSIFCR_TFRST;
-		stream = &data->tx;
+		p_stream = &data->tx;
 		break;
 	case I2S_DIR_BOTH:
 		LOG_ERR("I2S_DIR_BOTH is not supported for now");
@@ -242,16 +242,16 @@ static int ssif_configure(const struct device *dev, enum i2s_dir dir,
 		return -EINVAL;
 	}
 
-	stream->master = true;
+	p_stream->master = true;
 
 	if (i2s_cfg->options & I2S_OPT_FRAME_CLK_SLAVE ||
 	    i2s_cfg->options & I2S_OPT_BIT_CLK_SLAVE) {
-		stream->master = false;
+		p_stream->master = false;
 	}
 
 	if (i2s_cfg->frame_clk_freq == 0U) {
-		memset(&stream->cfg, 0, sizeof(struct i2s_config));
-		stream->state = I2S_STATE_NOT_READY;
+		memset(&p_stream->cfg, 0, sizeof(struct i2s_config));
+		p_stream->state = I2S_STATE_NOT_READY;
 		return 0;
 	}
 
@@ -365,15 +365,15 @@ static int ssif_configure(const struct device *dev, enum i2s_dir dir,
 		}
 	}
 
-	stream->stream_disable(stream, dev);
-	stream->queue_drop(stream);
+	p_stream->stream_disable(p_stream, dev);
+	p_stream->queue_drop(p_stream);
 
 	ssif_clear_set_bit(dev, SSIFCR, 0, reset_mask);
 
 	ssif_write_reg(dev, SSIOFR, 0);
 	ssif_write_reg(dev, SSICR, (ckdv << SSICR_CKDV_SHIFT) | (swl << SSICR_SWL_SHIFT) |
 		       (dwl << SSICR_DWL_SHIFT));
-	if (stream->master) {
+	if (p_stream->master) {
 		uint32_t ofr_reg;
 
 		ofr_reg = SSIOFR_LRCONT;
@@ -386,32 +386,32 @@ static int ssif_configure(const struct device *dev, enum i2s_dir dir,
 	}
 	ssif_clear_set_bit(dev, SSIFCR, reset_mask, 0);
 
-	memcpy(&stream->cfg, i2s_cfg, sizeof(struct i2s_config));
-	stream->state = I2S_STATE_READY;
+	memcpy(&p_stream->cfg, i2s_cfg, sizeof(struct i2s_config));
+	p_stream->state = I2S_STATE_READY;
 	return 0;
 }
 
 static const struct i2s_config *ssif_config_get(const struct device *dev, enum i2s_dir dir)
 {
 	struct ssif_data *const data = dev->data;
-	struct stream *stream;
+	struct stream *p_stream;
 
 	switch (dir) {
 	case I2S_DIR_TX:
-		stream = &data->tx;
+		p_stream = &data->tx;
 		break;
 	case I2S_DIR_RX:
-		stream = &data->rx;
+		p_stream = &data->rx;
 		break;
 	default:
 		return NULL;
 	}
 
-	if (stream->state == I2S_STATE_NOT_READY) {
+	if (p_stream->state == I2S_STATE_NOT_READY) {
 		return NULL;
 	}
 
-	return &stream->cfg;
+	return &p_stream->cfg;
 }
 
 static void ssif_set_enable(const struct device *dev, enum i2s_dir dir)
@@ -487,67 +487,67 @@ static int ssif_write(const struct device *dev, void *mem_block, size_t size)
 
 typedef int (*trigger_operation_t)(const struct device *dev, struct stream *stream);
 
-static int ssif_trigger_start(const struct device *dev, struct stream *stream)
+static int ssif_trigger_start(const struct device *dev, struct stream *p_stream)
 {
 	int ret;
 
-	if (stream->state != I2S_STATE_READY) {
-		LOG_ERR("START trigger %s: invalid state %d", stream->name, stream->state);
+	if (p_stream->state != I2S_STATE_READY) {
+		LOG_ERR("START trigger %s: invalid state %d", p_stream->name, p_stream->state);
 		return -EIO;
 	}
 
-	ret = stream->stream_start(stream, dev);
+	ret = p_stream->stream_start(p_stream, dev);
 	if (ret < 0) {
-		LOG_ERR("START trigger %s failed %d", stream->name, ret);
+		LOG_ERR("START trigger %s failed %d", p_stream->name, ret);
 		return ret;
 	}
-	stream->state = I2S_STATE_RUNNING;
+	p_stream->state = I2S_STATE_RUNNING;
 	return 0;
 }
 
-static int ssif_trigger_stop(const struct device *dev, struct stream *stream)
+static int ssif_trigger_stop(const struct device *dev, struct stream *p_stream)
 {
-	if (stream->state != I2S_STATE_RUNNING) {
-		LOG_ERR("STOP %s trigger invalid state %d", stream->name, stream->state);
+	if (p_stream->state != I2S_STATE_RUNNING) {
+		LOG_ERR("STOP %s trigger invalid state %d", p_stream->name, p_stream->state);
 		return -EIO;
 	}
-	stream->stream_disable(stream, dev);
-	stream->state = I2S_STATE_READY;
+	p_stream->stream_disable(p_stream, dev);
+	p_stream->state = I2S_STATE_READY;
 	return 0;
 }
 
-static int ssif_trigger_drop(const struct device *dev, struct stream *stream)
+static int ssif_trigger_drop(const struct device *dev, struct stream *p_stream)
 {
-	if (stream->state == I2S_STATE_NOT_READY) {
-		LOG_ERR("DROP trigger %s: invalid state %d", stream->name, stream->state);
+	if (p_stream->state == I2S_STATE_NOT_READY) {
+		LOG_ERR("DROP trigger %s: invalid state %d", p_stream->name, p_stream->state);
 		return -EIO;
 	}
-	stream->stream_disable(stream, dev);
-	stream->queue_drop(stream);
-	stream->state = I2S_STATE_READY;
+	p_stream->stream_disable(p_stream, dev);
+	p_stream->queue_drop(p_stream);
+	p_stream->state = I2S_STATE_READY;
 	return 0;
 }
 
-static int ssif_trigger_drain(const struct device *dev, struct stream *stream)
+static int ssif_trigger_drain(const struct device *dev, struct stream *p_stream)
 {
-	if (stream->state != I2S_STATE_RUNNING) {
-		LOG_ERR("DRAIN trigger %s: invalid state %d", stream->name, stream->state);
+	if (p_stream->state != I2S_STATE_RUNNING) {
+		LOG_ERR("DRAIN trigger %s: invalid state %d", p_stream->name, p_stream->state);
 		return -EIO;
 	}
-	stream->stream_disable(stream, dev);
-	stream->queue_drop(stream);
-	stream->state = I2S_STATE_READY;
+	p_stream->stream_disable(p_stream, dev);
+	p_stream->queue_drop(p_stream);
+	p_stream->state = I2S_STATE_READY;
 	return 0;
 }
 
-static int ssif_trigger_prepare(const struct device *dev, struct stream *stream)
+static int ssif_trigger_prepare(const struct device *dev, struct stream *p_stream)
 {
-	if (stream->state != I2S_STATE_ERROR) {
-		LOG_ERR("PREPARE trigger %s: invalid state %d", stream->name, stream->state);
+	if (p_stream->state != I2S_STATE_ERROR) {
+		LOG_ERR("PREPARE trigger %s: invalid state %d", p_stream->name, p_stream->state);
 		return -EIO;
 	}
-	stream->state = I2S_STATE_READY;
-	stream->queue_drop(stream);
+	p_stream->state = I2S_STATE_READY;
+	p_stream->queue_drop(p_stream);
 	return 0;
 }
 
@@ -556,17 +556,17 @@ static int ssif_trigger(const struct device *dev, enum i2s_dir dir, enum i2s_tri
 	struct ssif_data *const data = dev->data;
 	int ret;
 	trigger_operation_t trigger;
-	struct stream *stream;
+	struct stream *p_stream;
 	k_spinlock_key_t key;
 
 	switch (dir) {
 	case I2S_DIR_BOTH:
 		return -EINVAL;
 	case I2S_DIR_RX:
-		stream = &data->rx;
+		p_stream = &data->rx;
 		break;
 	case I2S_DIR_TX:
-		stream = &data->tx;
+		p_stream = &data->tx;
 		break;
 	default:
 		return -EINVAL;
@@ -592,9 +592,9 @@ static int ssif_trigger(const struct device *dev, enum i2s_dir dir, enum i2s_tri
 		LOG_ERR("unsupported trigger command");
 		return -EINVAL;
 	}
-	key = k_spin_lock(&stream->lock);
-	ret = trigger(dev, stream);
-	k_spin_unlock(&stream->lock, key);
+	key = k_spin_lock(&p_stream->lock);
+	ret = trigger(dev, p_stream);
+	k_spin_unlock(&p_stream->lock, key);
 	return ret;
 }
 
@@ -646,29 +646,29 @@ __attribute__((unused)) static void ssif_isr_dma_rt(void *arg)
 	}
 }
 
-static int rx_stream_start(struct stream *stream, const struct device *dev)
+static int rx_stream_start(struct stream *p_stream, const struct device *dev)
 {
 	int ret;
 
-	ret = k_mem_slab_alloc(stream->cfg.mem_slab, &stream->mem_block, K_NO_WAIT);
+	ret = k_mem_slab_alloc(p_stream->cfg.mem_slab, &p_stream->mem_block, K_NO_WAIT);
 	if (ret < 0) {
 		goto err;
 	}
 
 	ssif_clear_set_bit(dev, SSICR, 0, SSICR_RUIEN);
-	stream->blk_cfg.block_size = stream->cfg.block_size;
-	stream->blk_cfg.dest_address = (uint32_t)(stream->mem_block);
-	stream->blk_cfg.fifo_mode_control = 0;
+	p_stream->blk_cfg.block_size = p_stream->cfg.block_size;
+	p_stream->blk_cfg.dest_address = (uint32_t)(p_stream->mem_block);
+	p_stream->blk_cfg.fifo_mode_control = 0;
 
-	stream->dma_cfg.head_block = &stream->blk_cfg;
-	ret = dma_config(stream->dev_dma, stream->dma_channel, &stream->dma_cfg);
+	p_stream->dma_cfg.head_block = &p_stream->blk_cfg;
+	ret = dma_config(p_stream->dev_dma, p_stream->dma_channel, &p_stream->dma_cfg);
 	if (ret < 0) {
 		goto err;
 	}
 
-	sys_cache_data_invd_range(stream->mem_block, stream->cfg.block_size);
+	sys_cache_data_invd_range(p_stream->mem_block, p_stream->cfg.block_size);
 
-	ret = dma_start(stream->dev_dma, stream->dma_channel);
+	ret = dma_start(p_stream->dev_dma, p_stream->dma_channel);
 	if (ret < 0) {
 		goto err;
 	}
@@ -679,56 +679,56 @@ static int rx_stream_start(struct stream *stream, const struct device *dev)
 	return 0;
 err:
 	ssif_clear_set_bit(dev, SSICR, SSICR_RUIEN, 0);
-	if (stream->mem_block) {
-		k_mem_slab_free(stream->cfg.mem_slab, stream->mem_block);
-		stream->mem_block = NULL;
+	if (p_stream->mem_block) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, p_stream->mem_block);
+		p_stream->mem_block = NULL;
 	}
 	return ret;
 }
 
-static void rx_stream_disable(struct stream *stream, const struct device *dev)
+static void rx_stream_disable(struct stream *p_stream, const struct device *dev)
 {
 	ssif_clear_set_bit(dev, SSICR, SSICR_RUIEN | SSICR_ROIEN, 0);
 	ssif_clear_set_bit(dev, SSIFCR, SSIFCR_RIE, 0);
 	ssif_clear_set_bit(dev, SSICR, SSICR_REN, 0);
-	dma_stop(stream->dev_dma, stream->dma_channel);
-	if (stream->mem_block) {
-		k_mem_slab_free(stream->cfg.mem_slab, stream->mem_block);
-		stream->mem_block = NULL;
+	dma_stop(p_stream->dev_dma, p_stream->dma_channel);
+	if (p_stream->mem_block) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, p_stream->mem_block);
+		p_stream->mem_block = NULL;
 	}
 }
 
-static void rx_queue_drop(struct stream *stream)
+static void rx_queue_drop(struct stream *p_stream)
 {
 	void *mem_block;
 
-	while (k_msgq_get(&stream->queue, &mem_block, K_NO_WAIT) == 0) {
-		k_mem_slab_free(stream->cfg.mem_slab, mem_block);
+	while (k_msgq_get(&p_stream->queue, &mem_block, K_NO_WAIT) == 0) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, mem_block);
 	}
 
 }
 
-static int tx_stream_start(struct stream *stream, const struct device *dev)
+static int tx_stream_start(struct stream *p_stream, const struct device *dev)
 {
 	int ret;
 
-	ret = k_msgq_get(&stream->queue, &stream->mem_block, K_NO_WAIT);
+	ret = k_msgq_get(&p_stream->queue, &p_stream->mem_block, K_NO_WAIT);
 	if (ret < 0) {
 		return ret;
 	}
 	ssif_clear_set_bit(dev, SSICR, 0, SSICR_TUEIN | SSICR_TOIEN);
-	stream->blk_cfg.block_size = stream->cfg.block_size;
-	stream->blk_cfg.source_address = (uint32_t)(stream->mem_block);
-	stream->blk_cfg.fifo_mode_control = 0;
+	p_stream->blk_cfg.block_size = p_stream->cfg.block_size;
+	p_stream->blk_cfg.source_address = (uint32_t)(p_stream->mem_block);
+	p_stream->blk_cfg.fifo_mode_control = 0;
 
-	stream->dma_cfg.head_block = &stream->blk_cfg;
-	ret = dma_config(stream->dev_dma, stream->dma_channel, &stream->dma_cfg);
+	p_stream->dma_cfg.head_block = &p_stream->blk_cfg;
+	ret = dma_config(p_stream->dev_dma, p_stream->dma_channel, &p_stream->dma_cfg);
 	if (ret < 0) {
 		goto err;
 	}
 
-	sys_cache_data_flush_range((void *)stream->mem_block, stream->cfg.block_size);
-	ret = dma_start(stream->dev_dma, stream->dma_channel);
+	sys_cache_data_flush_range((void *)p_stream->mem_block, p_stream->cfg.block_size);
+	ret = dma_start(p_stream->dev_dma, p_stream->dma_channel);
 	if (ret) {
 		goto err;
 	}
@@ -737,32 +737,32 @@ static int tx_stream_start(struct stream *stream, const struct device *dev)
 	return 0;
 err:
 	ssif_clear_set_bit(dev, SSICR, SSICR_TUEIN | SSICR_TOIEN, 0);
-	if (stream->mem_block) {
-		k_mem_slab_free(stream->cfg.mem_slab, stream->mem_block);
-		stream->mem_block = NULL;
+	if (p_stream->mem_block) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, p_stream->mem_block);
+		p_stream->mem_block = NULL;
 	}
 	return ret;
 }
 
-static void tx_stream_disable(struct stream *stream, const struct device *dev)
+static void tx_stream_disable(struct stream *p_stream, const struct device *dev)
 {
 	ssif_clear_set_bit(dev, SSIFCR, SSIFCR_TIE, 0);
 	ssif_clear_set_bit(dev, SSICR, SSICR_TEN, 0);
 	ssif_clear_set_bit(dev, SSICR, SSICR_TUEIN | SSICR_TOIEN, 0);
 
-	dma_stop(stream->dev_dma, stream->dma_channel);
-	if (stream->mem_block) {
-		k_mem_slab_free(stream->cfg.mem_slab, stream->mem_block);
-		stream->mem_block = NULL;
+	dma_stop(p_stream->dev_dma, p_stream->dma_channel);
+	if (p_stream->mem_block) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, p_stream->mem_block);
+		p_stream->mem_block = NULL;
 	}
 }
 
-static void tx_queue_drop(struct stream *stream)
+static void tx_queue_drop(struct stream *p_stream)
 {
 	void *mem_block;
 
-	while (k_msgq_get(&stream->queue, &mem_block, K_NO_WAIT) == 0) {
-		k_mem_slab_free(stream->cfg.mem_slab, mem_block);
+	while (k_msgq_get(&p_stream->queue, &mem_block, K_NO_WAIT) == 0) {
+		k_mem_slab_free(p_stream->cfg.mem_slab, mem_block);
 	}
 }
 
