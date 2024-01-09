@@ -1,0 +1,44 @@
+description: Renesas RZ/A2M UART
+
+compatible: "renesas,rzg3s-scif"
+
+include: [uart-controller.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    description: |
+      Clock source for calculating BRR value
+
+  dmas:
+    description: |
+      Optional TX & RX dma specifiers. Mandatory if defined CONFIG_UART_ASYNC_API
+      Each specifier will have a phandle reference to the dmac controller,
+      the channel number, slot and config.
+
+      For example dmas for TX, RX on scif3
+         dmas = <&dma0 5 DMA_RS_TXI3 0>, <&dma0 6 DMA_RS_RXI3 0>;
+
+  dma-names:
+    description: |
+      Required if the dmas property exists.  This should be "tx" and "rx"
+      to match the dmas property.
+
+      For example
+         dma-names = "tx", "rx";
+
+  usart-mode:
+    type: boolean
+    description:
+      Optional boolean parameter which turns on Clock Synchronous mode
+
+  external-clock:
+    type: boolean
+    description:
+      This parameter actual only in Clock Synchronous mode. Use external
+      source as clock
