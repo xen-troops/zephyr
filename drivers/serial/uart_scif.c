@@ -13,6 +13,7 @@
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/cache.h>
+#include <zephyr/drivers/reset.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
 #include <zephyr/spinlock.h>
@@ -77,6 +78,7 @@ struct uart_scif_cfg {
 	struct renesas_cpg_clk mod_clk;
 	struct renesas_cpg_clk bus_clk;
 	const struct pinctrl_dev_config *pcfg;
+	const struct reset_dt_spec reset;
 	const struct scif_params *params;
 	uint32_t type;
 	bool usart_mode;
@@ -549,8 +551,7 @@ static void uart_scif_async_init(const struct device *dev)
 	/* Configure dma rx config */
 	offset = config->params->regs[SCFRDR].offset;
 	memset(&data->dma_rx.blk_cfg, 0, sizeof(data->dma_rx.blk_cfg));
-	data->dma_rx.blk_cfg.source_address =
-				(uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + offset;
+	data->dma_rx.blk_cfg.source_address = *(mm_reg_t *)DEVICE_MMIO_ROM_PTR(dev) + offset;
 	data->dma_rx.blk_cfg.dest_address = 0; /* dest not ready */
 
 	if (data->dma_rx.src_addr_increment) {
@@ -580,7 +581,7 @@ static void uart_scif_async_init(const struct device *dev)
 	offset = config->params->regs[SCFTDR].offset;
 	memset(&data->dma_tx.blk_cfg, 0, sizeof(data->dma_tx.blk_cfg));
 
-	data->dma_tx.blk_cfg.dest_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + offset;
+	data->dma_tx.blk_cfg.dest_address = *(mm_reg_t *)DEVICE_MMIO_ROM_PTR(dev) + offset;
 
 	data->dma_tx.blk_cfg.source_address = 0; /* not ready */
 
@@ -632,6 +633,10 @@ static int uart_scif_init(const struct device *dev)
 				     &data->clk_rate);
 	if (ret < 0) {
 		return ret;
+	}
+
+	if (config->reset.dev) {
+		(void)reset_line_deassert_dt(&config->reset);
 	}
 
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
@@ -1314,6 +1319,7 @@ static const struct uart_driver_api uart_scif_driver_api = {
 		.usart_mode = DT_INST_PROP(n, usart_mode),				\
 		.external_clock = DT_INST_PROP(n, external_clock),			\
 		.type = soc_type,							\
+		SCIF_RESET(n)								\
 		IRQ_FUNC_INIT								\
 	}
 
@@ -1337,13 +1343,17 @@ static const struct uart_driver_api uart_scif_driver_api = {
 											\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
 
+#define IRQ_DEFINE(inst, label) COND_CODE_1(DT_IRQ_HAS_NAME(DT_DRV_INST(inst), label),	\
+					   (UART_SET_IRQ(inst, label);), (EMPTY))
+
 #define UART_SCIF_IRQ_CONFIG_FUNC_RZ(n)							\
 	static void irq_config_func_##n(const struct device *dev)			\
 	{										\
-		UART_SET_IRQ(n, eri);							\
-		UART_SET_IRQ(n, rxi);							\
-		UART_SET_IRQ(n, txi);							\
-		UART_SET_IRQ(n, tei);							\
+		IRQ_DEFINE(n, eri);							\
+		IRQ_DEFINE(n, bri);							\
+		IRQ_DEFINE(n, rxi);							\
+		IRQ_DEFINE(n, txi);							\
+		IRQ_DEFINE(n, tei);							\
 	}
 #define UART_SCIF_IRQ_CFG_FUNC_INIT(n)							\
 	.irq_config_func = irq_config_func_##n
@@ -1418,6 +1428,7 @@ static const struct uart_driver_api uart_scif_driver_api = {
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 #define UART_SCIF_IRQ_CONFIG_FUNC UART_SCIF_IRQ_CONFIG_FUNC_SCIFA
 #endif
+#define SCIF_RESET(n)
 DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_SCIFA_INIT)
 
 #undef DT_DRV_COMPAT
@@ -1426,5 +1437,16 @@ DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_SCIFA_INIT)
 #undef UART_SCIF_IRQ_CONFIG_FUNC
 #define UART_SCIF_IRQ_CONFIG_FUNC UART_SCIF_IRQ_CONFIG_FUNC_RZ
 #endif
+#define UART_SCIF_RZ_INIT(n) UART_SCIF_XXX_INIT(n, SCIF_RZ_SCIFA_TYPE)
+DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_RZ_INIT)
+
+#undef DT_DRV_COMPAT
+#define DT_DRV_COMPAT renesas_rzg3s_scif
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+#undef UART_SCIF_IRQ_CONFIG_FUNC
+#define UART_SCIF_IRQ_CONFIG_FUNC UART_SCIF_IRQ_CONFIG_FUNC_RZ
+#endif
+#undef SCIF_RESET
+#define SCIF_RESET(n) .reset = RESET_DT_SPEC_INST_GET(n),
 #define UART_SCIF_RZ_INIT(n) UART_SCIF_XXX_INIT(n, SCIF_RZ_SCIFA_TYPE)
 DT_INST_FOREACH_STATUS_OKAY(UART_SCIF_RZ_INIT)
