@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT renesas_riic
-
 #include <errno.h>
 #include <stdint.h>
 #include <zephyr/device.h>
@@ -13,6 +11,7 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
+#include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
@@ -29,11 +28,20 @@ LOG_MODULE_REGISTER(riic);
 #define NUM_SLAVES		3
 #define NO_ACTIVE_SLAVE		(-1)
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_riic)
+#define DT_DRV_COMPAT renesas_riic
+#else
+#define DT_DRV_COMPAT renesas_rzg_riic
+#endif
+
 struct riic_config {
 	DEVICE_MMIO_ROM; /* Must be first */
 	const struct device *clock_dev;
 	struct renesas_cpg_clk mod_clk;
 	struct renesas_cpg_clk bus_clk;
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg_riic)
+	struct reset_dt_spec reset;
+#endif
 	const struct pinctrl_dev_config *pcfg;
 	void (*init_irq_func)(const struct device *dev);
 	uint32_t bitrate;
@@ -71,25 +79,6 @@ struct riic_data {
 #endif
 };
 
-/* Registers */
-#define RIIC_CR1		0x00	/* I²C Bus Control Register 1 */
-#define RIIC_CR2		0x04	/* I²C Bus Control Register 2 */
-#define RIIC_MR1		0x08	/* I²C Bus Mode Register 1 */
-#define RIIC_MR2		0x0c	/* I²C Bus Mode Register 2 */
-#define RIIC_MR3		0x10	/* I²C Bus Mode Register 3 */
-#define RIIC_FER		0x14	/* I²C Bus Function Enable Register */
-#define RIIC_SER		0x18	/* I²C Bus Status Enable Register */
-#define RIIC_IER		0x1c	/* I²C Bus Interrupt Enable Register */
-#define RIIC_SR1		0x20	/* I²C Bus Status Register 1 */
-#define RIIC_SR2		0x24	/* I²C Bus Status Register 2 */
-#define RIIC_SAR0		0x28	/* I²C Slave Address Register 0 */
-#define RIIC_SAR1		0x2c	/* I²C Slave Address Register 1 */
-#define RIIC_SAR2		0x30	/* I²C Slave Address Register 2 */
-#define RIIC_BRL		0x34	/* I²C Bus Bit Rate Low-Level Register */
-#define RIIC_BRH		0x38	/* I²C Bus Bit Rate High-Level Register */
-#define RIIC_DRT		0x3c	/* I²C Bus Transmit Data Register */
-#define RIIC_DRR		0x40	/* I²C Bus Receive Data Register */
-
 #define RIIC_CR1_ICE		BIT(7)	/* Bus Interface Enable */
 #define RIIC_CR1_IICRST		BIT(6)	/* Bus Interface Internal Reset */
 #define RIIC_CR1_CLO		BIT(5)	/* Extra SCL Clock Cycle Output */
@@ -106,8 +95,9 @@ struct riic_data {
 #define RIIC_CR2_RS		BIT(2)	/* Restart Condition Issuance Request */
 #define RIIC_CR2_ST		BIT(1)	/* Start Condition Issuance Request */
 
+#define RIIC_MR1_MTWP		BIT(7)	/* Write Protect to the MST and TRS bits in ICCR2 */
 #define RIIC_MR1_BCWP		BIT(3)	/* BC Write Protect */
-#define RIIC_MR1_CKS_MASK	0x70
+#define RIIC_MR1_CKS_MASK	GENMASK(6, 4)
 #define RIIC_MR1_CKS(x)		((((x) << 4) & RIIC_MR1_CKS_MASK) | RIIC_MR1_BCWP)
 
 #define RIIC_MR2_DLCS		BIT(7)	/* SDA Output Delay Clock Source Selection */
@@ -178,21 +168,67 @@ struct riic_data {
 
 #define TRANSFER_TIMEOUT_MS	10		/* Timeout for @riic_data::transfer_mtx */
 
-static void riic_write(const struct device *dev, uint32_t offs, uint32_t value)
+/* Registers */
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_riic)
+#define RIIC_CR1	0x00
+#define RIIC_CR2	0x04
+#define RIIC_MR1	0x08
+#define RIIC_MR2	0x0c
+#define RIIC_MR3	0x10
+#define RIIC_FER	0x14
+#define RIIC_SER	0x18
+#define RIIC_IER	0x1c
+#define RIIC_SR1	0x20
+#define RIIC_SR2	0x24
+#define RIIC_SAR0	0x28
+#define RIIC_SAR1	0x2c
+#define RIIC_SAR2	0x30
+#define RIIC_BRL	0x34
+#define RIIC_BRH	0x38
+#define RIIC_DRT	0x3c
+#define RIIC_DRR	0x40
+#elif DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg_riic)
+#define RIIC_CR1	0x00
+#define RIIC_CR2	0x01
+#define RIIC_MR1	0x02
+#define RIIC_MR2	0x03
+#define RIIC_MR3	0x04
+#define RIIC_FER	0x05
+#define RIIC_SER	0x06
+#define RIIC_IER	0x07
+#define RIIC_SR1	0x08
+#define RIIC_SR2	0x09
+#define RIIC_SAR0	0x0a
+#define RIIC_SAR1	0x0c
+#define RIIC_SAR2	0x0e
+#define RIIC_BRL	0x10
+#define RIIC_BRH	0x11
+#define RIIC_DRT	0x12
+#define RIIC_DRR	0x13
+#endif
+
+static void riic_write8(const struct device *dev, uint32_t offs, uint8_t value)
 {
-	sys_write32(value, DEVICE_MMIO_GET(dev) + offs);
+	sys_write8(value, DEVICE_MMIO_GET(dev) + offs);
 }
 
-static uint32_t riic_read(const struct device *dev, uint32_t offs)
+static uint8_t riic_read8(const struct device *dev, uint32_t offs)
 {
-	return sys_read32(DEVICE_MMIO_GET(dev) + offs);
+	return sys_read8(DEVICE_MMIO_GET(dev) + offs);
 }
+
+#if defined(CONFIG_I2C_TARGET)
+static void riic_write16(const struct device *dev, uint32_t offs, uint16_t value)
+{
+	sys_write16(value, DEVICE_MMIO_GET(dev) + offs);
+}
+#endif
 
 static int riic_wait_for_clear(const struct device *dev, uint32_t offs, uint16_t mask)
 {
 	uint32_t timeout = 0;
 
-	while ((riic_read(dev, offs) & mask) && (timeout < 10)) {
+	while ((riic_read8(dev, offs) & mask) && (timeout < 10)) {
 		k_busy_wait(USEC_PER_MSEC);
 		timeout++;
 	}
@@ -207,7 +243,7 @@ static int riic_wait_for_set(const struct device *dev, uint32_t offs, uint16_t m
 {
 	uint32_t timeout = 0;
 
-	while (!(riic_read(dev, offs) & mask) && (timeout < 10)) {
+	while (!(riic_read8(dev, offs) & mask) && (timeout < 10)) {
 		k_busy_wait(USEC_PER_MSEC);
 		timeout++;
 	}
@@ -221,7 +257,7 @@ static int riic_wait_for_set(const struct device *dev, uint32_t offs, uint16_t m
 static inline void riic_clear_set_bit(const struct device *dev, uint32_t offs,
 				      uint16_t clear, uint16_t set)
 {
-	riic_write(dev, offs, (riic_read(dev, offs) & ~clear) | set);
+	riic_write8(dev, offs, (riic_read8(dev, offs) & ~clear) | set);
 }
 
 static int riic_wait_for_state(const struct device *dev, uint8_t mask, bool forever)
@@ -232,7 +268,7 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask, bool fore
 	uint16_t timeout = 0;
 
 	data->interrupt_mask = mask;
-	data->status_bits = riic_read(dev, RIIC_SR2);
+	data->status_bits = riic_read8(dev, RIIC_SR2);
 	if (data->status_bits & mask) {
 		data->interrupt_mask = 0;
 		data->status_bits &= mask;
@@ -243,17 +279,17 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask, bool fore
 	k_sem_reset(&data->sem);
 
 	/* Save previous interrupts before modifying */
-	int_backup = riic_read(dev, RIIC_IER);
+	int_backup = riic_read8(dev, RIIC_IER);
 
 	/* Enable additionally interrupts */
-	riic_write(dev, RIIC_IER, mask | int_backup);
+	riic_write8(dev, RIIC_IER, mask | int_backup);
 
 	/* Wait for the interrupts */
 	ret = k_sem_take(&data->sem, (forever) ? K_FOREVER : K_USEC(MAX_WAIT_US));
 
 	/* Restore previous interrupts and wait for the changes to take effect */
-	riic_write(dev, RIIC_IER, int_backup);
-	while ((riic_read(dev, RIIC_IER) != int_backup) && (timeout < 10)) {
+	riic_write8(dev, RIIC_IER, int_backup);
+	while ((riic_read8(dev, RIIC_IER) != int_backup) && (timeout < 10)) {
 		k_msleep(1);
 		timeout++;
 	}
@@ -261,7 +297,7 @@ static int riic_wait_for_state(const struct device *dev, uint8_t mask, bool fore
 	if (!ret) {
 		return 0;
 	}
-	data->status_bits = riic_read(dev, RIIC_SR2) & mask;
+	data->status_bits = riic_read8(dev, RIIC_SR2) & mask;
 	if (data->status_bits) {
 		data->interrupt_mask = 0;
 		return 0;
@@ -287,7 +323,7 @@ static int riic_finish(const struct device *dev)
 {
 	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
 	riic_wait_for_state(dev, RIIC_IER_SPIE, false);
-	if (riic_read(dev, RIIC_CR2) & RIIC_SR2_START) {
+	if (riic_read8(dev, RIIC_CR2) & RIIC_SR2_START) {
 		riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_START, 0);
 	}
 	riic_clear_set_bit(dev, RIIC_SR2, RIIC_SR2_NACKF | RIIC_SR2_STOP, 0);
@@ -306,17 +342,17 @@ static int riic_set_addr(const struct device *dev, uint16_t chip, uint16_t flags
 	}
 	/* Set slave address & transfer mode */
 	if (flags & I2C_MSG_ADDR_10_BITS) {
-		riic_write(dev, RIIC_DRT, 0xf0 | ((chip >> 5) & 0x6) | read);
+		riic_write8(dev, RIIC_DRT, 0xf0 | ((chip >> 5) & 0x6) | read);
 		riic_wait_for_state(dev, RIIC_IER_TIE, false);
-		riic_write(dev, RIIC_DRT, chip & 0xff);
+		riic_write8(dev, RIIC_DRT, chip & 0xff);
 	} else {
-		riic_write(dev, RIIC_DRT, ((chip & 0x7f) << 1) | read);
+		riic_write8(dev, RIIC_DRT, ((chip & 0x7f) << 1) | read);
 	}
 	riic_wait_for_state(dev, RIIC_IER_NAKIE, false);
 	if (data->status_bits & RIIC_SR2_NACKF) {
 		return 1;
 	}
-	if ((riic_read(dev, RIIC_MR3) & RIIC_MR3_ACKBR) == 0) {
+	if ((riic_read8(dev, RIIC_MR3) & RIIC_MR3_ACKBR) == 0) {
 		return 0;
 	}
 	return 1;
@@ -393,7 +429,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		dma_blk.block_size = msg->len - 1;
 		dma_blk.dest_address = (uint32_t)msg->buf;
 		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
-		dma_blk.source_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RIIC_DRR;
+		dma_blk.source_address = *(mm_reg_t *)DEVICE_MMIO_ROM_PTR(dev) + RIIC_DRR;
 		dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 
 		error = dma_config(cfg->dma_dev, cfg->dma_channel, &dma_cfg);
@@ -414,7 +450,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 			return error;
 		}
 
-		is_rie_on = !!(riic_read(dev, RIIC_IER) && RIIC_IER_RIE);
+		is_rie_on = !!(riic_read8(dev, RIIC_IER) && RIIC_IER_RIE);
 		if (!is_rie_on) {
 			/* Enable Receive Data Full interrupt for DMA operation if needed */
 			riic_clear_set_bit(dev, RIIC_IER, 0, RIIC_IER_RIE);
@@ -422,7 +458,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		}
 
 		/* Dummy read for clearing RDRF flag. This start data reading transaction */
-		riic_read(dev, RIIC_DRR);
+		riic_read8(dev, RIIC_DRR);
 
 		/* Waiting for DMA operation to complete */
 		k_sem_take(&data->sem, K_FOREVER);
@@ -436,7 +472,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		}
 	} else {
 		/* Dummy read for clearing RDRF flag. This start data reading transaction */
-		riic_read(dev, RIIC_DRR);
+		riic_read8(dev, RIIC_DRR);
 	}
 
 	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
@@ -448,7 +484,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 	if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
 		return -EIO;
 	}
-	msg->buf[msg->len - 1] = riic_read(dev, RIIC_DRR) & 0xff;
+	msg->buf[msg->len - 1] = riic_read8(dev, RIIC_DRR) & 0xff;
 
 	/* Terminate transaction */
 	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
@@ -499,7 +535,7 @@ static int riic_dma_write(const struct device *dev, struct i2c_msg *msg)
 		dma_blk.block_size = msg->len - 1;
 		dma_blk.source_address = (uint32_t)(msg->buf + 1);
 		dma_blk.source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
-		dma_blk.dest_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RIIC_DRT;
+		dma_blk.dest_address = *(mm_reg_t *)DEVICE_MMIO_ROM_PTR(dev) + RIIC_DRT;
 		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 
 		error = dma_config(cfg->dma_dev, cfg->dma_channel, &dma_cfg);
@@ -517,7 +553,7 @@ static int riic_dma_write(const struct device *dev, struct i2c_msg *msg)
 			return error;
 		}
 
-		is_tie_on = !!(riic_read(dev, RIIC_IER) && RIIC_IER_TIE);
+		is_tie_on = !!(riic_read8(dev, RIIC_IER) && RIIC_IER_TIE);
 		if (!is_tie_on) {
 			/* Enable Transmit Data Empty interrupt for DMA operation if needed */
 			riic_clear_set_bit(dev, RIIC_IER, 0, RIIC_IER_TIE);
@@ -526,7 +562,7 @@ static int riic_dma_write(const struct device *dev, struct i2c_msg *msg)
 	}
 
 	/* Send first buffer byte (this will trigger DMA if it enabled) */
-	riic_write(dev, RIIC_DRT, msg->buf[0]);
+	riic_write8(dev, RIIC_DRT, msg->buf[0]);
 
 	/* Wait for transmitting complete */
 	riic_wait_for_state(dev, RIIC_IER_TEIE, true);
@@ -574,11 +610,11 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 		}
 
 		/* Dummy read for clearing RDRF flag */
-		riic_read(dev, RIIC_DRR);
+		riic_read8(dev, RIIC_DRR);
 
 		for (i = 0; i < msg->len; i++) {
 			if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
-				status = riic_read(dev, RIIC_SR2);
+				status = riic_read8(dev, RIIC_SR2);
 				return -EIO;
 			}
 			if (msg->len == i + 2) {
@@ -592,7 +628,7 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 			}
 
 			/* Receive next byte */
-			msg->buf[i] = riic_read(dev, RIIC_DRR) & 0xff;
+			msg->buf[i] = riic_read8(dev, RIIC_DRR) & 0xff;
 		}
 	} else {
 		/* Master write operation in sync mode */
@@ -600,7 +636,7 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 			if (riic_wait_for_state(dev, RIIC_IER_TIE, false)) {
 				return -EIO;
 			}
-			riic_write(dev, RIIC_DRT, msg->buf[i]);
+			riic_write8(dev, RIIC_DRT, msg->buf[i]);
 		}
 		riic_wait_for_state(dev, RIIC_IER_TEIE, false);
 	}
@@ -630,7 +666,7 @@ static int riic_transfer(const struct device *dev,
 	}
 
 	/* Wait for the bus to be available */
-	while ((riic_read(dev, RIIC_CR2) & RIIC_CR2_BBSY) && (timeout < 10)) {
+	while ((riic_read8(dev, RIIC_CR2) & RIIC_CR2_BBSY) && (timeout < 10)) {
 		k_busy_wait(USEC_PER_MSEC);
 		timeout++;
 	}
@@ -664,7 +700,7 @@ static int riic_transfer(const struct device *dev,
 	data->master_active = 1;
 	do {
 		if (msgs->flags & I2C_MSG_RESTART) {
-			if (riic_read(dev, RIIC_SR2) & RIIC_SR2_START) {
+			if (riic_read8(dev, RIIC_SR2) & RIIC_SR2_START) {
 				/* Generate RESTART condition */
 				riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_RS);
 			} else {
@@ -797,12 +833,12 @@ static int riic_configure(const struct device *dev, uint32_t dev_config)
 	riic_clear_set_bit(dev, RIIC_CR1, 0, RIIC_CR1_IICRST);
 	riic_clear_set_bit(dev, RIIC_CR1, 0, RIIC_CR1_ICE);
 
-	riic_write(dev, RIIC_MR1, RIIC_MR1_CKS(cks));
-	riic_write(dev, RIIC_BRH, brh | RIIC_BR_RESERVED);
-	riic_write(dev, RIIC_BRL, brl | RIIC_BR_RESERVED);
+	riic_write8(dev, RIIC_MR1, RIIC_MR1_CKS(cks));
+	riic_write8(dev, RIIC_BRH, brh | RIIC_BR_RESERVED);
+	riic_write8(dev, RIIC_BRL, brl | RIIC_BR_RESERVED);
 
-	riic_write(dev, RIIC_SER, 0);
-	riic_write(dev, RIIC_MR3, RIIC_MR3_RDRFS);
+	riic_write8(dev, RIIC_SER, 0);
+	riic_write8(dev, RIIC_MR3, RIIC_MR3_RDRFS);
 
 	if (I2C_SPEED_GET(dev_config) == I2C_SPEED_FAST_PLUS) {
 		riic_clear_set_bit(dev, RIIC_FER, 0, RIIC_FER_FMPE);
@@ -844,11 +880,13 @@ static int riic_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	/* Configure dt provided device signals when available */
-	ret = pinctrl_apply_state(config->pcfg, PINCTRL_STATE_DEFAULT);
-	if (ret < 0) {
-		LOG_ERR("Can't apply pinctrl state for %s\n", dev->name);
-		return ret;
+	if (config->pcfg->state_cnt) {
+		/* Configure dt provided device signals when available */
+		ret = pinctrl_apply_state(config->pcfg, PINCTRL_STATE_DEFAULT);
+		if (ret < 0) {
+			LOG_ERR("Can't apply pinctrl state for %s\n", dev->name);
+			return ret;
+		}
 	}
 
 	ret = clock_control_on(config->clock_dev, (clock_control_subsys_t)&config->mod_clk);
@@ -863,6 +901,10 @@ static int riic_init(const struct device *dev)
 		LOG_ERR("Can't get clock rate for %s\n", dev->name);
 		goto err;
 	}
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg_riic)
+	(void)reset_line_deassert_dt(&config->reset);
+#endif
 
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
 
@@ -905,11 +947,11 @@ static void riic_slave_event(const struct device *dev)
 	}
 	slave_cb = slave_cfg->callbacks;
 
-	status = riic_read(dev, RIIC_SR2);
+	status = riic_read8(dev, RIIC_SR2);
 
 	if (status & RIIC_SR2_RDRF) {
 		/* RX data is available, read it and issue write callback */
-		val = riic_read(dev, RIIC_DRR);
+		val = riic_read8(dev, RIIC_DRR);
 		if (slave->first_write) {
 			/* First byte received (device address + W/R) */
 			slave->first_write = false;
@@ -939,13 +981,13 @@ static void riic_slave_event(const struct device *dev)
 			if (slave_cb->read_requested &&
 			    !slave_cb->read_requested(slave_cfg, &val)) {
 				/* No error, send byte */
-				riic_write(dev, RIIC_DRT, val);
+				riic_write8(dev, RIIC_DRT, val);
 			}
 		} else {
 			if (slave_cb->read_processed &&
 			    !slave_cb->read_processed(slave_cfg, &val)) {
 				/* No error, send byte */
-				riic_write(dev, RIIC_DRT, val);
+				riic_write8(dev, RIIC_DRT, val);
 			}
 		}
 		return;
@@ -967,7 +1009,7 @@ static void riic_slave_event(const struct device *dev)
 
 	if (status & RIIC_SR2_NACKF) {
 		/* NACK from master. Dummy read DRR to release SCL line */
-		riic_read(dev, RIIC_DRR);
+		riic_read8(dev, RIIC_DRR);
 
 		/* Temporary disable NACK Reception Interrupt until stop not received */
 		riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_NAKIE, 0);
@@ -993,7 +1035,7 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 		return -EBUSY;
 	}
 
-	val = (~riic_read(dev, RIIC_SER)) & RIIC_SER_SLAVE_MASK;
+	val = (~riic_read8(dev, RIIC_SER)) & RIIC_SER_SLAVE_MASK;
 	slave_num = __builtin_ffs(val) - 1;
 	if (slave_num < 0) {
 		ret = -EBUSY;
@@ -1005,7 +1047,7 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 	} else {
 		val = (config->address << RIIC_SAR_SVA_SHIFT) & RIIC_SAR_SVA_MASK;
 	}
-	riic_write(dev, RIIC_SAR0 + slave_num * 4, val);
+	riic_write16(dev, RIIC_SAR0 + slave_num * 4, val);
 	riic_clear_set_bit(dev, RIIC_SER, 0, BIT(slave_num));
 	data->slave[slave_num].slave_cfg = config;
 	data->slave[slave_num].slave_attached = true;
@@ -1013,7 +1055,7 @@ int riic_target_register(const struct device *dev, struct i2c_target_config *con
 	data->slave[slave_num].first_write = true;
 
 	/* Enable interrupts  */
-	riic_write(dev, RIIC_IER, RIIC_IER_RIE | RIIC_IER_TIE | RIIC_IER_NAKIE | RIIC_IER_SPIE);
+	riic_write8(dev, RIIC_IER, RIIC_IER_RIE | RIIC_IER_TIE | RIIC_IER_NAKIE | RIIC_IER_SPIE);
 
 	LOG_DBG("i2c: target registered. Address %x", config->address);
 
@@ -1056,7 +1098,7 @@ int riic_target_unregister(const struct device *dev, struct i2c_target_config *c
 	data->slave[i].slave_cfg = NULL;
 
 	/* Disable interrupts */
-	riic_write(dev, RIIC_IER, 0);
+	riic_write8(dev, RIIC_IER, 0);
 
 	LOG_DBG("i2c: slave unregistered");
 
@@ -1076,7 +1118,7 @@ static void riic_isr(const struct device *dev)
 
 	if (!data->master_active) {
 		/* Only for slave mode */
-		value = riic_read(dev, RIIC_SR1) & RIIC_SR1_AAS_MASK;
+		value = riic_read8(dev, RIIC_SR1) & RIIC_SR1_AAS_MASK;
 		slave_num = __builtin_ffs(value) - 1;
 		if (slave_num >= 0) {
 			/* Save active slave number because we cannot read it after stop bit */
@@ -1092,7 +1134,7 @@ static void riic_isr(const struct device *dev)
 	}
 #endif
 	/* Only for master mode */
-	value = riic_read(dev, RIIC_SR2);
+	value = riic_read8(dev, RIIC_SR2);
 	if (value & data->interrupt_mask) {
 		data->status_bits = value & data->interrupt_mask;
 		k_sem_give(&data->sem);
@@ -1162,13 +1204,21 @@ static const struct i2c_driver_api riic_driver_api = {
 #endif
 };
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_riic)
+#define RIIC_IRQ_FLAGS(n, name) DT_INST_IRQ_BY_NAME(n, name, flags)
+#define RIIC_RESET(n)
+#elif DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg_riic)
+#define RIIC_IRQ_FLAGS(n, name) 0
+#define RIIC_RESET(n) .reset = RESET_DT_SPEC_INST_GET(n),
+#endif
+
 /* Device Instantiation */
 #define RIIC_SET_IRQ(n, name, isr)					\
 	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, name, irq),			\
 		    DT_INST_IRQ_BY_NAME(n, name, priority),		\
 		    isr,						\
 		    DEVICE_DT_INST_GET(n),				\
-		    DT_INST_IRQ_BY_NAME(n, name, flags));		\
+		    RIIC_IRQ_FLAGS(n, name));				\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));
 
 #ifdef CONFIG_I2C_RIIC_DMA_DRIVEN
@@ -1210,6 +1260,7 @@ static const struct i2c_driver_api riic_driver_api = {
 		.bus_clk.domain =					\
 			DT_INST_CLOCKS_CELL_BY_NAME(n, bus, domain),	\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),		\
+		RIIC_RESET(n)						\
 		RIIC_DMA_CHANNELS(n)					\
 	};								\
 									\
