@@ -24,11 +24,26 @@
 		};
 	};
 
-	bus_clk: busclk {
-		#clock-cells = <0>;
+	extal_clk: extal-clk {
 		compatible = "fixed-clock";
-		/* Value must be set by board */
+		#clock-cells = <0>;
+		/* This value must be overridden by the board */
 		clock-frequency = <0>;
+	};
+
+	soc {
+		cpg: clock-controller@41010000 {
+			compatible = "renesas,r9a08g045-cpg-mssr";
+			reg = <0x41010000 0x10000>;
+			clocks = <&extal_clk>;
+			clock-names = "extal";
+			#clock-cells = <2>;
+
+			cpg_rctl: reset-controller {
+				#reset-cells = <1>;
+				status = "okay";
+			};
+		};
 	};
 };
 

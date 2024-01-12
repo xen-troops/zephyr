@@ -23,6 +23,6 @@
 	};
 };
 
-&bus_clk {
-	clock-frequency = <DT_FREQ_M(250)>;
+&extal_clk {
+	clock-frequency = <DT_FREQ_M(24)>;
 };
