@@ -315,6 +315,67 @@
 			interrupt-parent = <&nvic>;
 		};
 
+		i2c0: i2c@40090000 {
+			compatible = "renesas,rzg-riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40090000 0x15>;
+			interrupts = <257 0>, <258 0>, <259 0>, <260 0>,
+				     <261 0>, <262 0>, <263 0>, <264 0>;
+			interrupt-names = "tei", "nacki", "spi", "sti", "ali", "tmoi", "ri", "ti";
+			clocks = <&cpg CPG_MOD R9A08G045_I2C0_PCLK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = < &cpg_rctl  R9A08G045_I2C0_MRST>;
+			status = "disabled";
+		};
+		i2c1: i2c@40090400 {
+			compatible = "renesas,rzg-riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40090400 0x15>;
+			interrupts = <265 0>, <266 0>, <267 0>, <268 0>,
+				     <269 0>, <270 0>, <271 0>, <272 0>;
+			interrupt-names = "tei", "nacki", "spi", "sti", "ali", "tmoi", "ri", "ti";
+			clocks = <&cpg CPG_MOD R9A08G045_I2C1_PCLK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = < &cpg_rctl  R9A08G045_I2C1_MRST>;
+			status = "disabled";
+		};
+		i2c2: i2c@40090800 {
+			compatible = "renesas,rzg-riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40090800 0x15>;
+			interrupts = <273 0>, <274 0>, <275 0>, <276 0>,
+				     <277 0>, <278 0>, <279 0>, <280 0>;
+			interrupt-names = "tei", "nacki", "spi", "sti", "ali", "tmoi", "ri", "ti";
+			clocks = <&cpg CPG_MOD R9A08G045_I2C2_PCLK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = < &cpg_rctl  R9A08G045_I2C2_MRST>;
+			status = "disabled";
+		};
+		i2c3: i2c@40090c00 {
+			compatible = "renesas,rzg-riic";
+			clock-frequency = <100000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40090c00 0x15>;
+			interrupts = <281 0>, <282 0>, <283 0>, <284 0>,
+				     <285 0>, <286 0>, <287 0>, <288 0>;
+			interrupt-names = "tei", "nacki", "spi", "sti", "ali", "tmoi", "ri", "ti";
+			clocks = <&cpg CPG_MOD R9A08G045_I2C3_PCLK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = < &cpg_rctl  R9A08G045_I2C3_MRST>;
+			status = "disabled";
+		};
+
 		spi0: spi@400aa000 {
 			compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
 			reg = <0x400aa000 0x24>;
