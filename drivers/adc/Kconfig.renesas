@@ -18,3 +18,11 @@ config ADC_SMARTBOND_SDADC
 	select ADC_CONFIGURABLE_INPUTS
 	help
 	  Enable support for ADC driver for Renesas SmartBond(tm) MCU series.
+
+config ADC_RZG3S
+	bool "Renesas RZ/G3S ADC Interface"
+	default y
+	depends on SOC_R9A08G045
+	depends on DT_HAS_RENESAS_RZG3S_ADC_ENABLED
+	help
+	  Enables support for ADC driver for Renesas RZ/A2M series SoC.
