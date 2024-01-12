@@ -1,5 +1,5 @@
 # Copyright (c) 2021-2022 IoT.bzh
-# Copyright (c) 2023 EPAM Systems
+# Copyright (c) 2024 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
 config CLOCK_CONTROL_RENESAS_CPG_MSSR
@@ -8,3 +8,14 @@ config CLOCK_CONTROL_RENESAS_CPG_MSSR
 	depends on DT_HAS_RENESAS_R8A7795_CPG_MSSR_ENABLED || DT_HAS_RENESAS_R7S9210_CPG_MSSR_ENABLED
 	help
 	  Enable support for Renesas RCar CPG MSSR driver.
+
+config CLOCK_CONTROL_RENESAS_RZG3S
+	bool "Renesas RZ/G3S family clock support"
+	default y
+	depends on DT_HAS_RENESAS_R9A08G045_CPG_MSSR_ENABLED
+	depends on CLOCK_CONTROL
+	depends on RESET
+	help
+	  Enable support for Renesas RZ/G3S CPG Clock Pulse Generator (CPG) driver.
+	  The CPG driver supports only module's clocks and resets control.
+	  The PLLs and core clocks are not configured by the CPG driver.
