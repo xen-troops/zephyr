@@ -8,6 +8,7 @@
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
 #include <zephyr/dt-bindings/clock/r9a08g045_cpg_mssr.h>
 #include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
+#include <zephyr/dt-bindings/dma/rzg3_dma.h>
 #include <zephyr/dt-bindings/dt-util.h>
 #include <zephyr/dt-bindings/adc/adc.h>
 #include <zephyr/dt-bindings/gpio/rzg3s-gpio.h>
@@ -73,6 +74,31 @@
 			compatible = "syscon";
 			reg = <0x41020000 0xE30>;
 			status = "okay";
+		};
+
+		dma0: dma@41800000 { /* Secure DMA */
+			compatible = "renesas,rzg3-dma";
+			reg = <0x41800000 0x800>, <0x41810000 0x20>;
+			reg-names = "reg_main", "ext";
+			interrupts =  <95 0>,  <96 0>,  <97 0>,  <98 0>,
+				      <99 0>, <100 0>, <101 0>, <102 0>,
+				     <103 0>, <104 0>, <105 0>, <106 0>,
+				     <107 0>, <108 0>, <109 0>, <110 0>,
+				      <94 0>; /* DMAERR1 */
+			interrupt-names = "ch0",   "ch1",  "ch2",  "ch3",
+					  "ch4",   "ch5",  "ch6",  "ch7",
+					  "ch8",   "ch9", "ch10", "ch11",
+					  "ch12", "ch13", "ch14", "ch15",
+					  "err1";
+			dma-channels = <16>;
+			#dma-cells = <3>;
+			clocks = <&cpg CPG_MOD R9A08G045_DMAC_ACLK>,
+				 <&cpg CPG_MOD R9A08G045_DMAC_PCLK>;
+			clock-names = "aclk", "pclk";
+			resets = <&cpg_rctl R9A08G045_DMAC_ARESETN>,
+				 <&cpg_rctl R9A08G045_DMAC_RST_ASYNC>;
+			dma-buf-addr-alignment = <4>;
+			status = "disabled";
 		};
 
 		pinctrl: pin-controller@41030000 {
