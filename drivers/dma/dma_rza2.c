@@ -1507,10 +1507,15 @@ static int dma_rza2_init(const struct device *dev)
 	return 0;
 }
 
+#define DT_IRQ_HAS_CELL_AT_NAME(node_id, name, cell) \
+	IS_ENABLED(DT_CAT6(node_id, _IRQ_NAME_, name, _VAL_, cell, _EXISTS))
+
 #define IRQ_ERR_CONFIGURE(inst, name)                                                              \
 	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(inst, name, irq),                                          \
 		    DT_INST_IRQ_BY_NAME(inst, name, priority), dma_rza2_err_isr,                   \
-		    DEVICE_DT_INST_GET(inst), DT_INST_IRQ_BY_NAME(inst, name, flags));             \
+		    DEVICE_DT_INST_GET(inst),                                                      \
+		    COND_CODE_1(DT_IRQ_HAS_CELL_AT_NAME(DT_DRV_INST(inst), name, flags),           \
+				(DT_INST_IRQ_BY_NAME(inst, name, flags)), (0)));                   \
 	irq_enable(DT_INST_IRQ_BY_NAME(inst, name, irq));
 
 #define IRQ_DECLARE_ISR(n, inst)                                                                   \
@@ -1522,7 +1527,8 @@ static int dma_rza2_init(const struct device *dev)
 #define IRQ_CONFIGURE(n, inst)                                                                     \
 	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq), DT_INST_IRQ_BY_IDX(inst, n, priority),       \
 		    dma_rza2_##n##_##inst##_isr, DEVICE_DT_INST_GET(inst),                         \
-		    DT_INST_IRQ_BY_IDX(inst, n, flags));                                           \
+		    COND_CODE_1(DT_IRQ_HAS_CELL_AT_NAME(DT_DRV_INST(inst), name, flags),           \
+				(DT_INST_IRQ_BY_IDX(inst, n, flags)), (0)));                       \
 	irq_enable(DT_INST_IRQ_BY_IDX(inst, n, irq));
 
 #define CONFIGURE_ALL_IRQS(inst, n) LISTIFY(n, IRQ_CONFIGURE, (), inst)
