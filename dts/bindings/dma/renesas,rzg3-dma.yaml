@@ -1,0 +1,32 @@
+# Copyright (c) 2024, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  RZG3 DMA controller
+
+  channel: Select channel for data transmitting
+
+  slot: Select peripheral to connect DMA. Slots defined in rza2_dma.h header.
+
+  config: A 32bit mask specifying the DMA channel configuration
+
+  Example of device-tree configuration
+
+  &ssi0 {
+       status = "okay";
+
+       dmas = <&dma0 0 DMA_RS_SSIF_DMA_RX0 0>, <&dma0 5 DMA_RS_SSIF_DMA_TX0 0>;
+       dma-names = "rx", "tx";
+  };
+
+include: ["renesas,rza2-dma.yaml", base.yaml, reset-device.yaml]
+
+compatible: "renesas,rzg3-dma"
+
+properties:
+
+  resets:
+    required: true
+
+  clocks:
+    required: true
