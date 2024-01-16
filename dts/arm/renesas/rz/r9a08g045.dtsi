@@ -7,6 +7,8 @@
 #include <arm/armv8-m.dtsi>
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
 #include <zephyr/dt-bindings/clock/r9a08g045_cpg_mssr.h>
+#include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
+#include <zephyr/dt-bindings/dt-util.h>
 #include <mem.h>
 
 / {
@@ -290,6 +292,19 @@
 			clock-names = "fck", "bus";
 			resets = <&cpg_rctl R9A08G045_SCIF5_RST_SYSTEM_N>;
 			status = "disabled";
+		};
+
+		intc: interrupt-controller@41060000 {
+			compatible = "renesas,r9a08g045-intc";
+			reg = <0x41060000 0x18>;
+			#interrupt-cells = <2>;
+			#address-cells = <0>;
+			interrupts =
+				<1 0>, <2 0>, <3 0>, <4 0>,
+				<5 0>, <6 0>, <7 0>, <8 0>;
+			map = <0 1 2 3 4 5 6 7>;
+			interrupt-controller;
+			interrupt-parent = <&nvic>;
 		};
 	};
 
