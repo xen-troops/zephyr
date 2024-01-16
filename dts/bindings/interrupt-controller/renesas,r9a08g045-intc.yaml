@@ -1,0 +1,11 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas r9a08g045 INTC interrupt controller
+
+compatible: "renesas,r9a08g045-intc"
+
+include:
+  - name: renesas,r7s9210-intc.yaml
+    property-blocklist:
+      - nmi-edge
