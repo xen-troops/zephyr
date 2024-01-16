@@ -25,6 +25,8 @@
 #include <zephyr/dt-bindings/interrupt-controller/arm-gic.h>
 #include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
 
+#include "intc_rz_common.h"
+
 /**
  * CR0 is a 16-bit register that sets the input signal detection mode for the
  * external interrupt input pin NMI, and indicates the input level at the NMI pin.
@@ -61,26 +63,10 @@
  */
 #define R7S9210_INTC_RR_MSK BIT(15)
 
-struct r7s9210_intc_line_cfg {
-	unsigned int line;
-	unsigned int parent_line;
-};
-
-struct r7s9210_intc_cfg {
-	DEVICE_MMIO_ROM; /* Must be first */
-	struct r7s9210_intc_line_cfg *line_map;
-	unsigned int num_lines;
-};
-
-struct r7s9210_intc_data {
-	DEVICE_MMIO_RAM; /* Must be first */
-	struct k_spinlock lock;
-};
-
 static void r7s9210_isr(const void *arg)
 {
 	const struct device *const dev = DEVICE_DT_INST_GET(0);
-	struct r7s9210_intc_data *data = (struct r7s9210_intc_data *)dev->data;
+	struct intc_rz_data *data = (struct intc_rz_data *)dev->data;
 	k_spinlock_key_t key;
 	const uint32_t line = POINTER_TO_UINT(arg);
 	const struct _isr_table_entry *entry = &_sw_isr_table[CONFIG_2ND_LVL_ISR_TBL_OFFSET + line];
@@ -99,76 +85,13 @@ static void r7s9210_isr(const void *arg)
 	k_spin_unlock(&data->lock, key);
 }
 
-/* is this irq belongs to this intc if yes - return parent irq */
-static unsigned int r7s9210_intr_get_parent_irq(const struct device *dev, unsigned int irq)
-{
-	const struct r7s9210_intc_cfg *cfg = (const struct r7s9210_intc_cfg *)dev->config;
-	unsigned int parent_line = irq_parent_level_2(irq) + 32;
-
-	irq = irq_from_level_2(irq);
-	parent_line += irq;
-
-	for (unsigned int line = 0; line < cfg->num_lines; line++) {
-		if (cfg->line_map[line].line != irq) {
-			continue;
-		}
-
-		if (cfg->line_map[line].parent_line == parent_line) {
-			return parent_line;
-		}
-	}
-
-	return 0;
-}
-
-/* The driver can't enable IRQ by this driver, so lets request it from the parent driver. */
-static void r7s9210_intr_enable(const struct device *dev, unsigned int irq)
-{
-	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
-
-	if (!parent_irq) {
-		return;
-	}
-
-	irq_enable(parent_irq);
-}
-
-/* The driver can't disable IRQ by this driver, so lets request it from the parent driver. */
-static void r7s9210_intr_disable(const struct device *dev, unsigned int irq)
-{
-	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
-
-	if (!parent_irq) {
-		return;
-	}
-
-	irq_disable(parent_irq);
-}
-
-/**
- * The driver can't determine the status of whether the IRQs on lines are enabled or not.
- * So, let's request information from the parent driver.
- */
-static unsigned int r7s9210_intr_get_state(const struct device *dev)
-{
-	const struct r7s9210_intc_cfg *cfg = (const struct r7s9210_intc_cfg *)dev->config;
-
-	for (unsigned int line = 0; line < cfg->num_lines; line++) {
-		if (irq_is_enabled(cfg->line_map[line].parent_line)) {
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
 static void r7s9210_intr_set_priority(const struct device *dev, unsigned int irq,
 				      unsigned int prio, uint32_t flags)
 {
 	uint16_t cr1;
-	struct r7s9210_intc_data *data = (struct r7s9210_intc_data *)dev->data;
+	struct intc_rz_data *data = (struct intc_rz_data *)dev->data;
 	k_spinlock_key_t key;
-	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
+	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 
 	if (!parent_irq) {
 		return;
@@ -200,55 +123,22 @@ static void r7s9210_intr_set_priority(const struct device *dev, unsigned int irq
 	k_spin_unlock(&data->lock, key);
 }
 
-/**
- * The driver can't determine the status of whether the IRQ on this line is enabled or not.
- * Therefore, let's request this information from the parent driver.
- */
-static int r7s9210_intr_get_line_state(const struct device *dev, unsigned int irq)
-{
-	unsigned int parent_irq = r7s9210_intr_get_parent_irq(dev, irq);
-
-	if (!parent_irq) {
-		return 0;
-	}
-
-	return irq_is_enabled(parent_irq);
-}
-
 static const struct irq_next_level_api r7s9210_intc_next_lvl = {
-	.intr_enable = r7s9210_intr_enable,
-	.intr_disable = r7s9210_intr_disable,
-	.intr_get_state = r7s9210_intr_get_state,
+	.intr_enable = intc_rz_intr_enable,
+	.intr_disable = intc_rz_intr_disable,
+	.intr_get_state = intc_rz_intr_get_state,
 	.intr_set_priority = r7s9210_intr_set_priority,
-	.intr_get_line_state = r7s9210_intr_get_line_state,
+	.intr_get_line_state = intc_rz_intr_get_line_state,
 };
 
 BUILD_ASSERT(DT_NUM_IRQS(DT_DRV_INST(0)) == DT_INST_PROP_LEN(0, map),
 	     "Number of items in interrupts and map should be the same");
 
-#define IRQ_CONFIGURE(n, inst)                                             \
-	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq),                      \
-		    DT_INST_IRQ_BY_IDX(inst, n, priority), r7s9210_isr,    \
-		    DT_INST_PROP_BY_IDX(inst, map, n),                     \
-		    DT_INST_IRQ_BY_IDX(inst, n, flags));                   \
-	BUILD_ASSERT(DT_INST_IRQ_BY_IDX(inst, n, type) == GIC_SPI,         \
-				 "Driver can work only with SPI parent interrupts");
-
-#define CONFIGURE_ALL_IRQS(inst, n) LISTIFY(n, IRQ_CONFIGURE, (), inst)
-
-#define FILL_ONE_LINE_MAP(n, inst)                        \
-	{                                                 \
-		DT_INST_PROP_BY_IDX(inst, map, n),        \
-		DT_INST_IRQ_BY_IDX(inst, n, irq),         \
-	}
-#define FILL_LINE_MAP_CONFIG(inst, n) \
-	(struct r7s9210_intc_line_cfg []){LISTIFY(n, FILL_ONE_LINE_MAP, (,), inst)}
-
 static inline void r7s9210_intc_setup_nmi_edge(const struct device *dev)
 {
 	k_spinlock_key_t key;
 	uint16_t cr0;
-	struct r7s9210_intc_data *data = (struct r7s9210_intc_data *)dev->data;
+	struct intc_rz_data *data = (struct intc_rz_data *)dev->data;
 	uint16_t nmi_edge = DT_INST_PROP_OR(0, nmi_edge, IRQ_TYPE_EDGE_FALLING) >> 2;
 
 	nmi_edge <<= R7S9210_INTC_CR0_NMIE_OFFSET;
@@ -281,20 +171,20 @@ void z_arm_nmi_eoi(void)
 static int r7s9210_intc_init(const struct device *dev)
 {
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
-	CONFIGURE_ALL_IRQS(0, DT_NUM_IRQS(DT_DRV_INST(0)));
+	CONFIGURE_ALL_IRQS(0, DT_NUM_IRQS(DT_DRV_INST(0)), r7s9210_isr);
 
 	r7s9210_intc_setup_nmi_edge(dev);
 	return 0;
 }
 
-static const struct r7s9210_intc_cfg drv_cfg = {
+static const struct intc_rz_cfg drv_cfg = {
 	DEVICE_MMIO_ROM_INIT(DT_DRV_INST(0)),
 
 	.num_lines = DT_NUM_IRQS(DT_DRV_INST(0)),
 	.line_map = FILL_LINE_MAP_CONFIG(0, DT_NUM_IRQS(DT_DRV_INST(0))),
 };
 
-static struct r7s9210_intc_cfg drv_data;
+static struct intc_rz_data drv_data;
 
 DEVICE_DT_INST_DEFINE(0, &r7s9210_intc_init, NULL,
 		      &drv_data, &drv_cfg, PRE_KERNEL_1,
