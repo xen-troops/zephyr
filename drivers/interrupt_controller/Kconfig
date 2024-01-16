@@ -72,7 +72,7 @@ source "drivers/interrupt_controller/Kconfig.stm32"
 
 source "drivers/interrupt_controller/Kconfig.cavs"
 
-source "drivers/interrupt_controller/Kconfig.r7s9210"
+source "drivers/interrupt_controller/Kconfig.renesas"
 
 source "drivers/interrupt_controller/Kconfig.rv32m1"
 
