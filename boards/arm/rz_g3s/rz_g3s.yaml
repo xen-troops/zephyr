@@ -10,6 +10,7 @@ supported:
   - uart
   - spi
   - watchdog
+  - adc
 testing:
   default: true
   ignore_tags:
