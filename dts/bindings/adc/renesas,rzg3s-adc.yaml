@@ -1,0 +1,47 @@
+# Copyright (c) 2024, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Renesas RZ/G3S ADC controller
+
+  "input" cell in io-channel-cells indicate the ADC input channel index.
+  RZ/G3S has 8 analog inputs (ADC_CH0 to ADC_CH7) and one Thermal Sensor Unit (TSU).
+  Accordingly, input can be from 0 to 8. For example io-channels for 0, 1 and 8 channel:
+
+    / {
+      zephyr,user {
+        io-channels = <&adc 0>, <&adc 1>, <&adc 8>;
+      };
+    };
+
+compatible: "renesas,rzg3s-adc"
+
+include: [adc-controller.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  resets:
+    required: true
+
+  vref-mv:
+    type: int
+    default: 1800
+    description: |
+      Indicate the reference voltage of the ADC in mV.
+      RZ/G3S has one voltage reference (ADC_AVDD18 pin).
+      And it is usually connected to VDD.
+      In such case, set this property to the VDD (in mV) value.
+
+  "#io-channel-cells":
+    const: 1
+
+io-channel-cells:
+  - input
