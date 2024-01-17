@@ -9,7 +9,8 @@ config SOC_SERIES
 	default "rz_g"
 
 config NUM_IRQS
-	default 480
+	default 480 if !2ND_LEVEL_INTERRUPTS
+	default 488 if 2ND_LEVEL_INTERRUPTS
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
 	default	$(dt_node_int_prop_int,/cpus/cpu@0,clock-frequency)
@@ -19,5 +20,27 @@ config FLASH_SIZE
 
 config FLASH_BASE_ADDRESS
 	default $(dt_chosen_reg_addr_hex,$(DT_CHOSEN_Z_FLASH))
+
+if MULTI_LEVEL_INTERRUPTS
+
+config 1ST_LEVEL_INTERRUPT_BITS
+	default 9
+
+config MAX_IRQ_PER_AGGREGATOR
+	default 8
+
+config 2ND_LEVEL_INTERRUPTS
+	default y
+
+config 2ND_LVL_ISR_TBL_OFFSET
+	default 480
+
+config 2ND_LVL_INTR_00_OFFSET
+	default 1
+
+config NUM_2ND_LEVEL_AGGREGATORS
+	default 1
+
+endif # MULTI_LEVEL_INTERRUPTS
 
 endif # SOC_SERIES_RZ_G
