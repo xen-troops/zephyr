@@ -9,6 +9,7 @@
 #include <zephyr/dt-bindings/clock/r9a08g045_cpg_mssr.h>
 #include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
 #include <zephyr/dt-bindings/dt-util.h>
+#include <zephyr/dt-bindings/adc/adc.h>
 #include <mem.h>
 
 / {
@@ -480,6 +481,20 @@
 			interrupt-names = "wdt", "perrout";
 			resets = <&cpg_rctl R9A08G045_WDT2_PRESETN>;
 			status = "disabled";
+		};
+
+		adc: adc@40058000 {
+			compatible = "renesas,rzg3s-adc";
+			reg = <0x40058000 0x80>;
+			interrupts = <312 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_ADC_ADCLK>,
+				 <&cpg CPG_MOD R9A08G045_ADC_PCLK>;
+			clock-names = "adclk", "pclk";
+			resets = <&cpg_rctl R9A08G045_ADC_PRESETN>,
+				 <&cpg_rctl R9A08G045_ADC_ADRST_N>;
+			reset-names = "presetn", "adrst-n";
+			status = "disabled";
+			#io-channel-cells = <1>;
 		};
 	};
 };
