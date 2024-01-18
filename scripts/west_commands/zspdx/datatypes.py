@@ -68,6 +68,21 @@ class PackageConfig:
         # SPDX ID, including "SPDXRef-"
         self.spdxID = ""
 
+        # primary package purpose (ex. "LIBRARY", "APPLICATION", etc.)
+        self.primaryPurpose = ""
+
+        # package URL
+        self.url = ""
+
+        # package version
+        self.version = ""
+
+        # package revision
+        self.revision = ""
+
+        # package external references
+        self.externalReferences = []
+
         # the Package's declared license
         self.declaredLicense = "NOASSERTION"
 
