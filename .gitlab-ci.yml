@@ -1,6 +1,10 @@
 stages:
   - compliance
   - guidlines
+  - doc
+
+variables:
+  BOARD: rz_g3s
 
 comliance-job:
   stage: compliance
@@ -28,3 +32,18 @@ guidlines-job:
     - export ZEPHYR_BASE=/builds/${CI_PROJECT_NAMESPACE}/zephyr
     - ./scripts/ci/guideline_check.py --output output.txt -c origin/${CI_DEFAULT_BRANCH}.. ||
       cat ./output.txt
+
+doc-job:
+  stage: doc
+  script:
+    - echo "Generating release notes"
+    - cd /builds/${CI_PROJECT_NAMESPACE}
+    - west init -l zephyr > /dev/null 2>&1 || true
+    - cd ./zephyr
+    - source zephyr-env.sh
+    - export ZEPHYR_BASE=/builds/${CI_PROJECT_NAMESPACE}/zephyr
+    - echo "Generating release notes"
+    - west build -b ${BOARD} -t doc samples/basic/hash_map
+  artifacts:
+    paths:
+      - /builds/${CI_PROJECT_NAMESPACE}/zephyr/build/zephyr/rzg3s_release_notes.pdf
