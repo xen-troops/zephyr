@@ -6,6 +6,7 @@
 
 #include <arm/armv8-m.dtsi>
 #include <zephyr/dt-bindings/clock/renesas_cpg_mssr.h>
+#include <zephyr/dt-bindings/clock/r9a08g045_cpg_mssr.h>
 #include <mem.h>
 
 / {
@@ -50,6 +51,73 @@
 			compatible = "renesas,r9a08g045-pinctrl";
 			reg = <0x41030000 DT_SIZE_K(64)>;
 			reg-names = "pinctrl";
+		};
+
+		scif0: serial@4004b800 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004b800 0x18>;
+			interrupts = <320 0>, <321 0>, <322 0>, <323 0>, <324 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF0_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF0_RST_SYSTEM_N>;
+			status = "disabled";
+		};
+		scif1: serial@4004bc00 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004bc00 0x18>;
+			interrupts = <325 0>, <326 0>, <327 0>, <328 0>, <329 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF1_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF1_RST_SYSTEM_N>;
+			status = "disabled";
+		};
+		scif2: serial@4004c000 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004c000 0x18>;
+			interrupts = <330 0>, <331 0>, <332 0>, <333 0>, <334 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF2_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF2_RST_SYSTEM_N>;
+			status = "disabled";
+		};
+		scif3: serial@4004c400 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004c400 0x18>;
+			interrupts = <335 0>, <336 0>, <337 0>, <338 0>, <339 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF3_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF3_RST_SYSTEM_N>;
+			status = "disabled";
+		};
+		scif4: serial@4004c800 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004c800 0x18>;
+			interrupts = <340 0>, <341 0>, <342 0>, <343 0>, <344 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF4_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF4_RST_SYSTEM_N>;
+			status = "disabled";
+		};
+		scif5: serial@4004e000 {
+			compatible = "renesas,rzg3s-scif";
+			reg = <0x4004e000 0x18>;
+			interrupts = <345 0>, <346 0>, <347 0>, <348 0>, <349 0>;
+			interrupt-names = "eri", "bri", "rxi", "txi", "tei";
+			clocks = <&cpg CPG_MOD R9A08G045_SCIF5_CLK_PCK>,
+				 <&cpg CPG_CORE R9A08G045_CLK_P0>;
+			clock-names = "fck", "bus";
+			resets = <&cpg_rctl R9A08G045_SCIF5_RST_SYSTEM_N>;
+			status = "disabled";
 		};
 	};
 };
