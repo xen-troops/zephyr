@@ -1,0 +1,19 @@
+# opyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config PINCTRL_RZG3S
+	bool "Pin controller driver for Renesas RZ G3S series"
+	default y
+	depends on DT_HAS_RENESAS_R9A08G045_CPG_MSSR_ENABLED
+	help
+	  Enable pin controller driver for Renesas RZ G3S series
+
+if PINCTRL_RZG3S
+
+config PINCTRL_RZG3S_INIT_PRIORITY
+	int "RZ G3S pinctrl init priority"
+	default 35
+	help
+	  Device driver initialization priority.
+
+endif #PINCTRL_RZG3S
