@@ -1,11 +1,11 @@
 # Copyright (c) 2023 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
-description: Renesas RZ/A2M SPI
+description: Renesas RZ/A2M, RZ/G3S SPI
 
 compatible: "renesas,rspi-rz"
 
-include: [spi-controller.yaml, pinctrl-device.yaml]
+include: [spi-controller.yaml, pinctrl-device.yaml, reset-device.yaml]
 
 properties:
   reg:
