@@ -292,6 +292,76 @@
 			status = "disabled";
 		};
 	};
+
+	spi0: spi@400aa000 {
+		compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
+		reg = <0x400aa000 0x24>;
+		interrupts = <358 0>, <359 0>, <360 0>;
+		interrupt-names = "error", "rx", "tx";
+		interrupt-parent = <&nvic>;
+		clocks = <&cpg CPG_MOD R9A08G045_RSPI0_CLKB>;
+		resets = <&cpg_rctl R9A08G045_RSPI0_RST>;
+		num-cs = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	spi1: spi@400aa400 {
+		compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
+		reg = <0x400aa400 0x24>;
+		interrupts = <361 0>, <362 0>, <363 0>;
+		interrupt-names = "error", "rx", "tx";
+		interrupt-parent = <&nvic>;
+		clocks = <&cpg CPG_MOD R9A08G045_RSPI1_CLKB>;
+		resets = <&cpg_rctl R9A08G045_RSPI1_RST>;
+		num-cs = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	spi2: spi@400aa800 {
+		compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
+		reg = <0x400aa800 0x24>;
+		interrupts = <364 0>, <365 0>, <366 0>;
+		interrupt-names = "error", "rx", "tx";
+		interrupt-parent = <&nvic>;
+		clocks = <&cpg CPG_MOD R9A08G045_RSPI2_CLKB>;
+		resets = <&cpg_rctl R9A08G045_RSPI2_RST>;
+		num-cs = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	spi3: spi@400aac00 {
+		compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
+		reg = <0x400aac00 0x24>;
+		interrupts = <367 0>, <368 0>, <369 0>;
+		interrupt-names = "error", "rx", "tx";
+		interrupt-parent = <&nvic>;
+		clocks = <&cpg CPG_MOD R9A08G045_RSPI3_CLKB>;
+		resets = <&cpg_rctl R9A08G045_RSPI3_RST>;
+		num-cs = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	spi4: spi@400ab000 {
+		compatible = "renesas,rspi-r9a08g045", "renesas,rspi-rz";
+		reg = <0x400ab000 0x24>;
+		interrupts = <370 0>, <371 0>, <372 0>;
+		interrupt-names = "error", "rx", "tx";
+		interrupt-parent = <&nvic>;
+		clocks = <&cpg CPG_MOD R9A08G045_RSPI4_CLKB>;
+		resets = <&cpg_rctl R9A08G045_RSPI4_RST>;
+		num-cs = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
 };
 
 &nvic {
