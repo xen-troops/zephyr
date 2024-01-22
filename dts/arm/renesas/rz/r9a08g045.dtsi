@@ -45,6 +45,12 @@
 				status = "okay";
 			};
 		};
+
+		pinctrl: pin-controller@41030000 {
+			compatible = "renesas,r9a08g045-pinctrl";
+			reg = <0x41030000 DT_SIZE_K(64)>;
+			reg-names = "pinctrl";
+		};
 	};
 };
 
