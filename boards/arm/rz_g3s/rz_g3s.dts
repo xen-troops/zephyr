@@ -9,6 +9,8 @@
 #include <freq.h>
 #include <mem.h>
 
+#include "rz_g3s_pinctrl.dtsi"
+
 / {
 	model = "Renesas RZ G3S board";
 	compatible = "renesas,rz-g3s";
