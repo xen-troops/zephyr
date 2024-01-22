@@ -1,0 +1,151 @@
+# Copyright (c) 2024 Epam Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Renesas RZ G3S r9a08g045 SoC series has combined Pin Function and GPIO Controller module.
+  This DT bindings represent Pin multiplexing and configuration HW definition.
+  The RZ G3S pin controller performs HW pin configurations on:
+    - a GPIO per-pin basis for configuration of:
+      -- pin functions (GPIO or Peripheral Function)
+      -- pin pull-up/down
+      -- pin driving ability
+      -- input GPIO pin Interrupt Enable
+      -- input GPIO pin Digital Noise Filter
+    - a Special Purpose per-pin basis for configuration of:
+      -- pin driving ability
+      -- input pin Digital Noise Filter
+      -- input enable
+      -- output-enable
+    - a Special Purpose Pin Groups for configuration of:
+      -- power source
+      -- high impedance state
+      -- low power mode
+
+  The GPIO pins are grouped in Ports with up to 8 pins per ports, each of them configurable as
+  GPIO or Peripheral Function mode. Up to 8 different alternate function modes exist for
+  each single GPIO pin.
+
+  The RZ G3S pin controller supports pin groups, like "ETH0", "ETH1", "XSPI", etc.,
+  for which the Power source, Standby mode and high impedance state can be configured
+  and such settings affects on all pins in group.
+
+  The RZ G3S pin controller supports configurable Special Purpose pins like
+  "TDO", "TMS_SWDIO", "AUDIO_CLK1", ...
+
+  See "Renesas Microprocessor RZ Family / RZ/G Series User’s Manual: Hardware"
+  "General Purpose Input Output Port (GPIO)" section for more information.
+
+  Below generic example shows of supported pinctrl definitions:
+
+    #include <zephyr/dt-bindings/pinctrl/renesas/pinctrl-r9a08g045.h>
+    example_pins: devx_pins {
+        devx-pinmux {
+          pinmux = <RZG3S_PINMUX(PORT17, 3, 7)>,
+                   <RZG3S_PINMUX(PORT17, 2, 7)>;
+          bias-pull-pin-default;
+          drive-strength-microamp = <PINCTRL_RZG3S_PIN_IOLH_A_1_8V_9000>;
+        };
+
+        devx-grp {
+          groups = "XSPI";
+          power-source = <1800>;
+        };
+
+        devx-spins {
+          pins = "NMI", "AUDIO_CLK1", "TMS_SWDIO";
+          input-enable;
+          drive-strength-microamp = <PINCTRL_RZG3S_PIN_IOLH_A_1_8V_9000>;
+        };
+      };
+
+  pinmux, groups and pins nodes are combined to form the full list of pins settings to select.
+
+compatible: renesas,r9a08g045-pinctrl
+
+include: base.yaml
+properties:
+  reg:
+    required: true
+
+  reg-names:
+    required: true
+
+child-binding:
+  description: |
+    This RZ G3S pins mux/cfg nodes description.
+
+  child-binding:
+    description: |
+      The RZ G3S pinmux/pincfg/groups configuration nodes description.
+
+    include:
+    - name: pincfg-node.yaml
+      property-allowlist:
+      - bias-disable
+      - bias-high-impedance
+      - bias-pull-down
+      - bias-pull-up
+      - bias-pull-pin-default
+      - drive-strength-microamp
+      - input-enable
+      - input-disable
+      - output-enable
+      - power-source
+      - low-power-enable
+      - low-power-disable
+
+    properties:
+      pinmux:
+        type: array
+        description: |
+          Pinmux configuration node.
+          Values are constructed from GPIO port number, pin number, and
+          alternate function configuration number using the RZG3S_PINMUX()
+          helper macro in pinctrl-r9a08g045.h
+
+      groups:
+        type: string
+        enum:
+        - ETH0
+        - ETH1
+        - SD_CH0
+        - SD_CH1
+        - XSPI
+        - I3C
+        description: |
+          Pins group configuration node.
+          Specify pin groups name to select for this pin group configuration node.
+          (See ETHx_POC, SD_CHx_POC, XSPI_POC, I3C_SET and XSPI/OCTA Hi-Z registers
+          in Hardware User’s Manual)
+
+      pins:
+        type: string-array
+        description: |
+          Special Purpose pins configuration node.
+          Specify list of Special Purpose pin names to select for this configuration node.
+
+          Allowed values:
+          [ "NMI", "TMS_SWDIO", "TDO", "XSPI_SPCLK", "XSPI_RESET", "XSPI_WP", "XSPI_DS", "XSPI_CS0",
+            "XSPI_CS1", "XSPI_IO0", "XSPI_IO1", "XSPI_IO2", "XSPI_IO3", "XSPI_IO4", "XSPI_IO5",
+            "XSPI_IO6", "XSPI_IO7", "WDTOVF_PERROUT", "SD0_CLK", "SD0_CMD", "SD0_RST",
+            "SD0_DATA0", "SD0_DATA1", "SD0_DATA2", "SD0_DATA3", "SD0_DATA4", "SD0_DATA5",
+            "SD0_DATA6", "SD0_DATA7", "SD1_CLK", "SD1_CMD", "SD1_DATA0", "SD1_DATA1", "SD1_DATA2",
+            "SD1_DATA3", "AUDIO_CLK1", "AUDIO_CLK2", "I3C_SDA", "I3C_SCL", "SD2_CMD", "SD2_DATA0",
+            "SD2_DATA1", "SD2_DATA2", "SD2_DATA3", "ET0_TXC_TX_CLK", "ET1_TXC_TX_CLK",
+            "ET0_TX_CTL_TX_EN","ET1_TX_CTL_TX_EN" ]
+
+      power-source:
+        type: int
+        description: select between different power supplies in mV
+        enum:
+        - 1200
+        - 1800
+        - 2500
+        - 3300
+
+      drive-strength-microamp:
+        type: int
+        description: |
+          maximum sink or source current in μA for pin which shell be defined
+          using PINCTRL_RZG3S_IOLH_* helper macro in pinctrl-r9a08g045.h depending on pin group and
+          selected power supply.
