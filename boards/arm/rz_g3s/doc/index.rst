@@ -1,12 +1,18 @@
 .. _rz_g3s:
 
-Renesas RZ G3S
-##############
+Renesas RZ G3S Release Notes v0.1
+#################################
 
 Overview
 ********
 This evaluation board kit is ideal for evaluating RZ/G3S. The RZ/G3S Evaluation Board Kit consists
 of a module board (SOM) and a carrier board. The module board complies with the SMARC v2.1 standard.
+
+.. include:: delivery/delivery_scope.rst
+
+.. include:: delivery/getting_source_code.rst
+
+.. include:: delivery/initial_config.rst
 
 Hardware
 ********
@@ -50,7 +56,7 @@ Connections and IOs
 RZ G3S board
 ------------
 
-Vies of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
+Views of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
 
 .. figure:: img/rzg3s.jpg
    :align: center
@@ -106,3 +112,6 @@ Flashing
 ========
 
 The flash on board is not supported by Zephyr at this time.
+
+Supported Features Details
+**************************
