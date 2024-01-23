@@ -8,6 +8,7 @@ toolchain:
 supported:
   - clock_control
   - uart
+  - spi
 testing:
   default: true
   ignore_tags:

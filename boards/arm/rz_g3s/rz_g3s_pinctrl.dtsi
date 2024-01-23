@@ -35,4 +35,11 @@
 				 <RZG3S_PINMUX(PORT15, 2, 6)>; /* TXD */
 		};
 	};
+
+	/omit-if-no-ref/ spi0_pins: spi0 {
+		pinmux = <RZG3S_PINMUX(15, 0, 1)>, /* CK */
+			 <RZG3S_PINMUX(15, 1, 1)>, /* MOSI */
+			 <RZG3S_PINMUX(15, 2, 1)>, /* MISO */
+			 <RZG3S_PINMUX(15, 3, 1)>; /* SSL */
+	};
 };
