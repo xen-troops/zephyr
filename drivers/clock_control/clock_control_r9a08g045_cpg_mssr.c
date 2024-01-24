@@ -510,7 +510,11 @@ static int rzg3s_cpg_wait_bit_val(mm_reg_t reg_addr, uint32_t mask, uint32_t val
 		}
 
 		if (wait_cnt > 0) {
-			k_busy_wait(5);
+			int loops = 500;
+
+			while (loops-- > 0) {
+				arch_nop();
+			}
 		}
 	} while (wait_cnt-- > 0);
 
