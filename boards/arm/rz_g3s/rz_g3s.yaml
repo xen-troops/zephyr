@@ -9,6 +9,7 @@ supported:
   - clock_control
   - uart
   - spi
+  - watchdog
 testing:
   default: true
   ignore_tags:
