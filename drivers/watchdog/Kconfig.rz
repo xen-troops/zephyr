@@ -3,17 +3,25 @@
 # Copyright (C) 2023 EPAM Systems
 # SPDX-License-Identifier: Apache-2.0
 
-config WDT_RZ
-	bool "Renesas RZ Watchdog (WDT) Driver"
+config WDT_RZA
+	bool "Renesas RZA Watchdog (WDT) Driver"
 	default y
 	depends on DT_HAS_RENESAS_RZA_WDT_ENABLED
 	depends on CLOCK_CONTROL
 	help
-	  Enable WDT driver for Renesas RZ.
+	  Enable WDT driver for Renesas RZA.
+
+config WDT_RZG
+	bool "Renesas RZG Watchdog (WDT) Driver"
+	default y
+	depends on DT_HAS_RENESAS_RZG_WDT_ENABLED
+	depends on CLOCK_CONTROL
+	help
+	  Enable WDT driver for Renesas RZG.
 
 config WDT_RZ_INIT_PRIORITY
 	int "Renesas RZ Watchdog driver initialization priority"
-	depends on WDT_RZ
+	depends on WDT_RZA || WDT_RZG
 	default 65
 	help
 	  Initialization priority for the Renesas RZ Watchdog driver.
