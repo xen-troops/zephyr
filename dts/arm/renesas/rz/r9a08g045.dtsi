@@ -445,6 +445,35 @@
 			#size-cells = <0>;
 			status = "disabled";
 		};
+
+		/* WDT to check the operation of Cortex-M33 CPU */
+		wdt1: watchdog@42800400 {
+			compatible = "renesas,r9a08g045-wdt", "renesas,rzg-wdt";
+			reg = <0x42800400 0x24>, <0x41010B10 0x8>;
+			reg-names = "wdt_reg", "cpg_reg";
+			timer-idx = <1>;
+			clocks = <&cpg CPG_MOD R9A08G045_WDT1_PCLK>,
+				 <&cpg CPG_MOD R9A08G045_WDT1_CLK>;
+			clock-names = "pclk", "oscclk";
+			interrupts = <55 0>, <54 0>;
+			interrupt-names = "wdt", "perrout";
+			resets = <&cpg_rctl R9A08G045_WDT1_PRESETN>;
+			status = "disabled";
+		};
+		/* WDT to check the operation of Cortex-M33 CPU with FPU */
+		wdt2: watchdog@42800000 {
+			compatible = "renesas,r9a08g045-wdt", "renesas,rzg-wdt";
+			reg = <0x42800000 0x24>, <0x41010B10 0x8>;
+			reg-names = "wdt_reg", "cpg_reg";
+			timer-idx = <2>;
+			clocks = <&cpg CPG_MOD R9A08G045_WDT2_PCLK>,
+				 <&cpg CPG_MOD R9A08G045_WDT2_CLK>;
+			clock-names = "pclk", "oscclk";
+			interrupts = <57 0>, <56 0>;
+			interrupt-names = "wdt", "perrout";
+			resets = <&cpg_rctl R9A08G045_WDT2_PRESETN>;
+			status = "disabled";
+		};
 	};
 };
 
