@@ -91,3 +91,7 @@
 	pinctrl-0 = <&spi0_pins>;
 	pinctrl-names = "default";
 };
+
+&wdt1 {
+	status = "okay";
+};
