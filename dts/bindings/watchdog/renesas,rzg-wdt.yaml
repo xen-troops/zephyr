@@ -1,0 +1,32 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ/G Watchdog
+
+compatible: "renesas,rzg-wdt"
+
+include: [base.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  timer-idx:
+    type: int
+    required: true
+    description: |
+      Index of watchdog timer channel index (1 or 2).
+      Watchdog channel 1 checking the operation of Cortex-M33 CPU
+      and channel 2 checking the operation of Cortex-M33 CPU
+      with FPU. Each channel should be provided with the
+      corresponding clocks and resets that are controlling
+      this channel.
+    enum:
+      - 1
+      - 2
+
+  resets:
+    required: true
