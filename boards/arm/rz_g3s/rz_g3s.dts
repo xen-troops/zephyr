@@ -14,12 +14,17 @@
 	compatible = "renesas,rz-g3s";
 
 	chosen {
-		zephyr,sram = &ram;
+		zephyr,sram = &sram;
 	};
 
-	ram: memory@60000000 {
+	ddr: memory@60000000 {
 		compatible = "mmio-sram";
-		reg = <0x60000000 DT_SIZE_M(128)>;		 /* 128  Mbyte of  RAM */
+		reg = <0x60000000 DT_SIZE_M(128)>;
+	};
+
+	sram: memory@23000 {
+		compatible = "mmio-sram";
+		reg = <0x23000 DT_SIZE_K(244)>;
 	};
 };
 
