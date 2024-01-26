@@ -5,20 +5,44 @@ Renesas RZ G3S
 
 Overview
 ********
+This evaluation board kit is ideal for evaluating RZ/G3S. The RZ/G3S Evaluation Board Kit consists
+of a module board (SOM) and a carrier board. The module board complies with the SMARC v2.1 standard.
 
 Hardware
 ********
+
 The RZ G3S includes:
 
-* 1.1 GHz Arm Cortex-A55 MPCore
-* Two 250 MHz Arm Cortex-M33 cores (One Cortex®-M33 has FPU function)
-* 1-Mbyte RAM
-* IEEE 1588 PTP compliant Ethernet MAC controller
-* USB 2.0 host/function module
-* SD/MMC host interface
-* Octa-Flash/Octa-RAM interface
-* CAN interface
-* PCI Express Gen 2.0 interface (option)
+* Device: RZ/G3S R9A08G045S33GBG
+
+  * Cortex-A55 Single, Cortex-M33 x2
+  * BGA 359-pin, 14mmSq body, 0.5mm pitch
+
+* Module Board Functions
+
+  * LPDDR4 SDRAM: 1GB × 1pc
+  * QSPI flash memory: 128Mb × 1pc
+  * eMMC memory: 64GB × 1pc
+  * PMIC power supply RAA215300A2GNP#HA3 implemented
+  * microSD card x2
+  * I3C connector
+  * JTAG connector
+  * ADC x8 channels
+  * Current monitor (USB Micro B)
+
+* Carrier Board Functions
+
+  * Gigabit Ethernet x2
+  * USB2.0 x2ch (OTG x1ch, Host x1ch)
+  * CAN-FD x2
+  * microSD card x1
+  * Mono speaker, Stereo headphone, Mic., and Aux..
+  * PMOD x2
+  * USB-Type C for power input
+  * PCIe Gen2 4-lane slot (G3S supports only 1-lane)
+  * M.2 Key E
+  * M.2 Key B and SIM card
+  * Coin cell battery holder (3.0V support)
 
 Connections and IOs
 ===================
@@ -26,7 +50,7 @@ Connections and IOs
 RZ G3S board
 ------------
 
-Vies of the EVK board:
+Vies of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
 
 .. figure:: img/rzg3s.jpg
    :align: center
@@ -54,6 +78,29 @@ The default configuration can be found in the defconfig file:
 
 Programming and Debugging
 *************************
+
+Applications for the ``rz_g3s`` boards can be built in the usual way as documented
+in :ref:`build_an_application`.
+
+Currently is only possible to load and execute a Zephyr application binary on
+this board from the internal SRAM, using ``JLink`` debugger.
+
+Here is an example for the :ref:`hello_world` application.
+
+.. zephyr-app-commands::
+   :zephyr-app: samples/hello_world
+   :board: rz_g3s
+   :goals: build
+
+These are the memory mapping for A55 and M33:
+
++------------+-----------------------+------------------------+-----------------------+
+| Region     | Cortex-A55            | Cortex-M33             | Cortex-M33-FPU        |
++============+=======================+========================+=======================+
+| SRAM       | 0x00020000-0x00022FFF | 0x00023000-0x0005FFFF  | 0x10000000-0x1FFEFFFF |
++------------+-----------------------+------------------------+-----------------------+
+|            |                       |                        |                       |
++------------+-----------------------+------------------------+-----------------------+
 
 Flashing
 ========
