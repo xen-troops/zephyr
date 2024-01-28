@@ -1305,14 +1305,10 @@ static const struct uart_driver_api uart_scif_driver_api = {
 	static const struct uart_scif_cfg uart_scif_cfg_##n = {				\
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),					\
 		.clock_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR(n)),			\
-		.mod_clk.module =							\
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),			\
-		.mod_clk.domain =							\
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),			\
-		.bus_clk.module =							\
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),			\
-		.bus_clk.domain =							\
-			DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),			\
+		.mod_clk.module = DT_INST_CLOCKS_CELL_BY_NAME(n, fck, module),		\
+		.mod_clk.domain = DT_INST_CLOCKS_CELL_BY_NAME(n, fck, domain),		\
+		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_NAME(n, bus, module),		\
+		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_NAME(n, bus, domain),		\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.params = &port_params[soc_type],					\
 		.usart_mode = DT_INST_PROP(n, usart_mode),				\
