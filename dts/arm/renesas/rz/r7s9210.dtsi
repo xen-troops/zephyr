@@ -541,6 +541,7 @@
 			interrupt-names = "tei", "ri", "ti", "spi",
 					  "sti", "nacki", "ali", "tmoi";
 			clocks = <&cpg CPG_MOD 87>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			clock-names = "fck", "bus";
 			status = "disabled";
 		};
 		i2c1: i2c@e803a400 {
@@ -561,6 +562,7 @@
 			interrupt-names = "tei", "ri", "ti", "spi",
 					  "sti", "nacki", "ali", "tmoi";
 			clocks = <&cpg CPG_MOD 86>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			clock-names = "fck", "bus";
 			status = "disabled";
 		};
 		i2c2: i2c@e803a800 {
@@ -581,6 +583,7 @@
 			interrupt-names = "tei", "ri", "ti", "spi",
 					  "sti", "nacki", "ali", "tmoi";
 			clocks = <&cpg CPG_MOD 85>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			clock-names = "fck", "bus";
 			status = "disabled";
 		};
 		i2c3: i2c@e803ac00 {
@@ -601,6 +604,7 @@
 			interrupt-names = "tei", "ri", "ti", "spi",
 					  "sti", "nacki", "ali", "tmoi";
 			clocks = <&cpg CPG_MOD 84>, <&cpg CPG_CORE R7S9210_CLK_P1>;
+			clock-names = "fck", "bus";
 			status = "disabled";
 		};
 

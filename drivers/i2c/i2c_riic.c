@@ -1201,10 +1201,14 @@ static const struct i2c_driver_api riic_driver_api = {
 		.bitrate = DT_INST_PROP(n, clock_frequency),		\
 		.scl_rise_ns = DT_INST_PROP_OR(n, scl_rising_time_ns, 0),\
 		.scl_fall_ns = DT_INST_PROP_OR(n, scl_falling_time_ns, 0),\
-		.mod_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),\
-		.mod_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),\
-		.bus_clk.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, module),\
-		.bus_clk.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 1, domain),\
+		.mod_clk.module =					\
+			DT_INST_CLOCKS_CELL_BY_NAME(n, fck, module),	\
+		.mod_clk.domain =					\
+			DT_INST_CLOCKS_CELL_BY_NAME(n, fck, domain),	\
+		.bus_clk.module =					\
+			DT_INST_CLOCKS_CELL_BY_NAME(n, bus, module),	\
+		.bus_clk.domain =					\
+			DT_INST_CLOCKS_CELL_BY_NAME(n, bus, domain),	\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),		\
 		RIIC_DMA_CHANNELS(n)					\
 	};								\
