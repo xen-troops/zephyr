@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2021 IoT.bzh
+ * Copyright (c) 2021-2023 IoT.bzh
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  */
 
-#include "pinctrl_soc.h"
-#include <zephyr/dt-bindings/pinctrl/renesas/pinctrl-r8a77951.h>
+#include <pinctrl_soc.h>
+#include <zephyr/dt-bindings/pinctrl/renesas/pinctrl-r8a77961.h>
 
 const struct pfc_drive_reg pfc_drive_regs[] = {
 	/* DRVCTRL0 */
@@ -528,6 +528,7 @@ const struct pfc_bias_reg pfc_bias_regs[] = {
 	  } },
 	{ /* sentinel */ },
 };
+
 const struct pfc_bias_reg *pfc_rcar_get_bias_regs(void)
 {
 	return pfc_bias_regs;

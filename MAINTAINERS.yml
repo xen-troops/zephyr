@@ -3410,6 +3410,7 @@ Renesas SmartBond Platforms:
   files:
     - boards/arm/da14*/
     - drivers/*/*smartbond*
+    - drivers/pinctrl/renesas/smartbond/
     - dts/arm/renesas/smartbond/
     - dts/bindings/*/renesas,smartbond*
     - soc/arm/renesas_smartbond/
@@ -3426,6 +3427,7 @@ Renesas RA Platforms:
   files:
     - boards/arm/arduino_uno_r4/
     - drivers/*/*renesas_ra*
+    - drivers/pinctrl/renesas/ra/
     - dts/arm/renesas/ra/
     - dts/bindings/*/*renesas,ra*
     - soc/arm/renesas_ra/
@@ -3442,6 +3444,7 @@ Renesas RZ Platforms:
   files:
     - boards/arm/rzt2m_*/
     - drivers/*/*rzt2m*
+    - drivers/pinctrl/renesas/rz/
     - dts/arm/renesas/rz/
     - dts/bindings/*/*rzt2m*
     - soc/arm/renesas_rzt2m/
@@ -3459,11 +3462,11 @@ Renesas R-Car Platforms:
   collaborators:
     - xakep-amatop
   files:
-    - dts/arm/renesas/rcar/
     - boards/arm/rcar_*/
     - boards/arm64/rcar_*/
     - drivers/*/*rcar*
     - drivers/clock_control/*cpg_mssr*
+    - drivers/pinctrl/renesas/rcar/
     - dts/arm/renesas/rcar/
     - dts/arm64/renesas/
     - dts/bindings/*/*rcar*
