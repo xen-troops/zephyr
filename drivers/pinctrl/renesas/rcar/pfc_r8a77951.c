@@ -5,7 +5,7 @@
  *
  */
 
-#include "pinctrl_soc.h"
+#include <pinctrl_soc.h>
 #include <zephyr/dt-bindings/pinctrl/renesas/pinctrl-r8a77951.h>
 
 const struct pfc_drive_reg pfc_drive_regs[] = {
