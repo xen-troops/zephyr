@@ -1,0 +1,18 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Renesas RZ/G3S R9A08G045 SoC CPG Reset controller.
+  It has to be a subnode of the Renesas RZ/G3S R9A08G045 SoC CPG clock-controller node
+  ("renesas,r9a08g045-cpg-mssr").
+
+compatible: "renesas,r9a08g045-cpg-reset"
+
+include: [reset-controller.yaml, base.yaml]
+
+properties:
+  "#reset-cells":
+    const: 1
+
+reset-cells:
+  - id

@@ -42,6 +42,7 @@
 			#clock-cells = <2>;
 
 			cpg_rctl: reset-controller {
+				compatible = "renesas,r9a08g045-cpg-reset";
 				#reset-cells = <1>;
 				status = "okay";
 			};
