@@ -52,6 +52,177 @@
 			compatible = "renesas,r9a08g045-pinctrl";
 			reg = <0x41030000 DT_SIZE_K(64)>;
 			reg-names = "pinctrl";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			gpio: gpio-controller@41060020 {
+				compatible = "renesas,r9a08g045-gpio";
+				reg = <0x41060020 0x30>;
+				reg-names = "tint";
+				interrupts =
+					<429 0>, <430 0>, <431 0>, <432 0>,
+					<433 0>, <434 0>, <435 0>, <436 0>,
+					<437 0>, <438 0>, <439 0>, <440 0>,
+					<441 0>, <442 0>, <443 0>, <444 0>,
+					<445 0>, <446 0>, <447 0>, <448 0>,
+					<449 0>, <450 0>, <451 0>, <452 0>,
+					<453 0>, <454 0>, <455 0>, <456 0>,
+					<457 0>, <458 0>, <459 0>, <460 0>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port0: gpio@0 {
+					reg = <0x0>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port1: gpio@1 {
+					reg = <0x1>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port2: gpio@2 {
+					reg = <0x2>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port3: gpio@3 {
+					reg = <0x3>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port4: gpio@4 {
+					reg = <0x4>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <6>;
+					status = "disabled";
+				};
+
+				port5: gpio@5 {
+					reg = <0x5>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port6: gpio@6 {
+					reg = <0x6>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port7: gpio@7 {
+					reg = <0x7>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port8: gpio@8 {
+					reg = <0x8>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port9: gpio@9 {
+					reg = <0x9>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port10: gpio@a {
+					reg = <0xa>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port11: gpio@b {
+					reg = <0xb>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port12: gpio@c {
+					reg = <0xc>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <2>;
+					status = "disabled";
+				};
+
+				port13: gpio@d {
+					reg = <0xd>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <5>;
+					status = "disabled";
+				};
+
+				port14: gpio@e {
+					reg = <0xe>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <3>;
+					status = "disabled";
+				};
+
+				port15: gpio@f {
+					reg = <0xf>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port16: gpio@10 {
+					reg = <0x10>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <2>;
+					status = "disabled";
+				};
+
+				port17: gpio@11 {
+					reg = <0x11>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <4>;
+					status = "disabled";
+				};
+
+				port18: gpio@12 {
+					reg = <0x12>;
+					gpio-controller;
+					#gpio-cells=<2>;
+					ngpios = <6>;
+					status = "disabled";
+				};
+			};
 		};
 
 		scif0: serial@4004b800 {
