@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 EPAM Systems
  *
- * Renesas RZ/G3S r9a08g045 Clock Pulse Generator, Module Standby and Reset controller
+ * Renesas RZ/G3S r9a08g045 Clock Pulse Generator, Module Standby controller
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -12,7 +12,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/dt-bindings/clock/r9a08g045_cpg_mssr.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
-#include <zephyr/drivers/reset.h>
 #define LOG_LEVEL CONFIG_CLOCK_CONTROL_LOG_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(clock_control_rzg3s);
@@ -42,7 +41,6 @@ LOG_MODULE_REGISTER(clock_control_rzg3s);
 #define PERI_CPU2_MSTOP		(0xB94)
 
 #define CLK_MON_R(reg)		(0x180 + (reg))
-#define RST_MON_R(reg)		(0x180 + (reg))
 
 enum rzg3s_clk_ids {
 	/* Core Clock Outputs exported to DT */
@@ -322,101 +320,11 @@ static const struct rzg3s_mod_clk rzg3s_mod_clks[R9A08G045_LAST_CLK] = {
 		0x614, 0, MCPU3_MSTOP, BIT(8)),
 };
 
-struct rzg3s_reset {
-	uint16_t off;
-	uint16_t bit;
-};
-
-#define DEF_RST(_id, _off, _bit)	\
-	[_id] = { \
-		.off = (_off), \
-		.bit = (_bit) \
-	}
-
-static const struct rzg3s_reset rzg3s_resets[R9A08G045_LST_RESETN] = {
-	DEF_RST(R9A08G045_GIC600_GICRESET_N, 0x814, 0),
-	DEF_RST(R9A08G045_GIC600_DBG_GICRESET_N, 0x814, 1),
-	DEF_RST(R9A08G045_IA55_RESETN, 0x818, 0),
-	DEF_RST(R9A08G045_DMAC_ARESETN, 0x82c, 0),
-	DEF_RST(R9A08G045_DMAC_RST_ASYNC, 0x82c, 1),
-	DEF_RST(R9A08G045_OSTM0_PRESETZ, 0x834, 0),
-	DEF_RST(R9A08G045_OSTM1_PRESETZ, 0x834, 1),
-	DEF_RST(R9A08G045_OSTM2_PRESETZ, 0x834, 2),
-	DEF_RST(R9A08G045_OSTM3_PRESETZ, 0x834, 3),
-	DEF_RST(R9A08G045_OSTM4_PRESETZ, 0x834, 4),
-	DEF_RST(R9A08G045_OSTM5_PRESETZ, 0x834, 5),
-	DEF_RST(R9A08G045_OSTM6_PRESETZ, 0x834, 6),
-	DEF_RST(R9A08G045_OSTM7_PRESETZ, 0x834, 7),
-	DEF_RST(R9A08G045_MTU_X_PRESET_MTU3, 0x838, 0),
-	DEF_RST(R9A08G045_POE3_RST_M_REG, 0x83c, 0),
-	DEF_RST(R9A08G045_GPT_RST_C, 0x840, 0),
-	DEF_RST(R9A08G045_POEG_A_RST, 0x844, 0),
-	DEF_RST(R9A08G045_POEG_B_RST, 0x844, 1),
-	DEF_RST(R9A08G045_POEG_C_RST, 0x844, 2),
-	DEF_RST(R9A08G045_POEG_D_RST, 0x844, 3),
-	DEF_RST(R9A08G045_WDT0_PRESETN, 0x848, 0),
-	DEF_RST(R9A08G045_SPI_HRESETN, 0x850, 0),
-	DEF_RST(R9A08G045_SPI_ARESETN, 0x850, 1),
-	DEF_RST(R9A08G045_SDHI0_IXRST, 0x854, 0),
-	DEF_RST(R9A08G045_SDHI1_IXRST, 0x854, 1),
-	DEF_RST(R9A08G045_SDHI2_IXRST, 0x854, 2),
-	DEF_RST(R9A08G045_SSI0_RST_M2_REG, 0x870, 0),
-	DEF_RST(R9A08G045_SSI1_RST_M2_REG, 0x870, 1),
-	DEF_RST(R9A08G045_SSI2_RST_M2_REG, 0x870, 2),
-	DEF_RST(R9A08G045_SSI3_RST_M2_REG, 0x870, 3),
-	DEF_RST(R9A08G045_SRC_RST, 0x874, 0),
-	DEF_RST(R9A08G045_USB_U2H0_HRESETN, 0x878, 0),
-	DEF_RST(R9A08G045_USB_U2H1_HRESETN, 0x878, 1),
-	DEF_RST(R9A08G045_USB_U2P_EXL_SYSRST, 0x878, 2),
-	DEF_RST(R9A08G045_USB_PRESETN, 0x878, 3),
-	DEF_RST(R9A08G045_ETH0_RST_HW_N, 0x87c, 0),
-	DEF_RST(R9A08G045_ETH1_RST_HW_N, 0x87c, 1),
-	DEF_RST(R9A08G045_I2C0_MRST, 0x880, 0),
-	DEF_RST(R9A08G045_I2C1_MRST, 0x880, 1),
-	DEF_RST(R9A08G045_I2C2_MRST, 0x880, 2),
-	DEF_RST(R9A08G045_I2C3_MRST, 0x880, 3),
-	DEF_RST(R9A08G045_SCIF0_RST_SYSTEM_N, 0x884, 0),
-	DEF_RST(R9A08G045_SCIF1_RST_SYSTEM_N, 0x884, 1),
-	DEF_RST(R9A08G045_SCIF2_RST_SYSTEM_N, 0x884, 2),
-	DEF_RST(R9A08G045_SCIF3_RST_SYSTEM_N, 0x884, 3),
-	DEF_RST(R9A08G045_SCIF4_RST_SYSTEM_N, 0x884, 4),
-	DEF_RST(R9A08G045_SCIF5_RST_SYSTEM_N, 0x884, 5),
-	DEF_RST(R9A08G045_SCI0_RST, 0x888, 0),
-	DEF_RST(R9A08G045_SCI1_RST, 0x888, 1),
-	DEF_RST(R9A08G045_RSPI0_RST, 0x890, 0),
-	DEF_RST(R9A08G045_RSPI1_RST, 0x890, 1),
-	DEF_RST(R9A08G045_RSPI2_RST, 0x890, 2),
-	DEF_RST(R9A08G045_RSPI3_RST, 0x890, 3),
-	DEF_RST(R9A08G045_RSPI4_RST, 0x890, 4),
-	DEF_RST(R9A08G045_CANFD_RSTP_N, 0x894, 0),
-	DEF_RST(R9A08G045_CANFD_RSTC_N, 0x894, 1),
-	DEF_RST(R9A08G045_GPIO_RSTN, 0x898, 0),
-	DEF_RST(R9A08G045_GPIO_PORT_RESETN, 0x898, 1),
-	DEF_RST(R9A08G045_GPIO_SPARE_RESETN, 0x898, 2),
-	DEF_RST(R9A08G045_ADC_PRESETN, 0x8a8, 0),
-	DEF_RST(R9A08G045_ADC_ADRST_N, 0x8a8, 1),
-	DEF_RST(R9A08G045_TSU_PRESETN, 0x8ac, 0),
-	DEF_RST(R9A08G045_OCTA_ARESETN, 0x8f4, 0),
-	DEF_RST(R9A08G045_PDM0_PRESETNT, 0x904, 0),
-	DEF_RST(R9A08G045_PCI_ARESETN, 0x908, 0),
-	DEF_RST(R9A08G045_PCI_RST_B, 0x908, 1),
-	DEF_RST(R9A08G045_PCI_RST_GP_B, 0x908, 2),
-	DEF_RST(R9A08G045_PCI_RST_PS_B, 0x908, 3),
-	DEF_RST(R9A08G045_PCI_RST_RSM_B, 0x908, 4),
-	DEF_RST(R9A08G045_PCI_RST_CFG_B, 0x908, 5),
-	DEF_RST(R9A08G045_PCI_RST_LOAD_B, 0x908, 6),
-	DEF_RST(R9A08G045_SPDIF_RST, 0x90c, 0),
-	DEF_RST(R9A08G045_I3C_TRESETN, 0x910, 0),
-	DEF_RST(R9A08G045_I3C_PRESETN, 0x910, 1),
-	DEF_RST(R9A08G045_VBAT_BRESETN, 0x914, 0),
-};
-
 struct rzg3s_cpg_config {
 	DEVICE_MMIO_ROM; /* Must be first */
 
 	const struct rzg3s_cpg_core_clk *core_clks;
 	const struct rzg3s_mod_clk *mod_clks;
-	const struct rzg3s_reset *mod_rsts;
 };
 
 struct rzg3s_cpg_data {
@@ -643,173 +551,11 @@ static const struct clock_control_driver_api rzg3s_cpg_api = {
 	.get_rate = rzg3s_cpg_clk_get_rate,
 };
 
-static int rzg3s_cpg_reset_checkpar(const struct device *dev, uint32_t id)
-{
-	if (!dev) {
-		return -EINVAL;
-	}
-
-	if (id >= R9A08G045_LST_RESETN) {
-		LOG_DEV_ERR(dev, "wrong module reset id %u", id);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int rzg3s_cpg_reset(const struct device *dev, uint32_t id)
-{
-	const struct rzg3s_cpg_config *cfg = dev->config;
-	struct rzg3s_cpg_data *data = dev->data;
-	const struct rzg3s_reset *mod_rst;
-	k_spinlock_key_t key;
-	mm_reg_t reg_addr;
-	uint32_t val;
-	int ret;
-
-	ret = rzg3s_cpg_reset_checkpar(dev, id);
-	if (ret) {
-		return ret;
-	}
-
-	mod_rst = &cfg->mod_rsts[id];
-
-	key = k_spin_lock(&data->lock);
-	/* reset assert */
-	reg_addr = DEVICE_MMIO_GET(dev) + cfg->mod_rsts[id].off;
-	val = BIT(cfg->mod_rsts[id].bit);
-	rzg3s_cpg_change_reg_bits(reg_addr, val, false);
-
-	/* monitor mod reset */
-	reg_addr = DEVICE_MMIO_GET(dev) + RST_MON_R(cfg->mod_rsts[id].off);
-	ret = rzg3s_cpg_wait_bit_val(reg_addr, val, val, MON_REG_WAIT_US);
-	if (!ret) {
-		LOG_DEV_DBG(dev, "module id %u resetA tmo", id);
-	}
-
-	/* Wait for at least one cycle of the RCLK clock (@ ca. 32 kHz) */
-	k_busy_wait(35);
-
-	/* reset de-assert */
-	reg_addr = DEVICE_MMIO_GET(dev) + cfg->mod_rsts[id].off;
-	val = BIT(cfg->mod_rsts[id].bit);
-	rzg3s_cpg_change_reg_bits(reg_addr, val, true);
-
-	/* monitor mod reset */
-	reg_addr = DEVICE_MMIO_GET(dev) + RST_MON_R(cfg->mod_rsts[id].off);
-	ret = rzg3s_cpg_wait_bit_val(reg_addr, val, 0, MON_REG_WAIT_US);
-	if (!ret) {
-		LOG_DEV_DBG(dev, "module id %u resetD tmo", id);
-	}
-	k_spin_unlock(&data->lock, key);
-
-	return 0;
-}
-
-static int rzg3s_cpg_assert(const struct device *dev, uint32_t id)
-{
-	const struct rzg3s_cpg_config *cfg = dev->config;
-	struct rzg3s_cpg_data *data = dev->data;
-	const struct rzg3s_reset *mod_rst;
-	k_spinlock_key_t key;
-	mm_reg_t reg_addr;
-	uint32_t val;
-	int ret;
-
-	ret = rzg3s_cpg_reset_checkpar(dev, id);
-	if (ret) {
-		return ret;
-	}
-
-	mod_rst = &cfg->mod_rsts[id];
-
-	key = k_spin_lock(&data->lock);
-	/* reset assert */
-	reg_addr = DEVICE_MMIO_GET(dev) + mod_rst->off;
-	val = BIT(mod_rst->bit);
-	rzg3s_cpg_change_reg_bits(reg_addr, val, false);
-
-	/* monitor mod reset */
-	reg_addr = DEVICE_MMIO_GET(dev) + RST_MON_R(mod_rst->off);
-	ret = rzg3s_cpg_wait_bit_val(reg_addr, val, val, MON_REG_WAIT_US);
-	if (!ret) {
-		LOG_DEV_DBG(dev, "module id %u resetA tmo", id);
-		ret = -EIO;
-	}
-	k_spin_unlock(&data->lock, key);
-
-	return 0;
-}
-
-static int rzg3s_cpg_deassert(const struct device *dev, uint32_t id)
-{
-	const struct rzg3s_cpg_config *cfg = dev->config;
-	struct rzg3s_cpg_data *data = dev->data;
-	const struct rzg3s_reset *mod_rst;
-	k_spinlock_key_t key;
-	mm_reg_t reg_addr;
-	uint32_t val;
-	int ret;
-
-	ret = rzg3s_cpg_reset_checkpar(dev, id);
-	if (ret) {
-		return ret;
-	}
-
-	mod_rst = &cfg->mod_rsts[id];
-
-	key = k_spin_lock(&data->lock);
-	/* reset de-assert */
-	reg_addr = DEVICE_MMIO_GET(dev) + mod_rst->off;
-	val = BIT(mod_rst->bit);
-	rzg3s_cpg_change_reg_bits(reg_addr, val, true);
-
-	/* monitor mod reset */
-	reg_addr = DEVICE_MMIO_GET(dev) + RST_MON_R(mod_rst->off);
-	ret = rzg3s_cpg_wait_bit_val(reg_addr, val, 0, MON_REG_WAIT_US);
-	if (!ret) {
-		LOG_DEV_DBG(dev, "module id %u resetD tmo", id);
-		ret = -EIO;
-	}
-	k_spin_unlock(&data->lock, key);
-
-	return 0;
-}
-
-static int rzg3s_cpg_status(const struct device *dev, uint32_t id, uint8_t *status)
-{
-	const struct rzg3s_cpg_config *cfg = dev->config;
-	const struct rzg3s_reset *mod_rst;
-	mm_reg_t reg_addr;
-	int ret;
-
-	ret = rzg3s_cpg_reset_checkpar(dev, id);
-	if (ret) {
-		return ret;
-	}
-
-	mod_rst = &cfg->mod_rsts[id];
-
-	/* monitor mod reset */
-	reg_addr = DEVICE_MMIO_GET(dev) + RST_MON_R(mod_rst->off);
-	*status = !!(sys_read32(reg_addr) & BIT(mod_rst->bit));
-
-	return 0;
-}
-
-static const struct reset_driver_api rzg3s_cpg_reset_driver_api = {
-	.status = rzg3s_cpg_status,
-	.line_assert = rzg3s_cpg_assert,
-	.line_deassert = rzg3s_cpg_deassert,
-	.line_toggle = rzg3s_cpg_reset,
-};
-
 #define RZG3S_CPG_INIT(inst)                                                             \
 	static const struct rzg3s_cpg_config rzg3s_cpg_##inst##_config = {       \
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(inst)),                                  \
 		.core_clks = rzg3s_core_clks,                                         \
 		.mod_clks = rzg3s_mod_clks,                                           \
-		.mod_rsts = rzg3s_resets,                                             \
 	};                                                                                \
                                                                                           \
 	static struct rzg3s_cpg_data rzg3s_cpg_##inst##_data = {                 \
@@ -817,10 +563,6 @@ static const struct reset_driver_api rzg3s_cpg_reset_driver_api = {
 	                                                                                  \
 	DEVICE_DT_INST_DEFINE(inst, rzg3s_cpg_init, NULL, &rzg3s_cpg_##inst##_data,   \
 			      &rzg3s_cpg_##inst##_config, PRE_KERNEL_1,                    \
-			      CONFIG_CLOCK_CONTROL_INIT_PRIORITY, &rzg3s_cpg_api); \
-	DEVICE_DT_DEFINE(DT_INST_CHILD(inst, reset_controller), NULL, NULL, \
-		      &rzg3s_cpg_##inst##_data,   \
-		      &rzg3s_cpg_##inst##_config, PRE_KERNEL_1,                    \
-		      CONFIG_RESET_INIT_PRIORITY, &rzg3s_cpg_reset_driver_api);
+			      CONFIG_CLOCK_CONTROL_INIT_PRIORITY, &rzg3s_cpg_api);
 
 DT_INST_FOREACH_STATUS_OKAY(RZG3S_CPG_INIT)

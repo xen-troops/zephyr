@@ -14,8 +14,7 @@ config CLOCK_CONTROL_RENESAS_RZG3S
 	default y
 	depends on DT_HAS_RENESAS_R9A08G045_CPG_MSSR_ENABLED
 	depends on CLOCK_CONTROL
-	depends on RESET
 	help
 	  Enable support for Renesas RZ/G3S CPG Clock Pulse Generator (CPG) driver.
-	  The CPG driver supports only module's clocks and resets control.
+	  The CPG driver supports only module's clocks.
 	  The PLLs and core clocks are not configured by the CPG driver.

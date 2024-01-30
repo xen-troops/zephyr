@@ -1,0 +1,9 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config RESET_RENESAS_RZG3S_CPG
+	bool "Renesas RZ/G3S family clock support"
+	default y
+	depends on DT_HAS_RENESAS_R9A08G045_CPG_RESET_ENABLED
+	help
+	  Enable support for Renesas CPG MSSR Reset controller driver.
