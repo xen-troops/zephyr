@@ -12,15 +12,3 @@ include: [base.yaml, "renesas,rcar-cpg-mssr.yaml"]
 properties:
   clocks:
     required: true
-
-child-binding:
-  description: Renesas RZ/G3S Software Reset controller
-
-  include: reset-controller.yaml
-
-  properties:
-    "#reset-cells":
-      const: 1
-
-  reset-cells:
-    - id
