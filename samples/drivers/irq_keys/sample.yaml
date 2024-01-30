@@ -3,6 +3,8 @@ sample:
   name: IRQ Keys sample
 tests:
   sample.drivers.rz.irq_keys:
-    platform_allow: rz_a2m
+    platform_allow:
+      - rz_a2m
+      - rz_g3s
     tags: input
     depends_on: pinctrl
