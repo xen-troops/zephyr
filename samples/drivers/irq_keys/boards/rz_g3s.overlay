@@ -1,0 +1,27 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+ / {
+	 keyboard {
+		 compatible = "irq-keys";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&keyboard_pins>;
+
+		 sw3 {
+			 interrupt-parent = <&intc>;
+			 interrupts = <R7S9210_IRQ1 IRQ_TYPE_EDGE_RISING>;
+		 };
+	 };
+ };
+
+ &pinctrl {
+	keyboard_pins: keyboard_pins {
+		sw3-pinmux {
+			pinmux = <RZG3S_PINMUX(PORT0, 3, 7)>; /* IRQ1 */
+		};
+	};
+};
