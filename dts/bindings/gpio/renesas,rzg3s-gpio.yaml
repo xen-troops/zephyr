@@ -1,0 +1,52 @@
+# Copyright (c) 2024 Epam Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Reneses RZ G3S R9A08G045 GPIO controller node.
+  It has to be a subnode of the Renesas RZ G3S R9A08G045 SoC pin-controller node
+  ("renesas,r9a08g045-pinctrl").
+
+compatible: "renesas,r9a08g045-gpio"
+
+include: base.yaml
+
+properties:
+  reg:
+    required: true
+    description: |
+      GPIO amd TINT I/O regions
+
+  reg-names:
+    required: true
+
+  "#address-cells":
+    const: 1
+
+  "#size-cells":
+    const: 0
+
+child-binding:
+  description: |
+     This bindings describe the RZ G3S GPIO port configuration
+
+  include:
+  - name: base.yaml
+    property-allowlist:
+    - status
+    - reg
+    - label
+  - name: gpio-controller.yaml
+
+  properties:
+    reg:
+      required: true
+      description: |
+        GPIO port number. RZ G3S board has a number of GPIO ports that
+        are used to identify correct pin number.
+
+    "#gpio-cells":
+      const: 2
+
+  gpio-cells:
+  - pin
+  - flagss
