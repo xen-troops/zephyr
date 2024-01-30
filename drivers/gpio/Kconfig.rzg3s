@@ -1,0 +1,28 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config GPIO_RZG3S
+	bool "Renesas RZ G3S GPIO controller"
+	default y
+	depends on DT_HAS_RENESAS_R9A08G045_GPIO_ENABLED
+	depends on PINCTRL
+	help
+	  Enable Renesas RZ G3S GPIO controller driver.
+
+if GPIO_RZG3S
+
+config GPIO_RZG3S_INIT_PRIORITY
+	int "Renesas RZ G3S GPIO controller init priority"
+	default 40
+	help
+	  The RZ G3S GPIO controller driver initialization priority. The priority should be lower
+	  than PINCTRL_RZG3S_INIT_PRIORITY device.
+
+config GPIO_RZG3S_PORT_INIT_PRIORITY
+	int "Renesas RZ G3S GPIO controller init priority"
+	default 41
+	help
+	  The RZ G3S GPIO port driver initialization priority. The priority should be lower
+	  than GPIO_RZG3S_INIT_PRIORITY device.
+
+endif #GPIO_RZG3S
