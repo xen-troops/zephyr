@@ -82,6 +82,8 @@ hardware features:
 +-----------+------------------------------+--------------------------------+
 | UART      | uart                         | serial port-polling            |
 +-----------+------------------------------+--------------------------------+
+| SPI       | spi                          | 8/16 bit transfers             |
++-----------+------------------------------+--------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -126,3 +128,5 @@ Supported Features Details
 .. include:: pinctrl/pinctrl.rst
 
 .. include:: gpio/gpio.rst
+
+.. include:: rspi/rspi.rst
