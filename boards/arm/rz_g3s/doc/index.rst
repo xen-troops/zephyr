@@ -1,7 +1,11 @@
 .. _rz_g3s:
 
+#################################
 Renesas RZ G3S Release Notes v0.1
 #################################
+
+.. contents::
+   :depth: 5
 
 Overview
 ********
@@ -58,11 +62,14 @@ RZ G3S board
 
 Views of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
 
+|
+
 .. figure:: img/rzg3s.jpg
    :align: center
 
 Supported Features
 ==================
+
 The Renesas ``rz_g3s`` board configuration supports the following
 hardware features:
 
@@ -115,3 +122,7 @@ The flash on board is not supported by Zephyr at this time.
 
 Supported Features Details
 **************************
+
+.. include:: pinctrl/pinctrl.rst
+
+.. include:: gpio/gpio.rst
