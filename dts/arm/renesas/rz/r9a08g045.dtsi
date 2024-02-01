@@ -58,6 +58,12 @@
 			};
 		};
 
+		syscon: system-controller@41020000 {
+			compatible = "syscon";
+			reg = <0x41020000 0xE30>;
+			status = "okay";
+		};
+
 		pinctrl: pin-controller@41030000 {
 			compatible = "renesas,r9a08g045-pinctrl";
 			reg = <0x41030000 DT_SIZE_K(64)>;
