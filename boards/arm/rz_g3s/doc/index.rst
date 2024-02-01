@@ -127,6 +127,8 @@ Supported Features Details
 
 .. include:: pinctrl/pinctrl.rst
 
+.. include:: icu/interrupts.rst
+
 .. include:: gpio/gpio.rst
 
 .. include:: rspi/rspi.rst
