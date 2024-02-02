@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT renesas_rspi_rz
-
 #define LOG_LEVEL CONFIG_SPI_LOG_LEVEL
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(spi_rza2m);
@@ -17,6 +15,9 @@ LOG_MODULE_REGISTER(spi_rza2m);
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rspi_r9a08g045)
+#include <zephyr/drivers/reset.h>
+#endif
 #include <zephyr/drivers/spi.h>
 #include <zephyr/cache.h>
 #ifdef CONFIG_SPI_ASYNC
@@ -120,12 +121,15 @@ LOG_MODULE_REGISTER(spi_rza2m);
 
 struct rza2m_spi_cfg {
 	DEVICE_MMIO_ROM;
-	const uint16_t			*reg_offset;
+	const uint32_t			base_addr;
 	const struct device		*clk_dev;
 	struct renesas_cpg_clk		clk_mod;
 	const struct pinctrl_dev_config *pcfg;
 	uint32_t			num_cs;
 	void				(*irq_config)(void);
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rspi_r9a08g045)
+	struct reset_dt_spec		rspin_rst;
+#endif
 #ifdef CONFIG_SPI_ASYNC
 	const struct device *dma_dev;
 	uint8_t tx_dma_slot;
@@ -557,7 +561,7 @@ static int rza2m_spi_dma_rx_load(const struct device *dev, uint8_t *buf, size_t 
 		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 	}
 
-	dma_blk.source_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RSPI_SPDR;
+	dma_blk.source_address = cfg->base_addr + RSPI_SPDR;
 	dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 
 	retval = dma_config(cfg->dma_dev, cfg->rx_dma_channel, &dma_cfg);
@@ -608,7 +612,7 @@ static int rza2m_spi_dma_tx_load(const struct device *dev, const uint8_t *buf, s
 		dma_blk.source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 	}
 
-	dma_blk.dest_address = (uint32_t)DEVICE_MMIO_ROM_PTR(dev)->phys_addr + RSPI_SPDR;
+	dma_blk.dest_address = cfg->base_addr + RSPI_SPDR;
 	dma_blk.dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 
 	retval = dma_config(cfg->dma_dev, cfg->tx_dma_channel, &dma_cfg);
@@ -839,6 +843,10 @@ static int rza2m_spi_init(const struct device *dev)
 		return ret;
 	}
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rspi_r9a08g045)
+	(void)reset_line_toggle_dt(&cfg->rspin_rst);
+#endif
+
 	ret = spi_context_cs_configure_all(&ctx->spi_ctx);
 	if (ret < 0) {
 		LOG_DEV_ERR(dev, "Failed to configure CS pins: %d", ret);
@@ -858,7 +866,21 @@ static int rza2m_spi_init(const struct device *dev)
 	return 0;
 }
 
-#define RZA2M_SPI_IRQ_CONFIG_FUNC(n)							\
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rspi_r7s9210)
+/* RZ/A2M compatible */
+#define DT_DRV_COMPAT		renesas_rspi_r7s9210
+#define RSPI_IRQ_CONFIG_FUNC	RSPI_GIC_IRQ_CONFIG_FUNC
+#define RSPI_RESET(n)
+#elif DT_HAS_COMPAT_STATUS_OKAY(renesas_rspi_r9a08g045)
+/* RZ/G3S compatible */
+#define DT_DRV_COMPAT		renesas_rspi_r9a08g045
+#define RSPI_IRQ_CONFIG_FUNC	RSPI_NVIC_IRQ_CONFIG_FUNC
+#define RSPI_RESET(n)		.rspin_rst = RESET_DT_SPEC_INST_GET_BY_IDX(n, 0),
+#else
+#error "Wrong compatible for Renesas RSPI"
+#endif
+
+#define RSPI_GIC_IRQ_CONFIG_FUNC(n)							\
 	static void rza2m_irq_config_##n(void)						\
 	{										\
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, rx, irq),				\
@@ -869,6 +891,21 @@ static int rza2m_spi_init(const struct device *dev)
 			    DT_INST_IRQ_BY_NAME(n, tx, priority),			\
 			    rza2m_spi_irq_tx,						\
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ_BY_NAME(n, tx, flags));	\
+		irq_enable(DT_INST_IRQ_BY_NAME(n, rx, irq));				\
+		irq_enable(DT_INST_IRQ_BY_NAME(n, tx, irq));				\
+	}
+
+#define RSPI_NVIC_IRQ_CONFIG_FUNC(n)							\
+	static void rza2m_irq_config_##n(void)						\
+	{										\
+		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, rx, irq),				\
+			    DT_INST_IRQ_BY_NAME(n, rx, priority),			\
+			    rza2m_spi_irq_rx,						\
+			    DEVICE_DT_INST_GET(n), 0);					\
+		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, tx, irq),				\
+			    DT_INST_IRQ_BY_NAME(n, tx, priority),			\
+			    rza2m_spi_irq_tx,						\
+			    DEVICE_DT_INST_GET(n), 0);					\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, rx, irq));				\
 		irq_enable(DT_INST_IRQ_BY_NAME(n, tx, irq));				\
 	}
@@ -886,15 +923,17 @@ static int rza2m_spi_init(const struct device *dev)
 
 #define RZA2M_SPI_DEVICE(n)								\
 	PINCTRL_DT_INST_DEFINE(n);							\
-	RZA2M_SPI_IRQ_CONFIG_FUNC(n)							\
+	RSPI_IRQ_CONFIG_FUNC(n)								\
 	static const struct rza2m_spi_cfg rza2m_spi_##id##_cfg = {			\
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),					\
+		.base_addr = DT_INST_REG_ADDR(n),					\
 		.clk_dev = DEVICE_DT_GET(DT_INST_CLOCKS_CTLR_BY_IDX(n, 0)),		\
 		.clk_mod.module = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, module),		\
 		.clk_mod.domain = DT_INST_CLOCKS_CELL_BY_IDX(n, 0, domain),		\
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),				\
 		.num_cs = DT_INST_PROP_OR(n, num_cs, 1),				\
 		.irq_config = rza2m_irq_config_##n,					\
+		RSPI_RESET(n)								\
 		SPI_RZA2M_DMA_CHANNELS(n)						\
 	};										\
 	static struct rza2m_spi_ctx rza2m_spi_##id##_data = {				\
@@ -903,7 +942,8 @@ static int rza2m_spi_init(const struct device *dev)
 			SPI_CONTEXT_CS_GPIOS_INITIALIZE(DT_DRV_INST(n), spi_ctx)	\
 	};										\
 	DEVICE_DT_INST_DEFINE(n, rza2m_spi_init, NULL, &rza2m_spi_##id##_data,		\
-			      &rza2m_spi_##id##_cfg, POST_KERNEL, CONFIG_SPI_INIT_PRIORITY,	\
+			      &rza2m_spi_##id##_cfg, POST_KERNEL,			\
+			      CONFIG_SPI_INIT_PRIORITY,					\
 			      &rza2m_spi_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(RZA2M_SPI_DEVICE)
