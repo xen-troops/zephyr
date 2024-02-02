@@ -125,6 +125,8 @@ The flash on board is not supported by Zephyr at this time.
 Supported Features Details
 **************************
 
+.. include:: cortex-m/mpu.rst
+
 .. include:: pinctrl/pinctrl.rst
 
 .. include:: icu/interrupts.rst
