@@ -4,3 +4,8 @@
 config BOARD_RZ_G3S
 	bool "Cortex-M33 for Renesas RZ G3S"
 	depends on SOC_R9A08G045
+
+config BOARD_RZ_G3S_FPU
+	bool "Cortex-M33 with FPU for Renesas RZ G3S"
+	select CPU_HAS_FPU
+	depends on SOC_R9A08G045
