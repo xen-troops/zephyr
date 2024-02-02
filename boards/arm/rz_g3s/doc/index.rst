@@ -129,6 +129,8 @@ Supported Features Details
 
 .. include:: cortex-m/mpu.rst
 
+.. include:: cortex-m/fpu.rst
+
 .. include:: pinctrl/pinctrl.rst
 
 .. include:: icu/interrupts.rst
