@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config SOC_SERIES_RZ_G
-	bool "Renesas RZ A series based on Cortex M33"
+	bool "Renesas RZ G3S series based on Cortex M33"
 	select ARM
 	select CPU_CORTEX_M33
 	select CPU_HAS_ARM_MPU

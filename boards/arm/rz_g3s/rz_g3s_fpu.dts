@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include "rz_g3s.dts"
+
+&cpu0 {
+	compatible = "arm,cortex-m33f";
+};
+
+&intc {
+	reg = <0x41070000 0x18>;
+};
+
+&gpio {
+	reg = <0x41070020 0x30>;
+};

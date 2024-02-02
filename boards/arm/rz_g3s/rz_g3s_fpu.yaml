@@ -1,0 +1,17 @@
+identifier: rz_g3s_fpu
+name: Cortex M33 with FPU for Renesas RZ/G3S
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+supported:
+  - clock_control
+  - uart
+  - spi
+testing:
+  default: true
+  ignore_tags:
+    - net
+    - bluetooth
+    - isotp
