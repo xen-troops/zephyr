@@ -131,6 +131,8 @@ Supported Features Details
 
 .. include:: icu/interrupts.rst
 
+.. include:: uart/uart.rst
+
 .. include:: gpio/gpio.rst
 
 .. include:: rspi/rspi.rst
