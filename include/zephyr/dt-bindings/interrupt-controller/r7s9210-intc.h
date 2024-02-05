@@ -6,14 +6,24 @@
 #ifndef ZEPHYR_INCLUDE_DT_BINDINGS_INTERRUPT_CONTROLLER_R7S9210_INTC_H_
 #define ZEPHYR_INCLUDE_DT_BINDINGS_INTERRUPT_CONTROLLER_R7S9210_INTC_H_
 
-#define R7S9210_IRQ0            0
-#define R7S9210_IRQ1            1
-#define R7S9210_IRQ2            2
-#define R7S9210_IRQ3            3
-#define R7S9210_IRQ4            4
-#define R7S9210_IRQ5            5
-#define R7S9210_IRQ6            6
-#define R7S9210_IRQ7            7
+#define R7S9210_IRQ0 0
+#define R7S9210_IRQ1 1
+#define R7S9210_IRQ2 2
+#define R7S9210_IRQ3 3
+#define R7S9210_IRQ4 4
+#define R7S9210_IRQ5 5
+#define R7S9210_IRQ6 6
+#define R7S9210_IRQ7 7
+
+#define R9A08G045_IRQ_NMI 0
+#define R9A08G045_IRQ0    1
+#define R9A08G045_IRQ1    2
+#define R9A08G045_IRQ2    3
+#define R9A08G045_IRQ3    4
+#define R9A08G045_IRQ4    5
+#define R9A08G045_IRQ5    6
+#define R9A08G045_IRQ6    7
+#define R9A08G045_IRQ7    8
 
 #define IRQ_TYPE_LOW_LEVEL      BIT(1)
 #define IRQ_TYPE_EDGE_FALLING   BIT(2)
