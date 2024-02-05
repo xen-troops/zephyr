@@ -84,6 +84,8 @@ hardware features:
 +-----------+------------------------------+--------------------------------+
 | SPI       | spi                          | 8/16 bit transfers             |
 +-----------+------------------------------+--------------------------------+
+| I2C       | i2c                          |                                |
++-----------+------------------------------+--------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -136,3 +138,5 @@ Supported Features Details
 .. include:: gpio/gpio.rst
 
 .. include:: rspi/rspi.rst
+
+.. include:: i2c/i2c.rst
