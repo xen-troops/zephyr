@@ -151,6 +151,12 @@ static const struct irq_next_level_api r9a08g045_intc_next_lvl = {
 	.intr_get_line_state = intc_rz_intr_get_line_state,
 };
 
+#define IRQ_CONFIGURE(n, inst, _isr)                                                               \
+	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq), DT_INST_IRQ_BY_IDX(inst, n, priority), _isr, \
+		    DT_INST_PROP_BY_IDX(inst, map, n), 0);
+
+#define CONFIGURE_ALL_IRQS(inst, n, _isr) LISTIFY(n, IRQ_CONFIGURE, (), inst, _isr)
+
 static int r9a08g045_intc_init(const struct device *dev)
 {
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
