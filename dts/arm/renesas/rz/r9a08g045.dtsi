@@ -314,9 +314,10 @@
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
 			interrupts =
+				<0 0>,	/* NMI */
 				<1 0>, <2 0>, <3 0>, <4 0>,
 				<5 0>, <6 0>, <7 0>, <8 0>;
-			map = <0 1 2 3 4 5 6 7>;
+			map = <0 1 2 3 4 5 6 7 8>;
 			interrupt-controller;
 			interrupt-parent = <&nvic>;
 		};

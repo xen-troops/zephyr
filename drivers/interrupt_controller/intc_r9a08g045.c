@@ -58,6 +58,59 @@ struct r9a08g045_intc_data {
 	uint8_t f_irq_lvl;
 };
 
+static void r9a08g045_intr_nmi_eoi(const struct device *dev)
+{
+	uint32_t reg_val;
+
+	/* cancel current NMI, this function is called after nmi handler */
+	reg_val = sys_read32(DEVICE_MMIO_GET(dev) + R9A08G045_NMI_NSCR);
+	reg_val &= ~R9A08G045_NMI_NSCR_NSTAT;
+	sys_write32(reg_val, DEVICE_MMIO_GET(dev) + R9A08G045_NMI_NSCR);
+}
+
+static void r9a08g045_intr_nmi_set_type(const struct device *dev, unsigned int irq,
+					uint32_t flags)
+{
+	struct r9a08g045_intc_data *data = (struct r9a08g045_intc_data *)dev->data;
+	k_spinlock_key_t key;
+
+	irq = irq_from_level_2(irq);
+
+	switch (flags) {
+	case IRQ_TYPE_EDGE_FALLING:
+		flags = 0;
+		break;
+	case IRQ_TYPE_EDGE_RISING:
+		flags = R9A08G045_NMI_NITSR_NTSEL;
+		break;
+	default:
+		return;
+	}
+
+	key = k_spin_lock(&data->rz_data.lock);
+	sys_write32(flags, DEVICE_MMIO_GET(dev) + R9A08G045_NMI_NITSR);
+	k_spin_unlock(&data->rz_data.lock, key);
+}
+
+static void r9a08g045_nmi_isr(const void *arg)
+{
+	const struct device *const dev = DEVICE_DT_INST_GET(0);
+	const uint32_t line = POINTER_TO_UINT(arg);
+	const struct _isr_table_entry *entry;
+	uint32_t reg_val;
+
+	reg_val = sys_read32(DEVICE_MMIO_GET(dev) + R9A08G045_NMI_NSCR);
+	if (!(reg_val & R9A08G045_NMI_NSCR_NSTAT)) {
+		LOG_DBG("intc_nmi: spurious irq %u", line);
+		return;
+	}
+
+	entry = &_sw_isr_table[CONFIG_2ND_LVL_ISR_TBL_OFFSET + line];
+	entry->isr(entry->arg);
+
+	r9a08g045_intr_nmi_eoi(dev);
+}
+
 static void r9a08g045_intr_eoi(const struct device *dev, uint32_t line)
 {
 	struct r9a08g045_intc_data *data = dev->data;
@@ -82,18 +135,19 @@ static void r9a08g045_intr_eoi(const struct device *dev, uint32_t line)
 static void r9a08g045_isr(const void *arg)
 {
 	const struct device *const dev = DEVICE_DT_INST_GET(0);
-	const uint32_t line = POINTER_TO_UINT(arg);
+	const uint32_t irq_idx = POINTER_TO_UINT(arg);
 	const struct _isr_table_entry *entry;
 	uint32_t reg_val;
+	uint32_t line;
 
+	line = irq_idx - 1;
 	reg_val = sys_read32(DEVICE_MMIO_GET(dev) + R9A08G045_INTC_ISCR);
 	if (!(reg_val & BIT(line))) {
 		LOG_DBG("intc: spurious irq %u", line);
 		return;
 	}
 
-
-	entry = &_sw_isr_table[CONFIG_2ND_LVL_ISR_TBL_OFFSET + line];
+	entry = &_sw_isr_table[CONFIG_2ND_LVL_ISR_TBL_OFFSET + irq_idx];
 	entry->isr(entry->arg);
 
 	r9a08g045_intr_eoi(dev, line);
@@ -107,18 +161,26 @@ static void r9a08g045_intr_set_priority(const struct device *dev, unsigned int i
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 	k_spinlock_key_t key;
 	uint32_t reg_val;
+	uint32_t line;
 
 	if (parent_irq >= cfg->num_lines) {
 		return;
 	}
 
-	irq = irq_from_level_2(irq);
-	data->f_irq_lvl &= ~BIT(irq);
+	line = irq_from_level_2(irq);
 
+	if (!line) {
+		r9a08g045_intr_nmi_set_type(dev, irq, flags);
+		return;
+	}
+
+	/* adjust line - started from 1 in DT */
+	line--;
+	data->f_irq_lvl &= ~BIT(line);
 	switch (flags) {
 	case IRQ_TYPE_LOW_LEVEL:
 		flags = R9A08G045_INTC_IITSR_IITSEL_LOW_LEVEL;
-		data->f_irq_lvl |= BIT(irq);
+		data->f_irq_lvl |= BIT(line);
 		break;
 	case IRQ_TYPE_EDGE_FALLING:
 		flags = R9A08G045_INTC_IITSR_IITSEL_EDGE_FALLING;
@@ -130,17 +192,17 @@ static void r9a08g045_intr_set_priority(const struct device *dev, unsigned int i
 		flags = R9A08G045_INTC_IITSR_IITSEL_EDGE_BOTH;
 		break;
 	default:
-		break;
+		return;
 	}
 
 	key = k_spin_lock(&data->rz_data.lock);
 	reg_val = sys_read32(DEVICE_MMIO_GET(dev) + R9A08G045_INTC_IITSR);
-	reg_val &= ~R9A08G045_INTC_IITSR_IITSEL(irq, 0x3);
-	reg_val |= R9A08G045_INTC_IITSR_IITSEL(irq, flags);
+	reg_val &= ~R9A08G045_INTC_IITSR_IITSEL(line, 0x3);
+	reg_val |= R9A08G045_INTC_IITSR_IITSEL(line, flags);
 	sys_write32(reg_val, DEVICE_MMIO_GET(dev) + R9A08G045_INTC_IITSR);
 	k_spin_unlock(&data->rz_data.lock, key);
 
-	r9a08g045_intr_eoi(dev, irq);
+	r9a08g045_intr_eoi(dev, line);
 }
 
 static const struct irq_next_level_api r9a08g045_intc_next_lvl = {
@@ -151,16 +213,17 @@ static const struct irq_next_level_api r9a08g045_intc_next_lvl = {
 	.intr_get_line_state = intc_rz_intr_get_line_state,
 };
 
-#define IRQ_CONFIGURE(n, inst, _isr)                                                               \
-	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq), DT_INST_IRQ_BY_IDX(inst, n, priority), _isr, \
-		    DT_INST_PROP_BY_IDX(inst, map, n), 0);
+#define IRQ_CONFIGURE(n, inst, _isr, _isr_nmi)                                                     \
+	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq), DT_INST_IRQ_BY_IDX(inst, n, priority),       \
+		    COND_CODE_0(n, (_isr_nmi), (_isr)), DT_INST_PROP_BY_IDX(inst, map, n), 0);
 
-#define CONFIGURE_ALL_IRQS(inst, n, _isr) LISTIFY(n, IRQ_CONFIGURE, (), inst, _isr)
+#define CONFIGURE_ALL_IRQS(inst, n, _isr, _isr_nmi)                                                \
+	LISTIFY(n, IRQ_CONFIGURE, (), inst, _isr, _isr_nmi)
 
 static int r9a08g045_intc_init(const struct device *dev)
 {
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
-	CONFIGURE_ALL_IRQS(0, DT_NUM_IRQS(DT_DRV_INST(0)), r9a08g045_isr);
+	CONFIGURE_ALL_IRQS(0, DT_NUM_IRQS(DT_DRV_INST(0)), r9a08g045_isr, r9a08g045_nmi_isr);
 
 	return 0;
 }
