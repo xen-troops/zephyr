@@ -103,11 +103,12 @@ static void r9a08g045_intr_set_priority(const struct device *dev, unsigned int i
 					unsigned int prio, uint32_t flags)
 {
 	struct r9a08g045_intc_data *data = (struct r9a08g045_intc_data *)dev->data;
+	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 	k_spinlock_key_t key;
 	uint32_t reg_val;
 
-	if (!parent_irq) {
+	if (parent_irq >= cfg->num_lines) {
 		return;
 	}
 
@@ -150,9 +151,6 @@ static const struct irq_next_level_api r9a08g045_intc_next_lvl = {
 	.intr_get_line_state = intc_rz_intr_get_line_state,
 };
 
-BUILD_ASSERT(DT_NUM_IRQS(DT_DRV_INST(0)) == DT_INST_PROP_LEN(0, map),
-	     "Number of items in interrupts and map should be the same");
-
 static int r9a08g045_intc_init(const struct device *dev)
 {
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
@@ -160,6 +158,9 @@ static int r9a08g045_intc_init(const struct device *dev)
 
 	return 0;
 }
+
+BUILD_ASSERT(DT_NUM_IRQS(DT_DRV_INST(0)) == DT_INST_PROP_LEN(0, map),
+	     "Number of items in interrupts and map should be the same");
 
 static const struct intc_rz_cfg drv_cfg = {
 	DEVICE_MMIO_ROM_INIT(DT_DRV_INST(0)),

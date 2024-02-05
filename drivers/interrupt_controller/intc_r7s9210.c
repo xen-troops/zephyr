@@ -89,11 +89,12 @@ static void r7s9210_intr_set_priority(const struct device *dev, unsigned int irq
 				      unsigned int prio, uint32_t flags)
 {
 	uint16_t cr1;
+	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	struct intc_rz_data *data = (struct intc_rz_data *)dev->data;
 	k_spinlock_key_t key;
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 
-	if (!parent_irq) {
+	if (parent_irq >= cfg->num_lines) {
 		return;
 	}
 
