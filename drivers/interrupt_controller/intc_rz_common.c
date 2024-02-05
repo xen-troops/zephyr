@@ -24,11 +24,12 @@ unsigned int intc_rz_intr_get_parent_irq(const struct device *dev, unsigned int 
 {
 	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	unsigned int parent_line = irq_parent_level_2(irq) + INTC_RZ_INT_BASE;
+	unsigned int line;
 
 	irq = irq_from_level_2(irq);
 	parent_line += irq;
 
-	for (unsigned int line = 0; line < cfg->num_lines; line++) {
+	for (line = 0; line < cfg->num_lines; line++) {
 		if (cfg->line_map[line].line != irq) {
 			continue;
 		}
@@ -38,15 +39,16 @@ unsigned int intc_rz_intr_get_parent_irq(const struct device *dev, unsigned int 
 		}
 	}
 
-	return 0;
+	return line;
 }
 
 /* The driver can't enable IRQ by this driver, so lets request it from the parent driver. */
 void intc_rz_intr_enable(const struct device *dev, unsigned int irq)
 {
+	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 
-	if (!parent_irq) {
+	if (parent_irq >= cfg->num_lines) {
 		return;
 	}
 
@@ -56,9 +58,10 @@ void intc_rz_intr_enable(const struct device *dev, unsigned int irq)
 /* The driver can't disable IRQ by this driver, so lets request it from the parent driver. */
 void intc_rz_intr_disable(const struct device *dev, unsigned int irq)
 {
+	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 
-	if (!parent_irq) {
+	if (parent_irq >= cfg->num_lines) {
 		return;
 	}
 
@@ -88,9 +91,10 @@ unsigned int intc_rz_intr_get_state(const struct device *dev)
  */
 int intc_rz_intr_get_line_state(const struct device *dev, unsigned int irq)
 {
+	const struct intc_rz_cfg *cfg = (const struct intc_rz_cfg *)dev->config;
 	unsigned int parent_irq = intc_rz_intr_get_parent_irq(dev, irq);
 
-	if (!parent_irq) {
+	if (parent_irq >= cfg->num_lines) {
 		return 0;
 	}
 
