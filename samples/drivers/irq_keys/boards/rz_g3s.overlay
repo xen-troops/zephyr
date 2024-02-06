@@ -13,7 +13,12 @@
 
 		 sw3 {
 			 interrupt-parent = <&intc>;
-			 interrupts = <R7S9210_IRQ1 IRQ_TYPE_EDGE_RISING>;
+			 interrupts = <R9A08G045_IRQ1 IRQ_TYPE_EDGE_RISING>;
+		 };
+
+		 sw_nmi {
+			 interrupt-parent = <&intc>;
+			 interrupts = <R9A08G045_IRQ_NMI IRQ_TYPE_EDGE_RISING>;
 		 };
 	 };
  };
