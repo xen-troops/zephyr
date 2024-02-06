@@ -86,6 +86,8 @@ hardware features:
 +-----------+------------------------------+--------------------------------+
 | I2C       | i2c                          |                                |
 +-----------+------------------------------+--------------------------------+
+| Watchdog  | wdt                          |                                |
++-----------+------------------------------+--------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -142,3 +144,5 @@ Supported Features Details
 .. include:: rspi/rspi.rst
 
 .. include:: i2c/i2c.rst
+
+.. include:: wdt/wdt.rst
