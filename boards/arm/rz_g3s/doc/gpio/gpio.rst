@@ -1,3 +1,5 @@
+.. _rzg3s-gpio-label:
+
 GPIO
 ====
 
