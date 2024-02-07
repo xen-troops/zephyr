@@ -326,6 +326,8 @@ static const struct rzg3s_mod_clk rzg3s_mod_clks[R9A08G045_LAST_CLK] = {
 		0x610, 0, 0, 0),
 	DEF_MOD(R9A08G045_VBAT_BCLK, R9A08G045_OSCCLK,
 		0x614, 0, MCPU3_MSTOP, BIT(8)),
+	DEF_MOD(R9A08G045_MHU_PCLK, R9A08G045_CLK_P2,
+		0x520, 0, MHU_MSTOP, BIT(0)),
 };
 
 struct rzg3s_cpg_config {
