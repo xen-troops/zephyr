@@ -114,6 +114,8 @@ static const struct rzg3s_cpg_reset rzg3s_cpg_resets[R9A08G045_LST_RESETN] = {
 	DEF_RST(R9A08G045_I3C_TRESETN, 0x910, 0),
 	DEF_RST(R9A08G045_I3C_PRESETN, 0x910, 1),
 	DEF_RST(R9A08G045_VBAT_BRESETN, 0x914, 0),
+	DEF_RST(R9A08G045_MHU_RESETN, 0x820, 0),
+
 };
 
 struct rzg3s_reset_cpg_config {
