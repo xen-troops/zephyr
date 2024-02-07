@@ -1,0 +1,35 @@
+# Copyright (c) 2024, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas MHU (Message Handling Unit)
+
+compatible: "renesas,mhu"
+
+include: [base.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  renesas,mhu-type:
+    type: int
+    required: true
+    enum: [0, 1]
+    description: |
+      Set the role of the MHU controller.
+      Possible values are 0 for MHU_SEND and 1 for MHU_RSP.
+      When 0 is set then MHU controller works as transmitter
+      to send messages and receive responses.
+      When 1 is set then MHU conroller works as responder
+      expecting notifiers from the master device and getting
+      responces.
+
+  memory-region:
+    type: phandle
+    description: |
+      Reference to the shared memory region that is going
+      to be used for the buffer communication between
+      MHU units. No data will be transmitted if not set.
