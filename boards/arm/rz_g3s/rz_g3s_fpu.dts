@@ -6,16 +6,93 @@
 
 /dts-v1/;
 
-#include "rz_g3s.dts"
+#include <freq.h>
+#include <mem.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/memory-attr/memory-attr-arm.h>
+
+#define INTC_OFFSET 0x41070000
+#define INTC_OFFSET_NODE 41070000
+#define TINT_OFFSET 0x41070020
+#define TINT_OFFSET_NODE 41070020
+
+#include <arm/renesas/rz/r9a08g045.dtsi>
+#include "rz_g3s_pinctrl.dtsi"
+
+/ {
+	model = "Renesas RZ G3S board (FPU)";
+	compatible = "renesas,rz-g3s-fpu";
+
+	chosen {
+		zephyr,sram = &sram;
+		zephyr,flash = &sram_code;
+		zephyr,console = &scif1;
+		zephyr,shell-uart = &scif1;
+	};
+
+	aliases {
+		sw2 = &sw_1;
+		sw0 = &sw_2;
+		sw1 = &sw_3;
+	};
+
+	ddr: memory@60000000 {
+		compatible = "mmio-sram";
+		reg = <0x60000000 DT_SIZE_M(128)>;
+	};
+
+	sram_code: memory@23000 {
+		compatible = "mmio-sram";
+		reg = <0x23000 DT_SIZE_K(244)>;
+	};
+
+	sram: memory@20060000 {
+		compatible = "mmio-sram";
+		reg = <0x20060000 DT_SIZE_K(256)>;
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+
+		sw_1: button_1 {
+		     gpios = <&port18 0 GPIO_ACTIVE_LOW>;
+		     label = "SW1";
+		     zephyr,code = <INPUT_KEY_1>;
+		};
+
+		sw_2: button_2 {
+		     gpios = <&port0 1 GPIO_ACTIVE_LOW>;
+		     label = "SW2";
+		     zephyr,code = <INPUT_KEY_2>;
+		};
+
+		sw_3: button_3 {
+		     gpios = <&port0 3 GPIO_ACTIVE_LOW>;
+		     label = "SW3";
+		     zephyr,code = <INPUT_KEY_3>;
+		};
+	};
+};
 
 &cpu0 {
 	compatible = "arm,cortex-m33f";
 };
 
-&intc {
-	reg = <0x41070000 0x18>;
+&scif1 {
+	current-speed = <115200>;
+	pinctrl-0 = <&scif1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
 };
 
-&gpio {
-	reg = <0x41070020 0x30>;
+&extal_clk {
+	clock-frequency = <DT_FREQ_M(24)>;
+};
+
+&port0 {
+	status = "okay";
+};
+
+&port18 {
+	status = "okay";
 };

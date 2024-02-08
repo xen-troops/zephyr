@@ -71,9 +71,9 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			gpio: gpio-controller@41060020 {
+			gpio: gpio-controller@TINT_OFFSET_NODE {
 				compatible = "renesas,r9a08g045-gpio";
-				reg = <0x41060020 0x30>;
+				reg = <TINT_OFFSET 0x30>;
 				reg-names = "tint";
 				interrupts =
 					<429 0>, <430 0>, <431 0>, <432 0>,
@@ -308,9 +308,9 @@
 			status = "disabled";
 		};
 
-		intc: interrupt-controller@41060000 {
+		intc: interrupt-controller@INTC_OFFSET_NODE {
 			compatible = "renesas,r9a08g045-intc";
-			reg = <0x41060000 0x18>;
+			reg = <INTC_OFFSET 0x18>;
 			#interrupt-cells = <2>;
 			#address-cells = <0>;
 			interrupts =
