@@ -9,7 +9,7 @@ endif # BOARD_RZ_G3S
 
 if BOARD_RZ_G3S_FPU
 config BOARD
-	default "rz_g3s"
+	default "rz_g3s_fpu"
 
 config FPU
 	default y
