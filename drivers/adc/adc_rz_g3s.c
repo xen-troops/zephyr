@@ -346,7 +346,8 @@ static int adc_rzg3s_start_conversion(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	if (find_msb_set(sequence->channels) > RZG3S_ADC_CHANNELS_NUM) {
+	if (!sequence->channels ||
+	    find_msb_set(sequence->channels) > RZG3S_ADC_CHANNELS_NUM) {
 		LOG_ERR("unsupported channels in mask: 0x%08x", sequence->channels);
 		return -ENOTSUP;
 	}
@@ -399,28 +400,28 @@ static int adc_rzg3s_channel_setup(const struct device *dev,
 	return 0;
 }
 
-static int adc_rzg3s_conversion_setup(const struct device *dev, uint8_t channel)
+static int adc_rzg3s_conversion_setup(const struct device *dev, uint32_t chan_mask)
 {
 	uint32_t reg;
+	uint8_t last_channel = find_msb_set(chan_mask) - 1;
 
 	if (adc_rzg3s_read(dev, RZG3S_ADM(0)) & RZG3S_ADM0_ADBSY)
 		return -EBUSY;
 
-	/* TODO: use scan mode for multiply channels */
 	/*
 	 * Setup ADM1 for SW trigger
 	 * TRGEN[21:16] - Unused, set 00
 	 * EGA[13:12] - Set 00 to indicate hardware trigger is invalid
 	 * BS[4] - Enable 1-buffer mode
 	 * RPS[3] - Select single conversion number
-	 * MS[2] - Enable Select mode
+	 * MS[2] - Enable Scan mode
 	 * TRGIN[1] - Trigger input mode unused
 	 * TRG[0] - Enable software trigger mode
 	 */
-	adc_rzg3s_write(dev, RZG3S_ADM(1), RZG3S_ADM1_MS);
+	adc_rzg3s_write(dev, RZG3S_ADM(1), 0);
 
-	/* Select analog input channel subjected to conversion. */
-	adc_rzg3s_write(dev, RZG3S_ADM(2), BIT(channel));
+	/* Select analog input channels subjected to conversion. */
+	adc_rzg3s_write(dev, RZG3S_ADM(2), RZG3S_ADM2_CHSEL_MASK & chan_mask);
 
 	/*
 	 * Setup AMD3
@@ -429,17 +430,18 @@ static int adc_rzg3s_conversion_setup(const struct device *dev, uint8_t channel)
 	 * ADSMP[15:0] - Set default sampling period for channels
 	 */
 	reg = RZG3S_ADM3_ADCMP_1D;
-	reg |= ((channel == 8) ? RZG3S_ADSMP_DEFAULT_SAMPLING_CH8 :
-				 RZG3S_ADSMP_DEFAULT_SAMPLING);
+	reg |= ((last_channel == 8) ? RZG3S_ADSMP_DEFAULT_SAMPLING_CH8 :
+				      RZG3S_ADSMP_DEFAULT_SAMPLING);
 	adc_rzg3s_write(dev, RZG3S_ADM(3), reg);
 
 	/*
 	 * Setup ADINT
 	 * INTS[31] - Select pulse signal
 	 * CSEEN[16] - Enable channel select error interrupt
-	 * INTEN[11:0] - Select channel interrupt
+	 * INTEN[11:0] - Select channel interrupt for last channel in sequence
 	 */
-	reg = (RZG3S_ADINT_CSEEN | BIT(channel));
+
+	reg = (RZG3S_ADINT_CSEEN | BIT(last_channel));
 	adc_rzg3s_write(dev, RZG3S_ADINT, reg);
 
 	return 0;
@@ -547,12 +549,13 @@ err:
 static void adc_rzg3s_isr(const struct device *dev)
 {
 	struct adc_rzg3s_data *data = dev->data;
-	uint8_t current_channel = u32_count_trailing_zeros(data->channels);
-	uint16_t channel_mask = BIT(current_channel);
 	uint32_t status = adc_rzg3s_get_status(dev);
+	uint8_t first_chan = find_lsb_set(data->channels) - 1;
+	uint8_t last_chan = find_msb_set(data->channels) - 1;
+	uint8_t ch;
 
 	/* Abort converting if error detected or no conversion end flag for current channel */
-	if ((status & RZG3S_ADSTS_CSEST) || !(status && channel_mask)) {
+	if ((status & RZG3S_ADSTS_CSEST) || !(status && data->channels)) {
 		adc_context_complete(&data->ctx, -EIO);
 		/* Clear status and enter power-saving mode */
 		adc_rzg3s_clear_status(dev, status);
@@ -560,23 +563,19 @@ static void adc_rzg3s_isr(const struct device *dev)
 		return;
 	}
 
-	/* Get conversion result, copy to buffer and mark this channel as completed */
-	*data->buf++ = adc_rzg3s_get_result(dev, current_channel);
-	data->channels &= ~channel_mask;
+	/* Get conversion results from all read channels, copy to buffer */
+	for (ch = first_chan; ch <= last_chan; ++ch) {
+		if (data->channels & BIT(ch)) {
+			*data->buf++ = adc_rzg3s_get_result(dev, ch);
+		}
+	}
 
 	adc_rzg3s_clear_status(dev, status);
 
-	if (data->channels == 0) {
-		/* Enter power-saving mode */
-		adc_rzg3s_set_power(data->dev, false);
-		/* Notify result if all data gathered. */
-		adc_context_on_sampling_done(&data->ctx, dev);
-	} else {
-		/* Kick next channel conversion */
-		current_channel = find_lsb_set(data->channels) - 1;
-		adc_rzg3s_conversion_setup(data->dev, current_channel);
-		adc_rzg3s_start_stop(data->dev, true);
-	}
+	/* Enter power-saving mode */
+	adc_rzg3s_set_power(data->dev, false);
+	/* Notify result if all data gathered. */
+	adc_context_on_sampling_done(&data->ctx, dev);
 }
 
 /*
@@ -585,16 +584,14 @@ static void adc_rzg3s_isr(const struct device *dev)
 void adc_context_start_sampling(struct adc_context *ctx)
 {
 	struct adc_rzg3s_data *data = CONTAINER_OF(ctx, struct adc_rzg3s_data, ctx);
-	uint8_t channel;
 
 	data->channels = ctx->sequence.channels;
 	data->repeat_buf = data->buf;
 
 	adc_rzg3s_set_power(data->dev, true);
 
-	/* Find next channel and start conversion */
-	channel = find_lsb_set(data->channels) - 1;
-	adc_rzg3s_conversion_setup(data->dev, channel);
+	/* Setup channels and start conversion */
+	adc_rzg3s_conversion_setup(data->dev, data->channels);
 	adc_rzg3s_start_stop(data->dev, true);
 }
 
