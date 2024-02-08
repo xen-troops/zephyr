@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
-if (CONFIG_SOC_SERIES_RZ_G_ARM_FPU)
+if (CONFIG_BOARD_RZ_G3S_FPU)
 	board_runner_args(jlink "--device=R9A08G045S33_M33_1" "--speed=15000")
-elseif(CONFIG_SOC_SERIES_RZ_G_ARM)
+else ()
 	board_runner_args(jlink "--device=R9A08G045S33_M33_0" "--speed=15000")
 endif ()
 include(${ZEPHYR_BASE}/boards/common/jlink.board.cmake)
