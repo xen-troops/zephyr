@@ -1,4 +1,5 @@
 .. _rz_g3s:
+.. _rz_g3s_fpu:
 
 #################################
 Renesas RZ G3S Release Notes v0.1
@@ -80,6 +81,8 @@ hardware features:
 +-----------+------------------------------+--------------------------------+
 | CLOCK     | clock_control                |                                |
 +-----------+------------------------------+--------------------------------+
+| gpio      | gpio                         |                                |
++-----------+------------------------------+--------------------------------+
 | UART      | uart                         | serial port-polling            |
 +-----------+------------------------------+--------------------------------+
 | SPI       | spi                          | 8/16 bit transfers             |
@@ -98,11 +101,45 @@ The default configuration can be found in the defconfig file:
 Programming and Debugging
 *************************
 
-Applications for the ``rz_g3s`` boards can be built in the usual way as documented
+Applications for the ``rz_g3s`` board can be built in the usual way as documented
 in :ref:`build_an_application`.
 
+The generating of binaries for RZ G3S Cortex-M33 and Cortex-M33_FPU system cores is
+supported by using different board names:
+
+* ``rz_g3s`` for Cortex-M33
+* ``rz_g3s_fpu`` for Cortex-M33_FPU
+
+These are the memory mapping for A55 and M33:
+
++-----------+-----------------------+----------------------+-----------------------+
+| Region    | Cortex-A55            | Cortex-M33           | Cortex-M33-FPU        |
++===========+=======================+======================+=======================+
+| SRAM code | 0x00020000-0x00022FFF | 0x00023000-0x0005FFFF| 0x00023000-0x0005FFFF |
++-----------+-----------------------+----------------------+-----------------------+
+| SRAM data |                       | 0x20060000-0x2009FFFF| 0x20060000-0x2009FFFF |
++-----------+-----------------------+----------------------+-----------------------+
+
+Debugging
+=========
+
 Currently is only possible to load and execute a Zephyr application binary on
-this board from the internal SRAM, using ``JLink`` debugger.
+this board one of the Cortex-M33/Cortex-M33_FPU System Cores from
+the internal SRAM, using ``JLink`` debugger.
+
+.. note:
+
+    Currently it's required Renesas  ATF-A to be started on Cortex-A55 System Core
+    before starting Zephyr. As it's affecting at code start address.
+
++----------------+--------------------+
+|                | JLink device id    |
++================+====================+
+| Cortex-M33     | R9A08G045S33_M33_0 |
++----------------+--------------------+
+| Cortex-M33_FPU | R9A08G045S33_M33_1 |
++----------------+--------------------+
+
 
 Here is an example for the :ref:`hello_world` application.
 
@@ -111,20 +148,59 @@ Here is an example for the :ref:`hello_world` application.
    :board: rz_g3s
    :goals: build
 
-These are the memory mapping for A55 and M33:
-
-+------------+-----------------------+------------------------+-----------------------+
-| Region     | Cortex-A55            | Cortex-M33             | Cortex-M33-FPU        |
-+============+=======================+========================+=======================+
-| SRAM       | 0x00020000-0x00022FFF | 0x00023000-0x0005FFFF  | 0x10000000-0x1FFEFFFF |
-+------------+-----------------------+------------------------+-----------------------+
-|            |                       |                        |                       |
-+------------+-----------------------+------------------------+-----------------------+
+.. zephyr-app-commands::
+   :zephyr-app: samples/hello_world
+   :board: rz_g3s_fpu
+   :goals: build
 
 Flashing
 ========
 
-The flash on board is not supported by Zephyr at this time.
+The flashing using west environment is not supported.
+
+Zephyr application can be flashed to eMMC or qSPI storage and then loaded by
+Renesas ATF-A running on Cortex-A55 System Core.
+The Renesas ATF-A should be configured to enable support for loading
+and staring binary at Cortex-M33 System Core.
+
+Refer to "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide".
+
+Flashing on eMMC
+----------------
+
+Zhephyr binary has to be converted to **srec** format.
+
+* Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
+  load **Flash Writer**.
+* Use **Flash Writer EM_W** command to flash Zephyr binary. Input when asked::
+
+    Please Input Start Address in sector :1000
+    Please Input Program Start Address : 23000
+
+* then send Zephyr **srec** file from terminal (use ''ascii'').
+* reboot the board in the **eMMC Boot Mode**
+
+.. code-block:: console
+
+    >EM_W
+    EM_W Start --------------
+    ---------------------------------------------------------
+    Please select,eMMC Partition Area.
+    0:User Partition Area : 62160896 KBytes
+     eMMC Sector Cnt : H'0 - H'0768FFFF
+    1:Boot Partition 1 : 32256 KBytes
+     eMMC Sector Cnt : H'0 - H'0000FBFF
+    2:Boot Partition 2 : 32256 KBytes
+     eMMC Sector Cnt : H'0 - H'0000FBFF
+    ---------------------------------------------------------
+     Select area(0-2)>1
+    -- Boot Partition 1 Program -----------------------------
+    Please Input Start Address in sector :1000
+    Please Input Program Start Address : 23000
+    Work RAM (H'00020000-H'000FFFFF) Clear....
+    please send ! ('.' & CR stop load)
+
+
 
 Supported Features Details
 **************************
