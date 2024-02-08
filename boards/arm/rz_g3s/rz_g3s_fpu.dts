@@ -96,3 +96,7 @@
 &port18 {
 	status = "okay";
 };
+
+&wdt2 {
+	status = "okay";
+};
