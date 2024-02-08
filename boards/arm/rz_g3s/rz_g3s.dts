@@ -5,12 +5,18 @@
  */
 
 /dts-v1/;
-#include <arm/renesas/rz/r9a08g045.dtsi>
+
 #include <freq.h>
 #include <mem.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/memory-attr/memory-attr-arm.h>
 
+#define INTC_OFFSET 0x41060000
+#define INTC_OFFSET_NODE 41060000
+#define TINT_OFFSET 0x41060020
+#define TINT_OFFSET_NODE 41060020
+
+#include <arm/renesas/rz/r9a08g045.dtsi>
 #include "rz_g3s_pinctrl.dtsi"
 
 / {
