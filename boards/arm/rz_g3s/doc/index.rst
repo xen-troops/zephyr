@@ -94,6 +94,8 @@ hardware features:
 +-----------+------------------------------+--------------------------------+
 | Watchdog  | wdt                          |                                |
 +-----------+------------------------------+--------------------------------+
+| ADC       | adc                          |                                |
++-----------+------------------------------+--------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -202,8 +204,6 @@ Zhephyr binary has to be converted to **srec** format.
     Work RAM (H'00020000-H'000FFFFF) Clear....
     please send ! ('.' & CR stop load)
 
-
-
 Supported Features Details
 **************************
 
@@ -219,3 +219,4 @@ Supported Features Details
    rspi/rspi.rst
    i2c/i2c.rst
    wdt/wdt.rst
+   adc/adc.rst
