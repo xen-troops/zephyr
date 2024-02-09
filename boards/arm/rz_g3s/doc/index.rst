@@ -5,19 +5,22 @@
 Renesas RZ G3S Release Notes v0.1
 #################################
 
-.. contents::
-   :depth: 5
+.. only:: html
+
+  .. contents::
+     :depth: 5
 
 Overview
 ********
 This evaluation board kit is ideal for evaluating RZ/G3S. The RZ/G3S Evaluation Board Kit consists
 of a module board (SOM) and a carrier board. The module board complies with the SMARC v2.1 standard.
 
-.. include:: delivery/delivery_scope.rst
+.. toctree::
+   :maxdepth: 4
 
-.. include:: delivery/getting_source_code.rst
-
-.. include:: delivery/initial_config.rst
+   delivery/delivery_scope.rst
+   delivery/getting_source_code.rst
+   delivery/initial_config.rst
 
 Hardware
 ********
@@ -125,7 +128,7 @@ Debugging
 
 Currently is only possible to load and execute a Zephyr application binary on
 this board one of the Cortex-M33/Cortex-M33_FPU System Cores from
-the internal SRAM, using ``JLink`` debugger.
+the internal SRAM, using ``JLink`` debugger (:ref:`jlink-debug-host-tools`).
 
 .. note:
 
@@ -139,7 +142,6 @@ the internal SRAM, using ``JLink`` debugger.
 +----------------+--------------------+
 | Cortex-M33_FPU | R9A08G045S33_M33_1 |
 +----------------+--------------------+
-
 
 Here is an example for the :ref:`hello_world` application.
 
@@ -205,20 +207,15 @@ Zhephyr binary has to be converted to **srec** format.
 Supported Features Details
 **************************
 
-.. include:: cortex-m/mpu.rst
+.. toctree::
+   :maxdepth: 4
 
-.. include:: cortex-m/fpu.rst
-
-.. include:: pinctrl/pinctrl.rst
-
-.. include:: icu/interrupts.rst
-
-.. include:: uart/uart.rst
-
-.. include:: gpio/gpio.rst
-
-.. include:: rspi/rspi.rst
-
-.. include:: i2c/i2c.rst
-
-.. include:: wdt/wdt.rst
+   cortex-m/mpu.rst
+   cortex-m/fpu.rst
+   pinctrl/pinctrl.rst
+   icu/interrupts.rst
+   uart/uart.rst
+   gpio/gpio.rst
+   rspi/rspi.rst
+   i2c/i2c.rst
+   wdt/wdt.rst
