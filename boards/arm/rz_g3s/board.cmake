@@ -7,10 +7,13 @@ else ()
 endif ()
 include(${ZEPHYR_BASE}/boards/common/jlink.board.cmake)
 
-set(RELEASE_NOTES_SRC index.rst)
+set(RELEASE_NOTES_SRC .)
 set(RELEASE_NOTES_OUT rzg3s_release_notes.pdf)
 
 add_custom_target(doc
     WORKING_DIRECTORY ${ZEPHYR_BASE}/boards/${ARCH}/${BOARD}/doc
-    COMMAND rst2pdf ${RELEASE_NOTES_SRC} -o ${ZEPHYR_BINARY_DIR}/${RELEASE_NOTES_OUT}
+    COMMAND sphinx-build -M latexpdf ${RELEASE_NOTES_SRC} ${ZEPHYR_BINARY_DIR}
+    COMMAND cp ${ZEPHYR_BINARY_DIR}/latex/rzg3s_release_notes.pdf  ${ZEPHYR_BINARY_DIR}/${RELEASE_NOTES_OUT}
+    COMMAND rm -Rf ${ZEPHYR_BINARY_DIR}/latex
+    COMMAND rm -Rf ${ZEPHYR_BINARY_DIR}/doctrees
 )
