@@ -44,8 +44,8 @@ NMI is not treated as NMI exception.
 The NMI pin input is detected by edge.
 It can be selected “Rising-edge detection” or “Falling-edge detection”.
 
-IRQ pin Interrupt
-`````````````````
+IRQ pin Interrupts
+``````````````````
 
 IRQ interrupt is the interrupt from IRQ0-7 input pins.
 Using IRQ pins as interrupt must be mapped GPIO pins onto IRQ pins by GPIO register setting.
@@ -55,7 +55,7 @@ detection”, “Rising-edge detection” or “Falling/Rising-edge detection”
 TINT GPIO IRQs
 ``````````````
 
-The TINT processing is done by RZ G3S GPIO driver :ref:`rzg3s-gpio-label`
+The TINT processing is done by RZ G3S GPIO driver :ref:`rzg3s_gpio_label`
 
 Limitations
 ```````````
@@ -68,35 +68,49 @@ Limitations
 INTC driver overview
 --------------------
 
-The RZ G3S INTC driver (`drivers/interrupt_controller/intc_r9a08g045.c`) is responsible for proper
-configuration and handling of NMI and IRQ pin Interrupts and implemented as 2nd level interrupt controller.
+The RZ G3S INTC driver is responsible for proper configuration and handling
+of NMI and IRQ pin Interrupts and it is implemented as 2nd level interrupt controller.
 The mapping between INTC logical IRQ lines and RZ G3S SoC NMI and IRQ pin Interrupts defined as below:
 
-+---------+---------+
-| INTC IRQ|  SoC IRQ|
-+=========+=========+
-| 0       | NMI  (0)|
-+---------+---------+
-| 1       | IRQ0 (1)|
-+---------+---------+
-| 2       | IRQ1 (2)|
-+---------+---------+
-| 3       | IRQ2 (3)|
-+---------+---------+
-| 4       | IRQ3 (4)|
-+---------+---------+
-| 5       | IRQ4 (5)|
-+---------+---------+
-| 6       | IRQ5 (6)|
-+---------+---------+
-| 7       | IRQ6 (7)|
-+---------+---------+
-| 8       | IRQ7 (8)|
-+---------+---------+
++---------+---------------+
+| INTC IRQ|  SoC NVIC IRQ |
++=========+===============+
+| 0       | NMI  (0)      |
++---------+---------------+
+| 1       | IRQ0 (1)      |
++---------+---------------+
+| 2       | IRQ1 (2)      |
++---------+---------------+
+| 3       | IRQ2 (3)      |
++---------+---------------+
+| 4       | IRQ3 (4)      |
++---------+---------------+
+| 5       | IRQ4 (5)      |
++---------+---------------+
+| 6       | IRQ5 (6)      |
++---------+---------------+
+| 7       | IRQ6 (7)      |
++---------+---------------+
+| 8       | IRQ7 (8)      |
++---------+---------------+
+
+The RZ G3S INTC driver is enabled by default if corresponding DT node is enabled.
+In addition below Kconfig options enabled in rz_g3s_defconfig.
+
+.. code-block:: text
+
+    CONFIG_MULTI_LEVEL_INTERRUPTS=y
+    CONFIG_DYNAMIC_INTERRUPTS=y
+    /* automatically enabled */
+    CONFIG_INTC_R9A08G045=y
+
+The RZ G3S INTC driver code can be found at::
+
+    drivers/interrupt_controller/intc_r9a08g045.c
 
 The helper macro are defined in::
 
-    include/zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h
+    dt-bindings/interrupt-controller/r7s9210-intc.h
 
 
 INTC driver testing
@@ -115,10 +129,10 @@ The **irq_keys** sample allows to test both NMI and IRQ pin Interrupts on RZ/G3S
 * NMI pin connected to PCIE_WAKE# signal which is routed to the B11 pin of the PCIE_SLOT connector.
   NMI pin IRQ can be tested by grounding B11 pin of the PCIE_SLOT connector.
 
-The **irq_keys** DT overlay (samples/drivers/irq_keys/boards/rz_g3s.overlay) for RZ/G3S SMARC Evaluation Board Kit is below
+The **irq_keys** DT overlay (samples/drivers/irq_keys/boards/rz_g3s.overlay) for RZ/G3S SMARC Evaluation Board Kit,
 which shows example DT configuration is below:
 
-::
+.. code-block:: dts
 
     / {
         keyboard {
@@ -155,7 +169,7 @@ To build **irq_keys** test run command:
 
 The **irq_keys** test will produce below console output when executed:
 
-.. code:: console
+.. code-block:: console
 
     [00:00:00.000,000] <inf> main: Starting IRQ keys sample...
                                                               Number of IRQ Keys detected 2
