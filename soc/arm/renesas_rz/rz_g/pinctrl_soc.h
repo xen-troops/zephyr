@@ -145,8 +145,13 @@ typedef struct pinctrl_soc_pin {
 } pinctrl_soc_pin_t;
 
 /* Iterate over each pinctrl-n phandle child */
-#define Z_PINCTRL_STATE_PINS_INIT(node_id, prop)			\
-	{DT_FOREACH_CHILD(DT_PHANDLE(node_id, prop), Z_PINCTRL_STATE_PIN_CHILD_INIT)};
+#define Z_PINCTRL_STATE_PINS_INIT1(node_id, state_prop, idx)                                       \
+	DT_FOREACH_CHILD(DT_PHANDLE_BY_IDX(node_id, state_prop, idx),                              \
+			 Z_PINCTRL_STATE_PIN_CHILD_INIT)
+
+/* Iterate over each pinctrl-n phandle child */
+#define Z_PINCTRL_STATE_PINS_INIT(node_id, prop)                                                   \
+	{DT_FOREACH_PROP_ELEM_SEP(node_id, prop, Z_PINCTRL_STATE_PINS_INIT1, ())};
 
 /*
  * If child has groups property:
