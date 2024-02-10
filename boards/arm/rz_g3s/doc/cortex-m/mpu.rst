@@ -1,5 +1,5 @@
-Memory Protection Unit (MPU)
-============================
+Cortex-M33 Memory Protection Unit (MPU)
+=======================================
 
 MPU overview
 ------------
@@ -22,7 +22,7 @@ MPU default configuration
 
 The MPU is enabled by default in rz_g3s_defconfig.
 
-::
+.. code-block:: text
 
     CONFIG_ARM_MPU=y
 
@@ -61,7 +61,7 @@ To build **mpu_test** test run command:
 The **mpu_test** is not automatic test and required entering commands from
 console and reboot after each test:
 
-::
+.. code-block:: text
 
     mpu read
     mpu write
@@ -71,7 +71,7 @@ console and reboot after each test:
 
 The below is console output of test execution:
 
-::
+.. code-block:: console
 
     *** Booting Zephyr OS build v3.5.0-rc2-230-ga80246d0863d ***
     uart:~$ mpu read

@@ -1,5 +1,5 @@
-Floating-Point Unit (FPU)
-=========================
+Cortex-M33 Floating-Point Unit (FPU)
+====================================
 
 FPU overview
 ------------
@@ -39,10 +39,10 @@ So target application can be built using command
 
 The following configuration parameters will be automatically enabled:
 
-::
+.. code-block:: text
 
     CONFIG_FPU=y
-    #if MULTITHREADING
+    #if MULTITHREADING=y
     CONFIG_FPU_SHARING=y
 
 
@@ -61,7 +61,7 @@ To build **fpu_sharing/generic** test run command:
 Once **fpu_sharing/generic** is loaded it will provide console output showing
 the test execution process:
 
-::
+.. code-block:: console
 
     *** Booting Zephyr OS build v3.5.0-rc2-230-gc935cfadb73a ***
     Running TESTSUITE fpu_sharing_generic
