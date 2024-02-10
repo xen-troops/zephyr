@@ -10,6 +10,8 @@
 #include <zephyr/sys/bitarray.h>
 #include <zephyr/sys/dlist.h>
 
+#include <kernel_arch_interface.h>
+
 #include "optee_msg.h"
 #include "optee_rpc_cmd.h"
 #include "optee_smc.h"
@@ -88,6 +90,26 @@ struct optee_driver_data {
 	unsigned long sec_caps;
 };
 
+/*
+ * Use arch_page_phys_get instead of z_mem_phys_addr for address
+ * conversion.
+ * According to the description of z_mem_phys_addr it uses
+ * Z_MEM_VM_OFFSET to make a conversion from virtual to physical
+ * address. And these macros are intended for assembly, linker code,
+ * and static initializers.
+ * So when external libraries, such as PICOLIBC or NEWLIB_LIBC
+ * uses internal mappings for dynamic memory allocation z_mem_phys_addr
+ * may not work properly and return wrong physical address.
+ */
+static uintptr_t optee_mem_phys_addr(void *virt)
+{
+	uintptr_t phys;
+	uint32_t offt = (uintptr_t)virt & (CONFIG_MMU_PAGE_SIZE - 1);
+
+	arch_page_phys_get((void *)((uintptr_t)virt - offt), &phys);
+	return phys + offt;
+}
+
 /* Wrapping functions so function pointer can be used */
 static void optee_smccc_smc(unsigned long a0, unsigned long a1, unsigned long a2, unsigned long a3,
 			    unsigned long a4, unsigned long a5, unsigned long a6, unsigned long a7,
@@ -165,7 +187,7 @@ static void msg_param_to_tmp_mem(struct tee_param *p, uint32_t attr,
 		return;
 	}
 
-	p->a = mp->u.tmem.buf_ptr - z_mem_phys_addr(shm->addr);
+	p->a = mp->u.tmem.buf_ptr - optee_mem_phys_addr(shm->addr);
 	p->c = mp->u.tmem.shm_ref;
 }
 
@@ -649,7 +671,8 @@ static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *pa
 		if (!tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
 				 param->a1,
 				 TEE_SHM_ALLOC, &shm)) {
-			u64_to_regs((uint64_t)z_mem_phys_addr(shm->addr), &param->a1, &param->a2);
+			u64_to_regs((uint64_t)optee_mem_phys_addr(shm->addr), &param->a1,
+				    &param->a2);
 			u64_to_regs((uint64_t)shm, &param->a4, &param->a5);
 		} else {
 			param->a1 = 0;
@@ -684,7 +707,7 @@ static int optee_call(const struct device *dev, struct optee_msg_arg *arg)
 	};
 	void *pages = NULL;
 
-	u64_to_regs((uint64_t)z_mem_phys_addr(arg), &param.a1, &param.a2);
+	u64_to_regs((uint64_t)optee_mem_phys_addr(arg), &param.a1, &param.a2);
 	while (true) {
 		struct arm_smccc_res res;
 
@@ -941,7 +964,7 @@ static void *optee_construct_page_list(void *buf, uint32_t len, uint64_t *phys_b
 
 	for (uint32_t pl_idx = 0; pl_idx < list_size / page_size; pl_idx++) {
 		for (uint32_t page_idx = 0; num_pages && page_idx < num_pages_in_pl; page_idx++) {
-			pl[pl_idx].pages[page_idx] = z_mem_phys_addr(buf_page);
+			pl[pl_idx].pages[page_idx] = optee_mem_phys_addr(buf_page);
 			buf_page += page_size;
 			num_pages--;
 		}
@@ -950,13 +973,13 @@ static void *optee_construct_page_list(void *buf, uint32_t len, uint64_t *phys_b
 			break;
 		}
 
-		pl[pl_idx].next_page = z_mem_phys_addr(pl + 1);
+		pl[pl_idx].next_page = optee_mem_phys_addr(pl + 1);
 	}
 
 	/* 12 least significant bits of optee_msg_param.u.tmem.buf_ptr should hold page offset
 	 * of user buffer
 	 */
-	*phys_buf = z_mem_phys_addr(pl) | page_offset;
+	*phys_buf = optee_mem_phys_addr(pl) | page_offset;
 
 	return pl;
 }
