@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config DMA_RZA2
-	bool "Renesas RZA2 General Purpose DMA driver"
-	depends on DT_HAS_RENESAS_RZA2_DMA_ENABLED
-	select NOCACHE_MEMORY
+	bool "Renesas RZA2 and RZG3 General Purpose DMA driver"
+	depends on DT_HAS_RENESAS_RZA2_DMA_ENABLED || DT_HAS_RENESAS_RZG3_DMA_ENABLED
+	select NOCACHE_MEMORY if DT_HAS_RENESAS_RZA2_DMA_ENABLED
 	default y
 	help
 	  General Purpose DMA for Renesas RZA2 series. Please note that the buffers
