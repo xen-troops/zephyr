@@ -212,6 +212,7 @@ Supported Features Details
 
    cortex-m/mpu.rst
    cortex-m/fpu.rst
+   cortex-m/sau.rst
    cpg/cpg.rst
    pinctrl/pinctrl.rst
    icu/interrupts.rst
