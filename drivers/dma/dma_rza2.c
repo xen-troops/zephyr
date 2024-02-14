@@ -2153,11 +2153,14 @@ static void dma_rza2_err_isr(const struct device *dev)
 	channel_mask = err_0_7 | (err_8_15 << 8);
 
 	for (ch = 0; ch < config->num_channels; ch++) {
-		if ((channel_mask & BIT(ch)) && (data->channels[ch].err_callback_en == 0) &&
-		    data->channels[ch].dma_callback) {
-			data->channels[ch].dma_callback(dev, data->channels[ch].user_data, ch,
-							DMA_STATUS_BLOCK);
-			dma_rza2_channel_free(dev, ch);
+		if (channel_mask & BIT(ch)) {
+			if ((data->channels[ch].err_callback_en == 0) &&
+			    data->channels[ch].dma_callback) {
+				data->channels[ch].dma_callback(dev, data->channels[ch].user_data,
+								ch, DMA_STATUS_BLOCK);
+				dma_rza2_channel_free(dev, ch);
+			}
+			rza2_set_chctrl(dev, ch, rza2_get_chctrl(dev, ch) | SWRST);
 		}
 	}
 }
