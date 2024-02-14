@@ -33,11 +33,6 @@ The RZ G3S rSPI driver code can be found at:
 
     drivers/spi/spi_rza2m.c
 
-Limitations:
-````````````
-
-* Async and DMA transfers are not supported at the moment.
-
 rSPI testing
 ------------
 
@@ -56,11 +51,11 @@ Once **spi_loopback** is loaded it will provide console output showing the test 
 .. code-block:: console
 
     I: spi@400aa000:"Init done fck:100000000Hz"
-    *** Booting Zephyr OS build v3.5.0-rc2-228-g35075fc31e86 ***
+    *** Booting Zephyr OS build v3.5.0-rc2-364-g2f7499219d0b ***
     Running TESTSUITE spi_loopback
     ===================================================================
     START - test_spi_loopback
-    I: SPI test on buffers TX/RX 0x2cce0/0x2ccc0, frame size = 8
+    I: SPI test on buffers TX/RX 0x20051260/0x20051240, frame size = 8, DMA enabled (without CONFIG_NOCACHE_MEMORY)
     I: SPI test slow config
     I: Start complete multiple
     I: Passed
@@ -75,6 +70,8 @@ Once **spi_loopback** is loaded it will provide console output showing the test 
     I: Start every 4
     I: Passed
     I: Start rx bigger than tx
+    I: Passed
+    I: Start async call
     I: Passed
     I: SPI test fast config
     I: Start complete multiple
@@ -91,19 +88,21 @@ Once **spi_loopback** is loaded it will provide console output showing the test 
     I: Passed
     I: Start rx bigger than tx
     I: Passed
+    I: Start async call
+    I: Passed
     I: Start complete loop
     I: Passed
     I: Start complete loop
     I: Passed
     I: All tx/rx passed
-     PASS - test_spi_loopback in 0.072 seconds
+     PASS - test_spi_loopback in 0.078 seconds
     ===================================================================
     TESTSUITE spi_loopback succeeded
 
     ------ TESTSUITE SUMMARY START ------
 
-    SUITE PASS - 100.00% [spi_loopback]: pass = 1, fail = 0, skip = 0, total = 1 dus
-     - PASS - [spi_loopback.test_spi_loopback] duration = 0.072 seconds
+    SUITE PASS - 100.00% [spi_loopback]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.078 seconds
+     - PASS - [spi_loopback.test_spi_loopback] duration = 0.078 seconds
 
     ------ TESTSUITE SUMMARY END ------
 
