@@ -19,7 +19,26 @@ LOG_MODULE_REGISTER(ramdisk, CONFIG_RAMDISK_LOG_LEVEL);
 #define RAMDISK_VOLUME_SIZE (CONFIG_DISK_RAM_VOLUME_SIZE * 1024)
 #define RAMDISK_SECTOR_COUNT (RAMDISK_VOLUME_SIZE / RAMDISK_SECTOR_SIZE)
 
+#if IS_ENABLED(CONFIG_DISK_RAM_EXTERNAL)
+static uint8_t *ramdisk_buf;
+#else
 static uint8_t ramdisk_buf[RAMDISK_VOLUME_SIZE];
+#endif
+
+#if IS_ENABLED(CONFIG_DISK_RAM_EXTERNAL)
+static uint8_t *disk_ram_external_map(void)
+{
+#if defined(CONFIG_MMU)
+	uint8_t *virt_start;
+
+	z_phys_map(&virt_start, CONFIG_DISK_RAM_START,
+				RAMDISK_VOLUME_SIZE, K_MEM_CACHE_WB | K_MEM_PERM_RW);
+	return virt_start;
+#else
+	return (uint8_t *)CONFIG_DISK_RAM_START;
+#endif
+}
+#endif
 
 static void *lba_to_address(uint32_t lba)
 {
@@ -105,7 +124,9 @@ static struct disk_info ram_disk = {
 static int disk_ram_init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
-
+#if IS_ENABLED(CONFIG_DISK_RAM_EXTERNAL)
+	ramdisk_buf = disk_ram_external_map();
+#endif
 	return disk_access_register(&ram_disk);
 }
 

@@ -22,6 +22,18 @@ config DISK_RAM_VOLUME_NAME
 	help
 	  Disk name as per file system naming guidelines.
 
+config DISK_RAM_EXTERNAL
+	bool "Use initrd provided by the bootloader"
+	help
+	  Use the initrd provided by the bootloader as the RAM Disk.
+
+config DISK_RAM_START
+	hex "Start address of the preloaded RAM Disk"
+	depends on DISK_RAM_EXTERNAL
+	default 0
+	help
+	  Start the RAM Disk at a specific address.
+
 module = RAMDISK
 module-str = ramdisk
 source "subsys/logging/Kconfig.template.log_config"
