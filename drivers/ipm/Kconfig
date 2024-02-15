@@ -15,6 +15,14 @@ config IPM_MHU
 	help
 	  Driver for SSE 200 MHU (Message Handling Unit)
 
+config IPM_RENESAS_MHU
+	bool "IPM Renesas MHU driver"
+	default y
+	depends on DT_HAS_RENESAS_MHU_ENABLED
+	help
+	  Driver for Renesas messaging unit,
+	  based on Renesas RZ series HW.
+
 config IPM_NRFX
 	bool "IPM NRF driver"
 	default y
