@@ -24,8 +24,8 @@
 	compatible = "renesas,rz-g3s";
 
 	chosen {
-		zephyr,sram = &sram;
-		zephyr,flash = &sram_code;
+		zephyr,sram = &sram_mcpu0;
+		zephyr,flash = &sram_mcpu0_code;
 		zephyr,console = &scif1;
 		zephyr,shell-uart = &scif1;
 	};
@@ -41,14 +41,14 @@
 		reg = <0x60000000 DT_SIZE_M(128)>;
 	};
 
-	sram_code: memory@23000 {
+	sram_mcpu0_code: memory@23000 {
 		compatible = "mmio-sram";
-		reg = <0x23000 DT_SIZE_K(244)>;
+		reg = <0x23000 DT_SIZE_K(180)>;
 	};
 
-	sram: memory@20060000 {
+	sram_mcpu0: memory@20050000 {
 		compatible = "mmio-sram";
-		reg = <0x20060000 DT_SIZE_K(256)>;
+		reg = <0x20050000 DT_SIZE_K(63)>;
 	};
 
 	buttons {
