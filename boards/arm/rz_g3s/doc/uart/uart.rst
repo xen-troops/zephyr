@@ -4,9 +4,42 @@ UART Support
 UART overview
 -------------
 
-.. note::
+Zephyr UART support and API functionality is described in Section:
 
-   TODO
+`Universal Asynchronous Receiver-Transmitter (UART)
+<https://docs.zephyrproject.org/latest/hardware/peripherals/uart.html>`_
+
+There are 2 UART ports supported from Zephyr for RZ/G3S boards:
+
+* SER0 from PMOD1_3A which is currently used to access Console of M33 cores;
+* SER1 from SER1_UART which can be use as M33_FPU console.
+
+SER1 usage
+``````````
+
+.. image:: ../img/SER1.jpg
+   :height: 250px
+   :align: center
+
+SER1 can be used with USB/UART adapter which support 1.8V level. Connect
+appropriate adapter according to the picture. SER1 connector corresponds to
+SCIF ch3 peripheral on the board. You can configure that peripheral in
+device-tree overlay file in the following way:
+
+.. code-block::
+
+    &scif3 {
+            current-speed = <115200>;
+            pinctrl-0 = <&scif3_pins>;
+            pinctrl-names = "default";
+            status = "okay";
+    };
+
+Limitations:
+````````````
+
+* No DMA support implemented.
+* uart_async_api test should be implemented once UART will support DMA.
 
 UART testing
 ------------
