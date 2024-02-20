@@ -1,0 +1,89 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	soc {
+		mhu1: mhu@40400020 {
+			compatible = "renesas,mhu";
+			reg = <0x40400020 0x20>;
+			interrupts = <58 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			renesas,mhu-type = <1>;
+			status = "disabled";
+		};
+
+		mhu3: mhu@40400060 {
+			compatible = "renesas,mhu";
+			reg = <0x40400060 0x20>;
+			interrupts = <59 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			renesas,mhu-type = <1>;
+			status = "disabled";
+		};
+
+		mhu4: mhu@40400080 {
+			compatible = "renesas,mhu";
+			reg = <0x40400080 0x20>;
+			interrupts = <60 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			renesas,mhu-type = <0>;
+			status = "disabled";
+		};
+
+		mhu5: mhu@40400100 {
+			compatible = "renesas,mhu";
+			reg = <0x40400100 0x20>;
+			interrupts = <61 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			renesas,mhu-type = <0>;
+			status = "disabled";
+		};
+
+		mhu1_s: mhu@40401020 {
+			compatible = "renesas,mhu";
+			reg = <0x40401020 0x20>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			interrupts = <62 0>;
+			renesas,mhu-type = <1>;
+			status = "disabled";
+		};
+
+		mhu3_s: mhu@40401060 {
+			compatible = "renesas,mhu";
+			reg = <0x40401060 0x20>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			interrupts = <63 0>;
+			renesas,mhu-type = <1>;
+			status = "disabled";
+		};
+
+		mhu4_s: mhu@40401080 {
+			compatible = "renesas,mhu";
+			reg = <0x40401080 0x20>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			interrupts = <64 0>;
+			renesas,mhu-type = <0>;
+			status = "disabled";
+		};
+
+		mhu5_s: mhu@40401100 {
+			compatible = "renesas,mhu";
+			reg = <0x40401100 0x20>;
+			clocks = <&cpg CPG_MOD R9A08G045_MHU_PCLK>;
+			resets = <&cpg_rctl R9A08G045_MHU_RESETN>;
+			interrupts = <65 0>;
+			renesas,mhu-type = <0>;
+			status = "disabled";
+		};
+	};
+};
