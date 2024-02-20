@@ -1,0 +1,14 @@
+sample:
+  description: This app provides an example of how to integrate OpenAMP
+    with Zephyr including a resource table for Renesas RZ/G boards.
+  name: OpenAMP with resource table client example
+tests:
+  sample.subsys.ipc.openamp_rs_table_rzg3:
+    build_only: true
+    platform_allow:
+      - rz_g3s
+      - rz_g3s_fpu
+    integration_platforms:
+      - rz_g3s
+      - rz_g3s_fpu
+    tags: ipm
