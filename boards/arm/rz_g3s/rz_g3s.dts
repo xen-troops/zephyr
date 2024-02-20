@@ -19,6 +19,7 @@
 #include <arm/renesas/rz/r9a08g045.dtsi>
 #include "rz_g3s_pinctrl.dtsi"
 #include "rz_g3s_canfd.dtsi"
+#include "rz_g3s_mhu.dtsi"
 
 / {
 	model = "Renesas RZ G3S board";
