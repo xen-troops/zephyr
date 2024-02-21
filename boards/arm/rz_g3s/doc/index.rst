@@ -223,4 +223,5 @@ Supported Features Details
    wdt/wdt.rst
    adc/adc.rst
    canfd/canfd.rst
+   openamp/mhu.rst
    openamp/openamp.rst
