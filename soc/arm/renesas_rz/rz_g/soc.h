@@ -21,6 +21,16 @@
 #define __DCACHE_PRESENT    CONFIG_CPU_HAS_DCACHE /* DCACHE present - no */
 #define __ICACHE_PRESENT    CONFIG_CPU_HAS_ICACHE /* ICACHE present - no */
 
+/*
+ * Macro to convert across CM33/CM33_FPU and A55 address spaces
+ * This macro are designed to convert CM33 addresses to A55 addresses
+ * in secure and non-secure space. According to Table 5.2 of HW Manual.
+ */
+#define CM33_ADDRESS_OFFSET_SECURE    (0x30000000)
+#define CM33_ADDRESS_OFFSET_NONSECURE (0x20000000)
+#define CM33_TO_A55_ADDR_S(x)         ((x)-CM33_ADDRESS_OFFSET_SECURE)
+#define CM33_TO_A55_ADDR_NS(x)        ((x)-CM33_ADDRESS_OFFSET_NONSECURE)
+
 #endif /* !_ASMLANGUAGE */
 
 #endif /* _SOC__H_ */
