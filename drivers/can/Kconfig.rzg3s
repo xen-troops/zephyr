@@ -1,0 +1,65 @@
+# Renesas RZ G3S CAN-FD configuration options
+#
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config CAN_RZGS_FD
+	bool "Renesas RZ G3S CAN-FD Driver"
+	default y
+	depends on CAN_FD_MODE
+	depends on DT_HAS_RENESAS_RZG3S_CANFD_ENABLED
+	help
+	  Enable Renesas RZ G3S CAN-FD Driver.
+
+if CAN_RZGS_FD
+
+config CAN_MAX_FILTER
+	int "Maximum number of concurrent active RX filters"
+	depends on CAN_RZGS_FD
+	default 32
+	range 1 128
+	help
+	  Defines the Maximum number of concurrent active RX filters and the array size of
+	  the callback/msgq pointers.
+	  For RZ G3S Soc the CAN_MAX_FILTER defines number of AFL entries per channel.
+	  All CAN-FD channels will use the same number of AFL entries.
+
+config CAN_RZGS_FD_MAX_RX
+	int "Maximum number of RX FIFO buffers"
+	depends on CAN_RZGS_FD
+	default 32
+	range 4 64
+	help
+	  Maximum number of RX FIFO buffers.
+	  Allowed values: 4, 8, 16, 32, 48, 64, 128.
+	  All CAN-FD channels will use the same number of RX FIFO buffers.
+
+config CAN_RZGS_FD_MAX_RX_DATA_SIZE
+	int "Maximum size of RX Payload Data Size"
+	depends on CAN_RZGS_FD
+	default 64
+	range 8 64
+	help
+	  Maximum size of RX packet payload data size used for RZ G3S RX FIFO.
+	  Allowed values: 8, 12, 16, 20, 24, 32, 48, 64
+	  All CAN-FD channels will use the same maximum size of RX packet payload data.
+
+config CAN_RZGS_FD_MAX_TX
+	int "Maximum number of TX message buffers"
+	depends on CAN_RZGS_FD
+	default 32
+	range 1 32
+	help
+	  Maximum number of TX message buffers.
+	  All CAN-FD channels will use the same number of TX message buffers.
+
+
+config CAN_RZG3S_CHN_INIT_PRIORITY
+	int "Renesas RZ G3S GPIO controller init priority"
+	default 81
+	depends on CAN_RZGS_FD
+	help
+	  The RZ G3S CAN channel driver initialization priority. The priority should be lower
+	  than CAN_INIT_PRIORITY device.
+
+endif # CAN_RZGS_FD
