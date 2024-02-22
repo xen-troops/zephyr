@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * CAN-FD nodes for RZ/G3S SMARC Evaluation Board Kit.
+ * The on-board CAN transceiver has Standby functions that may be controlled using GPIO.
+ * Refer to SW_GPIO_CAN_PMOD for configuration.
+ */
+
+/ {
+	chosen {
+		zephyr,canbus = &canfd0;
+	};
+};
+
+&canfd {
+	pinctrl-0 = <&can0_pins &can1_pins>;
+	pinctrl-names = "default";
+};
+
+&canfd0 {
+	bus-speed-data = <1000000>;
+	bus-speed = <125000>;
+	sample-point = <875>;
+	sample-point-data = <750>;
+
+	can-transceiver {
+		max-bitrate = <5000000>;
+	};
+};
+
+&canfd1 {
+	bus-speed-data = <1000000>;
+	bus-speed = <125000>;
+	sample-point = <875>;
+	sample-point-data = <750>;
+
+	can-transceiver {
+		max-bitrate = <5000000>;
+	};
+};
