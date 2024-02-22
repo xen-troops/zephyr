@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	/*
+	 * The can_led can be used by some CAN samples/tsest, like "samples/drivers/can/counter".
+	 * On Renesas RZ/G3S SMARC Evaluation Board this snippets configures can_led as:
+	 * P14_2 -> GPIO11 -> GPIO11_PMOD -> PMOD1_GPIO11
+	 * Use PMOD1_6A connector to connect led to pins 2 and 6 (power 3.3V)
+	*/
+	aliases {
+		led0 = &can_led;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		can_led: can_led0 {
+			gpios = <&port14 2 GPIO_ACTIVE_LOW>;
+		};
+	};
+};
+
+&canfd {
+	status = "okay";
+};
+
+&canfd0 {
+	status = "okay";
+};
+
+&canfd1 {
+	status = "okay";
+};
+
+&port14 {
+	status = "okay";
+};
