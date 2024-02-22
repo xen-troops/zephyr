@@ -1,0 +1,65 @@
+description: |
+  Renesas RZ G3S CAN-FD controller bindings. The RZ G3S is 2-channel CAN-FD module (CAN-FD) that
+  complies with ISO 11898-1 (2015) Standards. It transmits and receives both formats of messages:
+  the standard identifier (11 bits) and extended ID (29 bits).
+  - number of receive rules (0 to 128) for each channel
+  - transmit buffers up to 32 per channel;
+  - receive buffers 128 total, up to 64 buffers per channel;
+  - Transmitter Delay Compensation;
+  - RX/TX message timestamping.
+
+compatible: "renesas,rzg3s-canfd"
+
+include: [base.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+
+  resets:
+    required: true
+
+  "#address-cells":
+    const: 1
+
+  "#size-cells":
+    const: 0
+
+child-binding:
+  description: |
+    CAN-FD controller channels
+
+  include:
+    - name: can-fd-controller.yaml
+      property-blocklist:
+        - compatible
+
+  properties:
+    reg:
+      required: true
+
+    sample-point:
+      required: true
+
+    sample-point-data:
+      required: true
+
+    renesas,tx-delay-comp-offset-only:
+      description: |
+        The only provided "tx-delay-comp-offset" is used if "tx-delay-comp-offset-only" is provided.
+        RZ G3S CAN-FD controller supports Transmitter Delay Compensation (TDC) and, by default, the
+        TDC is applied as "tx-delay-comp-offset" + CFDCnFDSTS.TDCR.
+        Where
+        - "tx-delay-comp-offset" is provided by user in CAN channel DLL clock cycles and
+        stored in CFDCnFDCFG.TDCO (TDCO + 1 value is applied).
+        - CFDCnFDSTS.TDCR is the measured Transceiver Delay Compensation Result
+      type: boolean
