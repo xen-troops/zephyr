@@ -44,6 +44,13 @@
 		clock-frequency = <0>;
 	};
 
+	/* External CAN clock - to be overridden by boards that provide it */
+	can_clk: can-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <0>;
+	};
+
 	soc {
 		cpg: clock-controller@41010000 {
 			compatible = "renesas,r9a08g045-cpg-mssr";
@@ -495,6 +502,37 @@
 			reset-names = "presetn", "adrst-n";
 			status = "disabled";
 			#io-channel-cells = <1>;
+		};
+
+		canfd: can@400c0000 {
+			compatible = "renesas,r9a08g045-canfd", "renesas,rzg3s-canfd";
+			reg = <0x400c0000 DT_SIZE_K(128)>;
+			interrupts = <373 0>, <374 0>;
+			interrupt-names = "g_err", "g_recc";
+			clocks = <&cpg CPG_MOD R9A08G045_CANFD_CLK_RAM>,
+					 <&cpg CPG_MOD R9A08G045_CANFD_PCLK>,
+					 <&can_clk>;
+			clock-names = "fck", "canfd", "can_clk";
+			resets = <&cpg_rctl R9A08G045_CANFD_RSTP_N>,
+					 <&cpg_rctl R9A08G045_CANFD_RSTC_N>;
+			reset-names = "rstp_n", "rstc_n";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+
+			canfd0: can_channel@0 {
+				reg = <0x0>;
+				interrupts = <375 0>, <377 0>, <379 0>;
+				interrupt-names = "ch_rec", "ch_err", "ch_trx";
+				status = "disabled";
+			};
+
+			canfd1: can_channel@1 {
+				reg = <0x1>;
+				interrupts = <376 0>, <378 0>, <380 0>;
+				interrupt-names = "ch_rec", "ch_err", "ch_trx";
+				status = "disabled";
+			};
 		};
 	};
 };
