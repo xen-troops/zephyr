@@ -1,0 +1,6 @@
+name: rz-g3s-canfd1-test
+boards:
+  rz_g3s:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-g3s-canfd1-test.overlay
+      EXTRA_CONF_FILE: rz-g3s-canfd1-test.conf
