@@ -14,7 +14,8 @@ config DISK_RAM_VOLUME_SIZE
 	int "RAM Disk size in kilobytes"
 	default 96
 	help
-	  Size of the RAM Disk.
+	  Size of the RAM Disk. If compression is supported, this
+	  is the maximum size of the uncompressed RAM Disk.
 
 config DISK_RAM_VOLUME_NAME
 	string "RAM Disk mount point or drive name"
@@ -33,6 +34,12 @@ config DISK_RAM_START
 	default 0
 	help
 	  Start the RAM Disk at a specific address.
+
+config DISK_RAM_DECOMPRESS
+	bool "Decompress the initrd"
+	depends on DISK_RAM_EXTERNAL && LZ4
+	help
+	  Decompress the initrd before using it as the RAM Disk.
 
 module = RAMDISK
 module-str = ramdisk

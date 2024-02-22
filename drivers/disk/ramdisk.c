@@ -19,6 +19,12 @@ LOG_MODULE_REGISTER(ramdisk, CONFIG_RAMDISK_LOG_LEVEL);
 #define RAMDISK_VOLUME_SIZE (CONFIG_DISK_RAM_VOLUME_SIZE * 1024)
 #define RAMDISK_SECTOR_COUNT (RAMDISK_VOLUME_SIZE / RAMDISK_SECTOR_SIZE)
 
+#if IS_ENABLED(CONFIG_DISK_RAM_DECOMPRESS)
+#include <lz4frame.h>
+#define LZ4_MAGIC 0x184D2204
+static uint8_t unpacked_buf[RAMDISK_VOLUME_SIZE];
+#endif
+
 #if IS_ENABLED(CONFIG_DISK_RAM_EXTERNAL)
 static uint8_t *ramdisk_buf;
 #else
@@ -37,6 +43,48 @@ static uint8_t *disk_ram_external_map(void)
 #else
 	return (uint8_t *)CONFIG_DISK_RAM_START;
 #endif
+}
+#endif
+
+#if IS_ENABLED(CONFIG_DISK_RAM_DECOMPRESS)
+static void disk_ram_external_unmap(char *virt_start)
+{
+#if defined(CONFIG_MMU)
+	z_phys_unmap(virt_start, RAMDISK_VOLUME_SIZE);
+#endif
+}
+
+static int disk_ram_is_compressed(char *virt_start)
+{
+	uint32_t magic = *(uint32_t *)virt_start;
+
+	return magic == LZ4_MAGIC;
+}
+
+static int disk_ram_decompress(char *compressed_buf, size_t compressed_size,
+				char *decompressed_buf, size_t decompressed_size)
+{
+	size_t src_size = compressed_size;
+	size_t dst_size = decompressed_size;
+	LZ4F_decompressionContext_t lz4_ctx;
+	int ret;
+
+	ret = LZ4F_createDecompressionContext(&lz4_ctx, LZ4F_VERSION);
+	if (ret < 0) {
+		LOG_ERR("Can't create decompression context, error: %s\n",
+			LZ4F_getErrorName(ret));
+		return ret;
+	}
+
+	ret = LZ4F_decompress(lz4_ctx, decompressed_buf, &dst_size,
+			compressed_buf, &src_size, NULL);
+	if (ret < 0) {
+		LOG_ERR("Decompression failed: %s\n", LZ4F_getErrorName(ret));
+		return ret;
+	}
+	LZ4F_freeDecompressionContext(lz4_ctx);
+
+	return ret;
 }
 #endif
 
@@ -126,6 +174,18 @@ static int disk_ram_init(const struct device *dev)
 	ARG_UNUSED(dev);
 #if IS_ENABLED(CONFIG_DISK_RAM_EXTERNAL)
 	ramdisk_buf = disk_ram_external_map();
+#if IS_ENABLED(CONFIG_DISK_RAM_DECOMPRESS)
+	if (disk_ram_is_compressed((char *)ramdisk_buf)) {
+		if (disk_ram_decompress((char *)ramdisk_buf, RAMDISK_VOLUME_SIZE,
+					(char *)unpacked_buf, RAMDISK_VOLUME_SIZE) < 0) {
+			return -EINVAL;
+		}
+
+		LOG_INF("Freeing compressed initrd");
+		disk_ram_external_unmap(ramdisk_buf);
+		ramdisk_buf = unpacked_buf;
+	}
+#endif
 #endif
 	return disk_access_register(&ram_disk);
 }
