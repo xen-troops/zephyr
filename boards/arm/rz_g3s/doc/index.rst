@@ -222,3 +222,4 @@ Supported Features Details
    i2c/i2c.rst
    wdt/wdt.rst
    adc/adc.rst
+   canfd/canfd.rst
