@@ -11,6 +11,8 @@ if(CONFIG_LZ4)
 
   zephyr_library_sources(
     ${LZ4_DIR}/lib/lz4.c
+    ${LZ4_DIR}/lib/lz4frame.c
+    ${LZ4_DIR}/lib/xxhash.c
   )
 
 endif()
