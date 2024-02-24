@@ -25,7 +25,7 @@ SAU default configuration
 -------------------------
 
 | The Renesas RZ G3S Zephyr implementation declares ARM SAU support at SoC level by enabling
-| `CONFIG_CPU_HAS_ARM_SAU' Kconfig option. This also enables below Kconfig options by default.
+| `CONFIG_CPU_HAS_ARM_SAU` Kconfig option. This also enables below Kconfig options by default.
 
 .. code-block:: text
 

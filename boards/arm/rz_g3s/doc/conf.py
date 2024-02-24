@@ -44,12 +44,16 @@ todo_include_todos = True
 
 latex_documents = [('index', 'rzg3s_release_notes.tex', project, author, 'manual')]
 
+latex_elements = {
+    'papersize': 'a4paper',
+    'fvset' : '\\fvset{fontsize=\\scriptsize}'
+}
+
 latexpdf_documents = [('index', 'rzg3s_release_notes.pdf', project, author, 'manual')]
 
 pdf_documents = [('index', u'pdf-name', u'Sample doc Title', u'author name')]
 
 intersphinx_mapping = {'zephyr': ('https://docs.zephyrproject.org/latest/', None)}
-
 
 def setup(app):
     app.add_config_value('PDF_GEN', '', '1')
