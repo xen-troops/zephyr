@@ -46,7 +46,10 @@ latex_documents = [('index', 'rzg3s_release_notes.tex', project, author, 'manual
 
 latex_elements = {
     'papersize': 'a4paper',
-    'fvset' : '\\fvset{fontsize=\\scriptsize}'
+    'fvset' : '\\fvset{fontsize=\\scriptsize}',
+    'preamble': r'''
+    \usepackage[none]{hyphenat}
+    '''
 }
 
 latexpdf_documents = [('index', 'rzg3s_release_notes.pdf', project, author, 'manual')]
