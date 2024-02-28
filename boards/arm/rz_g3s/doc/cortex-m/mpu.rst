@@ -20,13 +20,13 @@ for more information.
 MPU default configuration
 -------------------------
 
-The MPU is enabled by default in rz_g3s_defconfig.
+The MPU is enabled by default in ``rz_g3s_defconfig``.
 
 .. code-block:: text
 
     CONFIG_ARM_MPU=y
 
-The CONFIG_XIP has to be enabled for the proper MPU work.
+The ``CONFIG_XIP`` has to be enabled for the proper MPU work.
 
 At boot time Zephyr configures following static memory regions by retrieving
 region parameters from DT:
@@ -42,9 +42,7 @@ region parameters from DT:
 More regions can be added if specified properly in DT by using standard
 Zephyr DT memory **"zephyr,memory-region"** bindigs.
 
-Refer to:
-`Zephyr Memory Attributes <https://docs.zephyrproject.org/latest/services/mem_mgmt/index.html>`_
-
+Refer to Zephyr :ref:`mem_mgmt_api` documentation.
 
 MPU testing
 -------------
@@ -66,8 +64,6 @@ console and reboot after each test:
     mpu read
     mpu write
     mpu run
-
-|
 
 The below is console output of test execution:
 
@@ -114,4 +110,6 @@ The below is console output of test execution:
     [00:00:13.740,000] <err> os: Current thread: 0x20060668 (shell_uart)
     [00:00:13.803,000] <err> os: Halting system
 
-|
+.. raw:: latex
+
+    \newpage

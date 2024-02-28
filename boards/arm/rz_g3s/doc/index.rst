@@ -105,6 +105,8 @@ The default configuration can be found in the defconfig file:
 
     boards/arm/rz_g3s/rz_g3s_defconfig
 
+.. _rz_g3s_prog_debug:
+
 Programming and Debugging
 *************************
 
@@ -128,6 +130,15 @@ These are the memory mapping for A55 and M33:
 +----------+-----------------------+-----------------------+
 | DDR      | 0x60000000-0x60FFFFFF | 0x61000000-0x61FFFFFF |
 +----------+-----------------------+-----------------------+
+
+Console
+=======
+
+There are 2 UART ports supported from Zephyr on RZ/G3S SMARC Evaluation Board Kit board,
+which assigned to Cortex-M33 System Cores as following:
+
+* Cortex-M33: SER0 from PMOD1_3A
+* Cortex-M33_FPU: SER1 from SER1_UART
 
 Debugging
 =========
@@ -221,8 +232,9 @@ Supported Features Details
 .. toctree::
    :maxdepth: 4
 
-   cortex-m/mpu.rst
    cortex-m/fpu.rst
+   cortex-m/mpu.rst
+   cortex-m/systick.rst
    cortex-m/sau.rst
    cpg/cpg.rst
    pinctrl/pinctrl.rst

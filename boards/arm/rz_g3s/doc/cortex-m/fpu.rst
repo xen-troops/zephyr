@@ -26,16 +26,16 @@ for more information.
 FPU default configuration
 -------------------------
 
-To build Zephyr for M33_FPU core the following board should be used: rz_g3s_fpu.
-So target application can be built using command
+To build Zephyr for the Cortex-M33_FPU core the following board should be used: **rz_g3s_fpu**.
+So target application can be built using command:
 
 .. code-block:: bash
 
-    west build -t rz_g3s_fpu <APP_PATH>
+    west build -b rz_g3s_fpu -p always <APP_PATH>
 
 .. note::
 
-    Refer to TODO for Cortex-M33_FPU System Core build instructions.
+    Refer to :ref:`rz_g3s_prog_debug` for more information about Cortex-M33_FPU System Core build instructions.
 
 The following configuration parameters will be automatically enabled:
 
@@ -44,7 +44,6 @@ The following configuration parameters will be automatically enabled:
     CONFIG_FPU=y
     #if MULTITHREADING=y
     CONFIG_FPU_SHARING=y
-
 
 FPU testing
 -----------
@@ -96,4 +95,6 @@ the test execution process:
     ===================================================================
     PROJECT EXECUTION SUCCESSFUL
 
-|
+.. raw:: latex
+
+    \newpage
