@@ -2,7 +2,7 @@
 .. _rz_g3s_fpu:
 
 #################################
-Renesas RZ G3S Release Notes v0.1
+RZ/G3S SMARC Evaluation Board Kit
 #################################
 
 .. only:: html
@@ -66,8 +66,6 @@ RZ G3S board
 
 Views of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
 
-|
-
 .. figure:: img/rzg3s.jpg
    :align: center
 
@@ -77,31 +75,35 @@ Supported Features
 The Renesas ``rz_g3s`` board configuration supports the following
 hardware features:
 
-+-----------+------------------------------+--------------------------------+
-| Interface | Driver/components            | Support level                  |
-+===========+==============================+================================+
-| PINCTRL   | pinctrl                      |                                |
-+-----------+------------------------------+--------------------------------+
-| CLOCK     | clock_control                |                                |
-+-----------+------------------------------+--------------------------------+
-| gpio      | gpio                         |                                |
-+-----------+------------------------------+--------------------------------+
-| UART      | uart                         | serial port-polling            |
-+-----------+------------------------------+--------------------------------+
-| SPI       | spi                          | 8/16 bit transfers             |
-+-----------+------------------------------+--------------------------------+
-| I2C       | i2c                          |                                |
-+-----------+------------------------------+--------------------------------+
-| Watchdog  | wdt                          |                                |
-+-----------+------------------------------+--------------------------------+
-| ADC       | adc                          |                                |
-+-----------+------------------------------+--------------------------------+
++----------+---------------------------+--------------------------------+
+| Interface| Driver/components         | Support level                  |
++==========+===========================+================================+
+| PINCTRL  | pinctrl                   |                                |
++----------+---------------------------+--------------------------------+
+| CLOCK    | clock_control             |                                |
++----------+---------------------------+--------------------------------+
+| gpio     | gpio                      |                                |
++----------+---------------------------+--------------------------------+
+| UART     | uart                      | serial port-polling            |
++----------+---------------------------+--------------------------------+
+| rSPI     | spi                       | 8/16 bit transfers             |
++----------+---------------------------+--------------------------------+
+| I2C      | i2c                       |                                |
++----------+---------------------------+--------------------------------+
+| Watchdog | wdt                       |                                |
++----------+---------------------------+--------------------------------+
+| ADC      | adc                       |                                |
++----------+---------------------------+--------------------------------+
+| CAN-FD   | can                       |                                |
++----------+---------------------------+--------------------------------+
 
 Other hardware features have not been enabled yet for this board.
 
 The default configuration can be found in the defconfig file:
 
-        ``boards/arm/rz_g3s/rz_g3s_defconfig``
+.. code-block:: text
+
+    boards/arm/rz_g3s/rz_g3s_defconfig
 
 Programming and Debugging
 *************************
@@ -117,22 +119,24 @@ supported by using different board names:
 
 These are the memory mapping for A55 and M33:
 
-+-----------+-----------------------+----------------------+----------------------+
-| Region    | Cortex-A55            | Cortex-M33           | Cortex-M33-FPU       |
-+===========+=======================+======================+======================+
-| SRAM code | 0x00020000-0x00022FFF | 0x00023000-0x0004FFFF| 0x00063000-0x0008FFFF|
-+-----------+-----------------------+----------------------+----------------------+
-| SRAM data |                       | 0x20050000-0x2005FC00| 0x20090000-0x2009FC00|
-+-----------+-----------------------+----------------------+----------------------+
++----------+-----------------------+-----------------------+
+| Region   | Cortex-M33            | Cortex-M33-FPU        |
++==========+=======================+=======================+
+| SRAM code| 0x00023000-0x0004FFFF | 0x00063000-0x0008FFFF |
++----------+-----------------------+-----------------------+
+| SRAM data| 0x20050000-0x2005FC00 | 0x20090000-0x2009FC00 |
++----------+-----------------------+-----------------------+
+| DDR      | 0x60000000-0x60FFFFFF | 0x61000000-0x61FFFFFF |
++----------+-----------------------+-----------------------+
 
 Debugging
 =========
 
-Currently is only possible to load and execute a Zephyr application binary on
+It is possible to load and execute a Zephyr application binary on
 this board one of the Cortex-M33/Cortex-M33_FPU System Cores from
 the internal SRAM, using ``JLink`` debugger (:ref:`jlink-debug-host-tools`).
 
-.. note:
+.. note::
 
     Currently it's required Renesas  ATF-A to be started on Cortex-A55 System Core
     before starting Zephyr. As it's affecting at code start address.
@@ -167,6 +171,11 @@ Renesas ATF-A running on Cortex-A55 System Core.
 The Renesas ATF-A should be configured to enable support for loading
 and staring binary at Cortex-M33 System Core.
 
+.. note::
+
+    Flashing is supported only for Cortex-M33 System Core.
+    Zephyr application can be started on Cortex-M33_FPU System Core only using debugger.
+
 Refer to "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide".
 
 Flashing on eMMC
@@ -176,7 +185,9 @@ Zhephyr binary has to be converted to **srec** format.
 
 * Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
   load **Flash Writer**.
-* Use **Flash Writer EM_W** command to flash Zephyr binary. Input when asked::
+* Use **Flash Writer EM_W** command to flash Zephyr binary. Input when asked:
+
+.. code-block:: console
 
     Please Input Start Address in sector :1000
     Please Input Program Start Address : 23000
