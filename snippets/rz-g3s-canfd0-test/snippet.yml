@@ -4,3 +4,7 @@ boards:
     append:
       EXTRA_DTC_OVERLAY_FILE: rz-g3s-canfd0-test.overlay
       EXTRA_CONF_FILE: rz-g3s-canfd0-test.conf
+  rz_g3s_fpu:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-g3s-canfd0-test.overlay
+      EXTRA_CONF_FILE: rz-g3s-canfd0-test.conf
