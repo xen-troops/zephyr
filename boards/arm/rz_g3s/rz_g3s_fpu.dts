@@ -18,6 +18,7 @@
 
 #include <arm/renesas/rz/r9a08g045.dtsi>
 #include "rz_g3s_pinctrl.dtsi"
+#include "rz_g3s_canfd.dtsi"
 #include "rz_g3s_mhu_fpu.dtsi"
 
 / {
@@ -27,8 +28,8 @@
 	chosen {
 		zephyr,sram = &sram_mcpu1;
 		zephyr,flash = &sram_mcpu1_code;
-		zephyr,console = &scif1;
-		zephyr,shell-uart = &scif1;
+		zephyr,console = &scif3;
+		zephyr,shell-uart = &scif3;
 	};
 
 	aliases {
@@ -38,8 +39,10 @@
 	};
 
 	ddr: memory@60000000 {
-		compatible = "mmio-sram";
-		reg = <0x60000000 DT_SIZE_M(128)>;
+		compatible ="zephyr,memory-region", "mmio-sram";
+		reg = <0x61000000 DT_SIZE_M(16)>;
+		zephyr,memory-region = "DDR";
+		zephyr,memory-attr = <( DT_MEM_ARM(ATTR_MPU_RAM) )>;
 	};
 
 	sram_mcpu1_code: memory@63000 {
@@ -79,9 +82,9 @@
 	compatible = "arm,cortex-m33f";
 };
 
-&scif1 {
+&scif3 {
 	current-speed = <115200>;
-	pinctrl-0 = <&scif1_pins>;
+	pinctrl-0 = <&scif3_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };
