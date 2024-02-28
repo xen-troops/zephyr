@@ -1,22 +1,41 @@
-I2C Support
-============
+I2C Bus Interface (I2C)
+======================
 
 I2C overview
 ------------
 
-.. note::
+The Renesas RZ G3S Soc has 4 channels of the I2C bus interface (RIIC).
 
-    TODO
+Refer to "I2C Bus Interface" section in "Renesas RZ/G3S Group User’s Manual: Hardware"
+
+I2C driver overview
+-------------------
+
+Zephyr RZ/G3S Renesas I2C driver provides Zephyr :ref:`i2c_api` System interface implementation.
+
+The I2C subsystem is **not** enabled by default in ``rz_g3s_defconfig``. To enable Zephyr
+I2C functionality and RZ G3S I2C driver below Kconfig options have to be enabled:
+
+.. code-block:: text
+
+    CONFIG_I2C=y
+    /* automatically enabled */
+    CONFIG_I2C_RIIC=y
+
+The RZ G3S I2C driver code can be found at:
+
+.. code-block:: text
+
+    drivers/i2c/i2c_riic.c
 
 I2C testing
--------------
+-----------
 
 samples/sensor/bme280
 `````````````````````
 
-Zephyr RZ/G3S Renesas Inter-Integrated Circuit (RIIC) driver can be tested by
-using sample application with BME280 sensor. To build gpio_basic_api test run
-command:
+Zephyr RZ/G3S I2C driver can be tested by using **bme280** sample application with BME280 sensor.
+To build **bme280** test run command:
 
 .. code-block:: bash
 
@@ -24,7 +43,7 @@ command:
 
 Console output:
 
-.. code-block:: bash
+.. code-block:: console
 
     [00:00:00.004,000] <dbg> BME280: bme280_chip_init: ID OK
     [00:00:00.038,000] <dbg> BME280: bme280_chip_init: "bme280@76" OK
@@ -61,3 +80,7 @@ Console output:
     temp: 27.230000; press: 98.496042; humidity: 98.838867
     temp: 27.340000; press: 98.484203; humidity: 98.780273
     temp: 27.420000; press: 98.461601; humidity: 98.681640
+
+.. raw:: latex
+
+    \newpage

@@ -104,11 +104,15 @@ In addition below Kconfig options enabled in rz_g3s_defconfig.
     /* automatically enabled */
     CONFIG_INTC_R9A08G045=y
 
-The RZ G3S INTC driver code can be found at::
+The RZ G3S INTC driver code can be found at:
+
+.. code-block:: text
 
     drivers/interrupt_controller/intc_r9a08g045.c
 
-The helper macro are defined in::
+The helper macro are defined in:
+
+.. code-block:: text
 
     dt-bindings/interrupt-controller/r7s9210-intc.h
 
@@ -198,4 +202,6 @@ The **irq_keys** test will produce below console output when executed:
     [00:00:20.860,000] <inf> main: Button (irq line 512) pressed 9 times
     [00:00:20.861,000] <inf> main: Changing of IRQ line (512) detection mode to FALLING EDGE
 
-|
+.. raw:: latex
+
+    \newpage

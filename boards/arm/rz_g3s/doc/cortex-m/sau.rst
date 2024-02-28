@@ -1,5 +1,5 @@
-Security attribution unit (SAU)
-===============================
+Cortex-M33 Security attribution unit (SAU)
+==========================================
 
 SAU overview
 ------------
@@ -24,14 +24,13 @@ for more information.
 SAU default configuration
 -------------------------
 
-| The Renesas RZ G3S Zephyr implementation declares ARM SAU support at SoC level by enabling
-| `CONFIG_CPU_HAS_ARM_SAU` Kconfig option. This also enables below Kconfig options by default.
+The Renesas RZ G3S Zephyr implementation declares ARM SAU support at SoC level by enabling
+``CONFIG_CPU_HAS_ARM_SAU`` Kconfig option by default. This also enables below Kconfig options by default.
 
 .. code-block:: text
 
     CONFIG_CPU_HAS_TEE=y
     CONFIG_ARMV8_M_SE=y
-
 
 SAU testing
 -----------
@@ -40,4 +39,6 @@ SAU testing
 
     the ARMv8-M Security Extension is not tested.
 
-|
+.. raw:: latex
+
+    \newpage

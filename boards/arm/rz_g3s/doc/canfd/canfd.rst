@@ -75,7 +75,9 @@ CAN functionality and RZ G3S CAN-FD driver below Kconfig options has to be enabl
     /* optional */
     CONFIG_CAN_RX_TIMESTAMP=y
 
-The RZ G3S CAN-FD driver code can be found at::
+The RZ G3S CAN-FD driver code can be found at:
+
+.. code-block:: text
 
     drivers/can/can_rzg3s_fd.c
     drivers/can/can_rzg3s_fd.h
@@ -145,7 +147,9 @@ The RZ G3S CAN-FD DT node is defined in (dts/arm/renesas/rz/r9a08g045.dtsi) as:
 
 Each RZ G3S CAN-FD channel implemented as Zephyr CAN device and can be used independently.
 The RZ G3S CAN-FD has to be enabled and configured in board DTS files to become available.
-The RZ G3S CAN-FD configuration example can be found at::
+The RZ G3S CAN-FD configuration example can be found at:
+
+.. code-block:: text
 
 	boards/arm/rz_g3s/rz_g3s_canfd.dtsi
 	snippets/rz-g3s-canfd0-test/rz-g3s-canfd0-test.overlay
@@ -369,3 +373,7 @@ To run test/samples for CAN-FD channels 1 use build command as below:
 
    canfd_api_test.rst
    canfd_api_timing.rst
+
+.. raw:: latex
+
+    \newpage

@@ -1,27 +1,59 @@
-rSPI Support
-============
+Renesas Serial Peripheral Interface (rSPI)
+==========================================
+
+rSPI overview
+-------------
+
+The Renesas RZ G3S Soc includes three independent Renesas serial peripheral interfaces (rSPI).
+The rSPI module is capable of full-duplex synchronous serial communication.
+
+Refer to "Renesas Serial Peripheral Interface" section in "Renesas RZ/G3S Group User’s Manual: Hardware"
+
+rSPI driver overview
+--------------------
+
 Zephyr RZ/G3S Renesas Serial Peripheral Interface (rSPI) driver supports:
 
 • 8/16bit transfers
 
-Async and DMA transfers are not supported at the moment.
+Zephyr RZ/G3S Renesas rSPI driver provides Zephyr :ref:`spi_api` System interface implementation.
 
-Zephyr Kconfig options needed for RZ/G3S SPI driver testing:
+The SPI subsystem is **not** enabled by default in ``rz_g3s_defconfig``. To enable Zephyr
+SPI functionality and RZ G3S rSPI driver below Kconfig options have to be enabled:
 
-.. code-block::
+.. code-block:: text
 
     CONFIG_SPI=y
+    /* automatically enabled */
+    CONFIG_SPI_RZA2M=y
+
+The RZ G3S rSPI driver code can be found at:
+
+.. code-block:: text
+
+    drivers/spi/spi_rza2m.c
+
+Limitations:
+````````````
+
+* Async and DMA transfers are not supported at the moment.
+
+rSPI testing
+------------
+
+tests/drivers/spi/spi_loopback
+``````````````````````````````
 
 Zephyr RZ/G3S Renesas Serial Peripheral Interface (rSPI) driver can be tested by
-using generic spi loopback test. Use below command to build SPI spi loopback sample application:
+using generic **spi_loopback** test. Use below command to build SPI **spi_loopback** sample application:
 
 .. code-block:: bash
 
     west build -b rz_g3s -p always tests/drivers/spi/spi_loopback
 
-Once spi loopback is loaded it will provide console output showing the test execution process:
+Once **spi_loopback** is loaded it will provide console output showing the test execution process:
 
-.. code-block:: bash
+.. code-block:: console
 
     I: spi@400aa000:"Init done fck:100000000Hz"
     *** Booting Zephyr OS build v3.5.0-rc2-228-g35075fc31e86 ***
@@ -77,3 +109,7 @@ Once spi loopback is loaded it will provide console output showing the test exec
 
     ===================================================================
     PROJECT EXECUTION SUCCESSFUL
+
+.. raw:: latex
+
+    \newpage

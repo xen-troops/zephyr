@@ -4,8 +4,8 @@ Message Handling Unit (MHU)
 Overview
 --------
 
-MHU is a function for message communication between Cortex-A55(CA55) cores and Cortex-
-M33(CM33/CM33_FPU). Message communication is done by shared RAM (On-chip RAM) for passing message and
+MHU is a function for message communication between Cortex-A55 and Cortex-M33(FPU) cores.
+Message communication is done by shared RAM (On-chip RAM) for passing message and
 response between CPUs and the function (MHU) for notifying when messages and responses are stored in the memory.
 
 It povides the following functions:
@@ -48,7 +48,6 @@ The device-tree node to configure driver is the following:
         status = "disabled";
     };
 
-
 Where:
 
 * mhu_type can be 0 to configure MHU to work as transmitter and 1 to work as responder
@@ -57,7 +56,9 @@ Where:
 MHU driver testing
 -------------------
 
-MHU driver for CM33 and CM33_FPU cores can be tested from **openamp_rsc_table_rzg3** sample.
+MHU driver for Cortex-M33 and Cortex-M33_FPU cores can be tested from **openamp_rsc_table_rzg3** sample.
 Please refer to **Openamp** section for additional information.
 
-|
+.. raw:: latex
+
+    \newpage

@@ -112,7 +112,7 @@ When GPIO consumers requests GPIO pin IRQ functionality the gpio-controller sele
 The GPIO consumer should use reference at GPIO port DT node and GPIO pin number within GPIO port.
 The GPIO port should be enabled in DT (example :ref:`GPIO DT request example <rzg3s_gpio_dts_consumer>`).
 
-The GPIO subsystem is enabled by default in rz_g3s_defconfig,
+The GPIO subsystem is enabled by default in ``rz_g3s_defconfig``,
 which automatically enables RZ G3S GPIO driver if corresponding DT node is enabled.
 
 .. code-block:: text
@@ -122,11 +122,15 @@ which automatically enables RZ G3S GPIO driver if corresponding DT node is enabl
     CONFIG_GPIO_RZG3S=y
 
 
-The RZ G3S GPIO driver code can be found at::
+The RZ G3S GPIO driver code can be found at:
+
+.. code-block:: text
 
     drivers/gpio/gpio_rzg3s.c
 
-The DT helper macro are defined in::
+The DT helper macro are defined in:
+
+.. code-block:: text
 
     dt-bindings/gpio/gpio.h
     dt-bindings/gpio/rzg3s-gpio.h
@@ -155,10 +159,6 @@ The example of DT GPIO flags usage:
 	gpio-consumer {
 		out-gpios = <&port8 2 (GPIO_PULL_UP|RZA2_GPIO_DRIVE_IOLH_SET(PINCTRL_RZG3S_PIN_IOLH_A_3_3V_1900)>;
 	};
-
-.. raw:: latex
-
-    \newpage
 
 GPIO testing
 -------------
@@ -314,8 +314,6 @@ The **gpio_basic_api** test will produce below console output when executed:
     ===================================================================
     PROJECT EXECUTION SUCCESSFUL
 
-|
-
 samples/basic/button
 ````````````````````
 
@@ -339,4 +337,6 @@ the **USER_SW2** button pressed:
     Button pressed at 1998292400
     Button pressed at 2057400586
 
-|
+.. raw:: latex
+
+    \newpage

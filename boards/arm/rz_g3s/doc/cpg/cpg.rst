@@ -70,15 +70,21 @@ if corresponding DT node are enabled.
     CONFIG_CLOCK_CONTROL_RENESAS_RZG3S=y
     CONFIG_RESET_RENESAS_RZG3S_CPG
 
-The RZ G3S CPG clock control driver code can be found at::
+The RZ G3S CPG clock control driver code can be found at:
+
+.. code-block:: text
 
     drivers/clock_control/clock_control_r9a08g045_cpg_mssr.c
 
-The RZ G3S CPG reset driver code can be found at::
+The RZ G3S CPG reset driver code can be found at:
+
+.. code-block:: text
 
     drivers/reset/reset_r9a08g045_cpg.c
 
-The RZ G3S CPG  DT helper macro are defined in::
+The RZ G3S CPG DT helper macro are defined in:
+
+.. code-block:: text
 
     dt-bindings/clock/r9a08g045_cpg_mssr.h
 
@@ -119,4 +125,6 @@ the CPG Clock controller driver (drivers/clock_control/clock_control_r9a08g045_c
         ...
     };
 
-|
+.. raw:: latex
+
+    \newpage

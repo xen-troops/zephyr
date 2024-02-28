@@ -1,12 +1,74 @@
-ADC support
-===========
-Zephyr provides API for the analog-to-digital converter interface. This can be checked using the following test:
+A/D Converter (ADC)
+===================
+
+ADC overview
+------------
+
+The Renesas RZ G3S Soc has a successive approximation A/D converter with a 12-bit accuracy.
+Up to eight analog input channels and one dedicated channel to TSU can be selected.
+
+* Resolution 12 bits
+* Input voltage range 0 V to 1.8 V
+* Minimum conversion time 1.0 µs per channel (when A/D conversion clock ADC_ADCLK is 100 MHz)
+* The A/D conversion result is stored in a 32-bit data register corresponding to each channel.
+* Sample-and-hold function
+* Trigger mode
+
+    * Software trigger mode and hardware trigger mode are available.
+    * Software trigger mode to start A/D conversion by software
+    * Hardware trigger mode to start A/D conversion by an asynchronous trigger or synchronous trigger
+
+* Operating mode
+
+    * Select mode and scan mode are available.
+    * Select mode to convert the specified single analog input channel
+    * Scan mode to convert the analog inputs of arbitrarily selected channels in ascending order of channel number
+
+* Conversion mode
+
+    * Single mode and repeat mode are available.
+    * Single mode to proceed A/D conversion only once
+    * Repeat mode to repeatedly proceed A/D conversion
+
+Refer to "A/D Converter" section in "Renesas RZ/G3S Group User’s Manual: Hardware"
+
+ADC driver overview
+-------------------
+
+Zephyr RZ/G3S Renesas ADC driver provides Zephyr :ref:`adc_api` System interface implementation.
+
+The ADC subsystem is **not** enabled by default in ``rz_g3s_defconfig``. To enable Zephyr
+ADC functionality and RZ G3S ADC driver below Kconfig options have to be enabled:
+
+.. code-block:: text
+
+    CONFIG_ADC=y
+    /* optional */
+    CONFIG_ADC_ASYNC=y
+    /* automatically enabled */
+    CONFIG_ADC_RZG3S=y
+
+The RZ G3S ADC driver code can be found at:
+
+.. code-block:: text
+
+    drivers/adc/adc_rz_g3s.c
+
+ADC testing
+-----------
+
+tests/drivers/adc/adc_api
+`````````````````````````
+
+Zephyr RZ/G3S ADC driver can be tested by using **tests/drivers/adc/adc_api** test application.
+Use below command to build ADC **tests/drivers/adc/adc_api** test application:
 
 .. code-block:: bash
 
-    west build -b rz_g3s -p always tests/drivers/adc/adc_api/
+    west build -b rz_g3s -p always tests/drivers/adc/adc_api
 
 It runs several tests:
+
     - test_adc_asynchronous_call - ADC perform one channel reading in asynchronous mode
     - test_adc_invalid_request - the wrong configuration for the ADC sequence is set and the driver is expected to return an error
     - test_adc_repeated_samplings - periodic reading of 2 ADC channels is performed, repeat reading is requested by a user callback
@@ -14,9 +76,9 @@ It runs several tests:
     - test_adc_sample_two_channels - all available channels specified in devicetree are tested
     - test_adc_sample_with_interval - test with 100 ms interval between samples
 
-The result of the test will be the following:
+The **tests/drivers/adc/adc_api** sample application will produce below console output when executed:
 
-::
+.. code-block:: console
 
     *** Booting Zephyr OS build v3.5.0-rc2-280-ge76b6c593adc ***
     Running TESTSUITE adc_basic
@@ -85,6 +147,11 @@ The result of the test will be the following:
     PROJECT EXECUTION SUCCESSFUL
 
 Sample data is output in the following format: if a sample is read, its value is displayed
-in ADC levels, if not read, the number 0xffff8000 is displayed. Additionally, the ADC can be checked by applying voltage from 0 to 1.8 V to pins 1-8
+in ADC levels, if not read, the number 0xffff8000 is displayed.
+Additionally, the ADC can be checked by applying voltage from 0 to 1.8 V to pins 1-8
 of the ADC connector located on the RZ/G3S SMARC Module board. In this case,
 the ADC values of corresponding channel will be from 0 to 0xFFF, respectively.
+
+.. raw:: latex
+
+    \newpage
