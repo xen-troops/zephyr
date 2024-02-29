@@ -192,7 +192,7 @@ Refer to "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide".
 Flashing on eMMC
 ----------------
 
-Zhephyr binary has to be converted to **srec** format.
+Zephyr binary has to be converted to **srec** format.
 
 * Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
   load **Flash Writer**.
@@ -225,6 +225,50 @@ Zhephyr binary has to be converted to **srec** format.
     Please Input Program Start Address : 23000
     Work RAM (H'00020000-H'000FFFFF) Clear....
     please send ! ('.' & CR stop load)
+
+Flashing on qSPI
+----------------
+
+Zephyr binary has to be converted to **srec** format.
+
+* Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
+  load **Flash Writer**.
+* Use **Flash Writer XLS2** command to flash Zephyr binary. Input when asked:
+
+.. code-block:: console
+
+    ===== Please Input Program Top Address ============
+      Please Input : H'23000
+    ===== Please Input Qspi Save Address ===
+      Please Input : H'200000
+
+* then send Zephyr **srec** file from terminal (use ''ascii'').
+* reboot the board in the **qSPI Boot Mode**
+
+.. code-block:: console
+
+     -- Load Program to SRAM ---------------
+
+    Flash writer for RZ/G3S Series V0.60 Jan.26,2023
+     Product Code : RZ/G3S
+    >XLS2
+    ===== Qspi writing of RZ/G2 Board Command =============
+    Load Program to Spiflash
+    Writes to any of SPI address.
+    Program size & Qspi Save Address
+    ===== Please Input Program Top Address ============
+      Please Input : H'23000
+
+    ===== Please Input Qspi Save Address ===
+      Please Input : H'200000
+    please send ! ('.' & CR stop load)
+    I Flash memory...
+    Erase Completed
+    Write to SPI Flash memory.
+    ======= Qspi  Save Information  =================
+     SpiFlashMemory Stat Address : H'00200000
+     SpiFlashMemory End Address  : H'002098E6
+    ===========================================================
 
 Supported Features Details
 **************************
