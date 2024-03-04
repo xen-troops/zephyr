@@ -469,8 +469,10 @@ int z_arm_mpu_init(void)
 	 * dereferencing detection (debug feature)
 	 */
 #if defined(CONFIG_NULL_POINTER_EXCEPTION_DETECTION_MPU)
+
 #if (defined(CONFIG_ARMV8_M_BASELINE) || defined(CONFIG_ARMV8_M_MAINLINE)) && \
-	(CONFIG_FLASH_BASE_ADDRESS > CONFIG_CORTEX_M_NULL_POINTER_EXCEPTION_PAGE_SIZE)
+	(CONFIG_FLASH_BASE_ADDRESS > CONFIG_CORTEX_M_NULL_POINTER_EXCEPTION_PAGE_SIZE) && \
+	!defined(CONFIG_NULL_POINTER_EXCEPTION_DETECTION_MPU_RZ_G)
 #pragma message "Null-Pointer exception detection cannot be configured on un-mapped flash areas"
 #else
 	const struct z_arm_mpu_partition unmap_region =	{
