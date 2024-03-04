@@ -6,7 +6,7 @@
 
 / {
 	/*
-	 * The can_led can be used by some CAN samples/tsest, like "samples/drivers/can/counter".
+	 * The can_led can be used by some CAN samples/test, like "samples/drivers/can/counter".
 	 * On Renesas RZ/G3S SMARC Evaluation Board this snippets configures can_led as:
 	 * P14_2 -> GPIO11 -> GPIO11_PMOD -> PMOD1_GPIO11
 	 * Use PMOD1_6A connector to connect led to pins 2 and 6 (power 3.3V)
