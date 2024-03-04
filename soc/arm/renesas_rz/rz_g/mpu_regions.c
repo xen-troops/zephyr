@@ -10,6 +10,11 @@
 #include <zephyr/arch/arm/cortex_m/arm_mpu_mem_cfg.h>
 
 static const struct arm_mpu_region mpu_regions[] = {
+#if defined(CONFIG_NULL_POINTER_EXCEPTION_DETECTION_MPU_RZ_G)
+	MPU_REGION_ENTRY("NULL",
+			 0x0,
+			 REGION_FLASH_ATTR(0x0, CONFIG_CORTEX_M_NULL_POINTER_EXCEPTION_PAGE_SIZE)),
+#endif /* CONFIG_NULL_POINTER_EXCEPTION_DETECTION_MPU_RZ_G */
 #if CONFIG_FLASH_SIZE > 0
 	/* Region 0 */
 	MPU_REGION_ENTRY("FLASH_0",

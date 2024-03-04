@@ -15,4 +15,19 @@ config SOC_SERIES_RZ_G
 
 if SOC_SERIES_RZ_G
 
+config NULL_POINTER_EXCEPTION_DETECTION_MPU_RZ_G
+	bool "Use MPU for null pointer exception detection for RZ G3S SoC"
+	depends on NULL_POINTER_EXCEPTION_DETECTION_MPU
+	default y
+	help
+	  Null pointer dereference detection implemented using MPU functionality as
+	  defined for NULL_POINTER_EXCEPTION_DETECTION_MPU, but taking into account that for RZ G3S
+	  the code section is not started from 0x0 address. In this case, there is no MPU section
+	  mapped for area [0x0, CORTEX_M_NULL_POINTER_EXCEPTION_PAGE_SIZE] and
+	  CONFIG_FLASH_BASE_ADDRESS not started from 0x0.
+	  For RZ G3S SoC the custom section added to the SoC specific MPU regions table which
+	  covers area  [0x0, CORTEX_M_NULL_POINTER_EXCEPTION_PAGE_SIZE], then ARM MPU core adds
+	  the same section once more to create MPU section overlap and so provide
+	  null-pointer dereferencing mechanism.
+
 endif # SOC_SERIES_RZ_G
