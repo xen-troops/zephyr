@@ -93,6 +93,7 @@ child-binding:
       - power-source
       - low-power-enable
       - low-power-disable
+      - input-debounce
 
     properties:
       pinmux:
@@ -149,3 +150,15 @@ child-binding:
           maximum sink or source current in μA for pin which shell be defined
           using PINCTRL_RZG3S_IOLH_* helper macro in pinctrl-r9a08g045.h depending on pin group and
           selected power supply.
+
+      input-debounce:
+        type: int
+        description: |
+          Digital Noise Filter configuration for a pin which shell be defined
+          using PINCTRL_RZG3S_FILTER_SET() helper macro in pinctrl-r9a08g045.h to specify
+          FILNUM_m and FILCLKSEL_m. With 24Mhz external clock:
+          - min debounce time will be 166.666ns for FILNUM_m=0 and FILCLKSEL_m=0
+          - max debounce time will be 24ms for FILNUM_m=3 and FILCLKSEL_m=3.
+          This property intentionally redefined to avoid unnecessary conversation from usec to
+          FILNUM_m and FILCLKSEL_m values depending on external clock value as this configuration
+          is static.

@@ -82,12 +82,6 @@ The RZ G3S PINCTRL driver DT helper macro are defined in:
 
     dt-bindings/pinctrl/renesas/pinctrl-r9a08g045.h
 
-Limitations
-```````````
-
-    * Digital Noise Filter is not implemented.
-
-
 GPIO pins configuration
 ```````````````````````
 
@@ -115,6 +109,7 @@ For example, SCIF0 pin configuration:
                 /* bias-pull-up; */
                 /* bias-pull-pin-default; */
                 /* drive-strength-microamp; */
+                /* input-debounce; */
             };
         };
     };
@@ -134,6 +129,12 @@ The GPIO **pinmux** nodes supports following additional configuration parameters
     * **"drive-strength-microamp"** - the drive Ability of pin.
       This property should use values defined by PINCTRL_RZG3S_PIN_IOLH_xx helper macro in pinctrl-r9a08g045.h
       depending on pin group and selected power supply.
+
+* Digital Noise Filter configuration which will be reflected in **FILONOFF_m, FILNUM_m and FILCLKSEL_m** registers
+
+    * **"input-debounce"** - the Digital Noise Filter configuration of the pins.
+      This property should be defined using INCTRL_RZG3S_FILTER_SET() helper macro in pinctrl-r9a08g045.h to specify
+      values for FILNUM_m and FILCLKSEL_m registers and enable Digital Noise Filter.
 
 Special Purpose pins configuration
 ``````````````````````````````````
@@ -183,6 +184,13 @@ The Special Purpose **pins** nodes supports following additional configuration p
     * **"output-enable"** - The Direction of the IO buffer is Output;
     * **"input-enable"** - The Direction of the IO buffer is Input;
     * if **none** of the above is specified then Output enable will be left unchanged.
+
+* Digital Noise Filter configuration which will be reflected in **FILONOFF_m, FILNUM_m and FILCLKSEL_m** registers.
+  It's supported only for the **"NMI"** Special pin
+
+    * **"input-debounce"** - the Digital Noise Filter configuration of the pins.
+      This property should be defined using INCTRL_RZG3S_FILTER_SET() helper macro in pinctrl-r9a08g045.h to specify
+      values for FILNUM_m and FILCLKSEL_m registers and enable Digital Noise Filter.
 
 Group of pins configuration
 ```````````````````````````

@@ -679,6 +679,33 @@ static int rzg3s_pinctrl_spin_oen_set(const struct device *dev,
 	return 0;
 }
 
+static int rzg3s_pinctrl_spin_filter_set(const struct device *dev,
+					 const struct pinctrl_soc_rzg3s_spin *spin)
+{
+	const struct rzg3s_pinctrl_spin_cfg *spin_cfg = &rzg3s_pinctrl_spins[spin->spin];
+	uint16_t port_reg = spin_cfg->reg_idx;
+	uint8_t pin = spin_cfg->reg_pin;
+
+	if (!spin->filonoff) {
+		return 0;
+	}
+
+	if (!(spin_cfg->cfg & SPIN_CFG_FILONOFF)) {
+		LOG_DEV_ERR(dev, "spin:%u: invalid digital noise filter cfg", spin->spin);
+		return -EINVAL;
+	}
+
+	/* handle _L/_H for 32-bit register read/write */
+	if (pin >= 4) {
+		pin -= 4;
+		port_reg += 4;
+	}
+
+	rzg3s_pinctrl_filter_set(dev, port_reg, pin, spin->filnum, spin->filclksel);
+
+	return 0;
+}
+
 static int rzg3s_pinctrl_spin(const struct device *dev, const struct pinctrl_soc_rzg3s_spin *spin)
 {
 	int ret;
@@ -698,7 +725,12 @@ static int rzg3s_pinctrl_spin(const struct device *dev, const struct pinctrl_soc
 		return ret;
 	}
 
-	return rzg3s_pinctrl_spin_oen_set(dev, spin);
+	ret = rzg3s_pinctrl_spin_oen_set(dev, spin);
+	if (ret) {
+		return ret;
+	}
+
+	return rzg3s_pinctrl_spin_filter_set(dev, spin);
 }
 
 static int rzg3s_pinctrl_configure_pin(const struct device *dev, const pinctrl_soc_pin_t *pin)

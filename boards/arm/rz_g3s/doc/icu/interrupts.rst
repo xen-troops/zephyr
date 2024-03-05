@@ -60,7 +60,6 @@ The TINT processing is done by RZ G3S GPIO driver :ref:`rzg3s_gpio_label`
 Limitations
 ```````````
 
-* Digital Noise Filter function not supported
 * bus error interrupts not supported
 * ECC error interrupts not supported
 * Low power modes not supported
@@ -160,7 +159,13 @@ which shows example DT configuration is below:
     &pinctrl {
         keyboard_pins: keyboard_pins {
             sw3-pinmux {
-                pinmux = <RZG3S_PINMUX(PORT0, 3, 7)>;
+                pinmux = <RZG3S_PINMUX(PORT0, 3, 7)>; /* IRQ1 */
+                input-debounce = <(PINCTRL_RZG3S_FILTER_SET(3, 3))>;
+            };
+
+            sw3-pins {
+                pins = "NMI";
+                input-debounce = <(PINCTRL_RZG3S_FILTER_SET(1, 2))>;
             };
         };
     };

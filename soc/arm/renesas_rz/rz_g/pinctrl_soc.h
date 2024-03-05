@@ -125,6 +125,9 @@ struct pinctrl_soc_rzg3s_spin {
 	uint8_t output_enable:1;
 	uint8_t	drive_strength:1;
 	uint8_t drive_strength_microamp:2;
+	uint8_t	filonoff:1;
+	uint8_t	filnum:2;
+	uint8_t	filclksel:2;
 };
 
 /* Pins group configuration */
@@ -193,13 +196,27 @@ typedef struct pinctrl_soc_pin {
 	COND_CODE_1(DT_NODE_HAS_PROP(node_id, drive_strength_microamp),	\
 		    (DT_PROP(node_id, drive_strength_microamp)), (0))
 
-/**
- * @brief Utility macro to initialize each pin.
- *
- * @param node_id Node identifier.
- * @param state_prop State property name.
- * @param idx State property entry index.
- */
+/*  Digital Noise Filter macro */
+#define RZG_FILTER_NUM_SHIFT    0x0
+#define RZG_FILTER_NUM_MASK     (0x3 << RZG_FILTER_NUM_SHIFT)
+#define RZG_FILTER_NUM_GET(val) (((val) & RZG_FILTER_NUM_MASK) >> RZG_FILTER_NUM_SHIFT)
+
+#define RZG_FILTER_CLK_SHIFT    0x2
+#define RZG_FILTER_CLK_MASK     (0x3 << RZG_FILTER_CLK_SHIFT)
+#define RZG_FILTER_CLK_GET(val) (((val) & RZG_FILTER_CLK_MASK) >> RZG_FILTER_CLK_SHIFT)
+
+#define Z_PINCTRL_RZG3S_HAS_FILTER(node_id)                                                        \
+	COND_CODE_1(DT_NODE_HAS_PROP(node_id, input_debounce), (1), (0))
+
+#define Z_PINCTRL_RZG3S_GET_FILTER_NUM(node_id)                                                    \
+	COND_CODE_1(DT_NODE_HAS_PROP(node_id, input_debounce),                                     \
+		    (RZG_FILTER_NUM_GET(DT_PROP(node_id, input_debounce))), (0))
+
+#define Z_PINCTRL_RZG3S_GET_FILTER_CLK(node_id)                                                    \
+	COND_CODE_1(DT_NODE_HAS_PROP(node_id, input_debounce),                                     \
+		    (RZG_FILTER_CLK_GET(DT_PROP(node_id, input_debounce))), (0))
+
+/* Process pinmux cfg */
 #define Z_PINCTRL_STATE_PIN_CHILD_PINMUX_INIT(node_id, state_prop, idx)                 \
 	{                                                                               \
 		.type = PINCTRL_RZG3S_TYPE_PINMUX,	\
@@ -212,6 +229,9 @@ typedef struct pinctrl_soc_pin {
 			.pull_pin_default = DT_PROP(node_id, bias_pull_pin_default),	\
 			.drive_strength = Z_PINCTRL_RZG3S_HAS_IOLH(node_id),		\
 			.drive_strength_microamp = Z_PINCTRL_RZG3S_GET_IOLH(node_id),	\
+			.filonoff = Z_PINCTRL_RZG3S_HAS_FILTER(node_id), \
+			.filnum = Z_PINCTRL_RZG3S_GET_FILTER_NUM(node_id), \
+			.filclksel = Z_PINCTRL_RZG3S_GET_FILTER_CLK(node_id), \
 		},	\
 	},
 
@@ -242,7 +262,7 @@ typedef struct pinctrl_soc_pin {
 		},	\
 	},
 
-/* Process each spesial pin in pins using PINCTRL_RZG3S_x_SPIN macros defined above */
+/* Process each special pin in pins using PINCTRL_RZG3S_x_SPIN macros defined above */
 #define Z_PINCTRL_STATE_PIN_CHILD_SPIN_INIT(node_id, prop, idx)	\
 	{                                                                                      \
 		.type = PINCTRL_RZG3S_TYPE_SPIN,	\
@@ -255,6 +275,9 @@ typedef struct pinctrl_soc_pin {
 			.output_enable = DT_PROP(node_id, output_enable),	\
 			.drive_strength = Z_PINCTRL_RZG3S_HAS_IOLH(node_id),		\
 			.drive_strength_microamp = Z_PINCTRL_RZG3S_GET_IOLH(node_id),	\
+			.filonoff = Z_PINCTRL_RZG3S_HAS_FILTER(node_id), \
+			.filnum = Z_PINCTRL_RZG3S_GET_FILTER_NUM(node_id), \
+			.filclksel = Z_PINCTRL_RZG3S_GET_FILTER_CLK(node_id), \
 		},	\
 	},
 
