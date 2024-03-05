@@ -57,11 +57,6 @@ detection”, “High-level detection” or “Low-level detection”.
 Refer to "General Purpose Input Output Port (GPIO)" section in "Renesas RZ/G3S Group User’s Manual: Hardware"
 Refer to :ref:`rzg3s_pinctrl_label`
 
-Limitations
-```````````
-
-* Digital Noise Filter function is not supported
-
 GPIO driver overview
 --------------------
 
@@ -121,7 +116,6 @@ which automatically enables RZ G3S GPIO driver if corresponding DT node is enabl
     /* automatically enabled */
     CONFIG_GPIO_RZG3S=y
 
-
 The RZ G3S GPIO driver code can be found at:
 
 .. code-block:: text
@@ -138,26 +132,36 @@ The DT helper macro are defined in:
 
 Supported GPIO DT flags:
 
-+-----------------------------------+-------+--------------------------+
-| DT GPIO flags                     |       |                          |
-+===================================+=======+==========================+
-|GPIO_ACTIVE_LOW                    |generic|                          |
-+-----------------------------------+-------+--------------------------+
-|GPIO_ACTIVE_HIGH                   |generic|                          |
-+-----------------------------------+-------+--------------------------+
-|GPIO_PULL_UP                       |generic|mapped at PUPD_m registers|
-+-----------------------------------+-------+--------------------------+
-|GPIO_PULL_DOWN                     |generic|mapped at PUPD_m registers|
-+-----------------------------------+-------+--------------------------+
-|RZG3S_GPIO_DRIVE_IOLH_SET(iolh_val)|custom |mapped at IOLH_m registers|
-+-----------------------------------+-------+--------------------------+
++----------------------------------------+-------+--------------------------------------------+
+| DT GPIO flags                          |       |                                            |
++========================================+=======+============================================+
+|GPIO_ACTIVE_LOW                         |generic|                                            |
++----------------------------------------+-------+--------------------------------------------+
+|GPIO_ACTIVE_HIGH                        |generic|                                            |
++----------------------------------------+-------+--------------------------------------------+
+|GPIO_PULL_UP                            |generic|mapped at PUPD_m registers                  |
++----------------------------------------+-------+--------------------------------------------+
+|GPIO_PULL_DOWN                          |generic|mapped at PUPD_m registers                  |
++----------------------------------------+-------+--------------------------------------------+
+|RZG3S_GPIO_DRIVE_IOLH_SET(iolh_val)     |custom |mapped at IOLH_m registers                  |
++----------------------------------------+-------+--------------------------------------------+
+|RZG3S_GPIO_FILTER_SET(filnum, filclksel)|custom |mapped at FILNUM_m and FILCLKSEL_m registers|
++----------------------------------------+-------+--------------------------------------------+
 
-The example of DT GPIO flags usage:
+The example of DT GPIO flags usage to configure GPIO Driving Ability:
 
 .. code-block:: dts
 
 	gpio-consumer {
-		out-gpios = <&port8 2 (GPIO_PULL_UP|RZA2_GPIO_DRIVE_IOLH_SET(PINCTRL_RZG3S_PIN_IOLH_A_3_3V_1900)>;
+		out-gpios = <&port8 2 (GPIO_PULL_UP | RZA2_GPIO_DRIVE_IOLH_SET(PINCTRL_RZG3S_PIN_IOLH_A_3_3V_1900)>;
+	};
+
+The example of DT GPIO flags usage to configure GPIO Digital Noise Filter:
+
+.. code-block:: dts
+
+	gpio-consumer {
+		out-gpios = <&port8 2 (GPIO_PULL_UP | RZG3S_GPIO_FILTER_SET(3, 3))>;
 	};
 
 GPIO testing

@@ -305,6 +305,12 @@ static int rzg3s_gpio_port_pin_to_gpio(uint8_t port, gpio_pin_t pin, gpio_flags_
 		pin_cfg.pinmux.drive_strength_microamp = RZG3S_GPIO_DRIVE_IOLH_GET(flags);
 	}
 
+	if (flags & RZG3S_GPIO_FILTER_PRESENT) {
+		pin_cfg.pinmux.filonoff = 1;
+		pin_cfg.pinmux.filnum = RZG3S_GPIO_FILTER_NUM_GET(flags);
+		pin_cfg.pinmux.filclksel = RZG3S_GPIO_FILTER_CLK_GET(flags);
+	}
+
 	return pinctrl_configure_pins(&pin_cfg, 1, PINCTRL_REG_NONE);
 }
 

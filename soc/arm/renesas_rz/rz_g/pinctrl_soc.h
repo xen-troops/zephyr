@@ -112,6 +112,9 @@ struct pinctrl_soc_rzg3s_pinmux {
 	uint8_t	pull_pin_default:1;
 	uint8_t	drive_strength:1;
 	uint8_t drive_strength_microamp:2;
+	uint8_t	filonoff:1;
+	uint8_t	filnum:2;
+	uint8_t	filclksel:2;
 };
 
 /* Special Purpose pins configuration */

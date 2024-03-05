@@ -86,6 +86,10 @@ static const uint32_t rzg3s_pinctrl_ports[RZG3S_PORT_NUM] = {
 #define R_PUPD(n)		(0x1C00 + (n) * 8)
 #define R_PWPR			(0x3000)
 
+#define R_FILONOFF(n)		(0x2000 + (n) * 8)
+#define R_FILNUM(n)		(0x2400 + (n) * 8)
+#define R_FILCLKSEL(n)		(0x2800 + (n) * 8)
+
 /* R_PWPR */
 #define R_PWPR_PFSWE	BIT(6) /* PFSWE Bit Enable */
 #define R_PWPR_B0WI	BIT(7) /* PFSWE Bit Disable */
@@ -117,6 +121,18 @@ static const uint32_t rzg3s_pinctrl_ports[RZG3S_PORT_NUM] = {
 /* R_IEN Input Enable Control Register */
 #define R_IEN_MASK			BIT(0)
 #define R_IEN_VAL(pin, val)		(((val) & R_IEN_MASK) << ((pin) << 3))
+
+/* R_FILONOFF Digital Noise Filter Switching Register */
+#define R_FILONOFF_MASK           BIT(0)
+#define R_FILONOFF_VAL(pin, val)  (((val) & R_IEN_MASK) << ((pin) * 8))
+
+/* R_FILNUM Digital Noise Filter Number Register */
+#define R_FILNUM_MASK             GENMASK(1, 0)
+#define R_FILNUM_VAL(pin, val)    (((val) & R_FILNUM_MASK) << ((pin) * 8))
+
+/* R_FILCLKSEL Digital Noise Filter Clock Selection Register */
+#define R_FILCLKSEL_MASK          GENMASK(1, 0)
+#define R_FILCLKSEL_VAL(pin, val) (((val) & R_FILCLKSEL_MASK) << ((pin) * 8))
 
 #define R_SD_CH0_POC			(0x3004)
 #define R_SD_CH1_POC			(0x3008)
@@ -324,6 +340,46 @@ static void rzg3s_pinctrl_pinmux_iolh_set(const struct device *dev,
 	sys_write32(reg32, DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_IOLH(port_reg));
 }
 
+static void rzg3s_pinctrl_filter_set(const struct device *dev, uint16_t port_reg, uint8_t pin,
+				     uint8_t filnum, uint8_t filclksel)
+{
+	uint32_t reg32;
+
+	reg32 = sys_read32(DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILNUM(port_reg));
+	reg32 &= ~R_FILNUM_VAL(pin, R_IOLH_MASK);
+	reg32 |= R_FILNUM_VAL(pin, filnum);
+	sys_write32(reg32, DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILNUM(port_reg));
+
+	reg32 = sys_read32(DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILCLKSEL(port_reg));
+	reg32 &= ~R_FILCLKSEL_VAL(pin, R_IOLH_MASK);
+	reg32 |= R_FILCLKSEL_VAL(pin, filclksel);
+	sys_write32(reg32, DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILCLKSEL(port_reg));
+
+	reg32 = sys_read32(DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILONOFF(port_reg));
+	reg32 &= ~R_FILONOFF_VAL(pin, R_IOLH_MASK);
+	reg32 |= R_FILONOFF_VAL(pin, 0x1);
+	sys_write32(reg32, DEVICE_MMIO_NAMED_GET(dev, pinctrl) + R_FILONOFF(port_reg));
+}
+
+static void rzg3s_pinctrl_pinmux_filter_set(const struct device *dev,
+					    const struct pinctrl_soc_rzg3s_pinmux *pinmux)
+{
+	uint16_t port_reg = rzg3s_pinctrl_port_get_reg(pinmux->port);
+	uint8_t pin = pinmux->pin;
+
+	if (!pinmux->filonoff) {
+		return;
+	}
+
+	/* handle _L/_H for 32-bit register read/write */
+	if (pin >= 4) {
+		pin -= 4;
+		port_reg += 4;
+	}
+
+	rzg3s_pinctrl_filter_set(dev, port_reg, pin, pinmux->filnum, pinmux->filclksel);
+}
+
 static int rzg3s_pinctrl_pinmux(const struct device *dev,
 				const struct pinctrl_soc_rzg3s_pinmux *pinmux)
 {
@@ -358,6 +414,7 @@ static int rzg3s_pinctrl_pinmux(const struct device *dev,
 	rzg3s_pinctrl_pfc_set(dev, pinmux);
 	rzg3s_pinctrl_pupd_set(dev, pinmux);
 	rzg3s_pinctrl_pinmux_iolh_set(dev, pinmux);
+	rzg3s_pinctrl_pinmux_filter_set(dev, pinmux);
 	return ret;
 }
 
