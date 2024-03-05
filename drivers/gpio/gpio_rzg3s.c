@@ -300,9 +300,9 @@ static int rzg3s_gpio_port_pin_to_gpio(uint8_t port, gpio_pin_t pin, gpio_flags_
 		pin_cfg.pinmux.pull_up = 1;
 	}
 
-	if (flags & RZA2_GPIO_DRIVE_IOLH_PRESENT) {
+	if (flags & RZG3S_GPIO_DRIVE_IOLH_PRESENT) {
 		pin_cfg.pinmux.drive_strength = 1;
-		pin_cfg.pinmux.drive_strength_microamp = RZA2_GPIO_DRIVE_IOLH_GET(flags);
+		pin_cfg.pinmux.drive_strength_microamp = RZG3S_GPIO_DRIVE_IOLH_GET(flags);
 	}
 
 	return pinctrl_configure_pins(&pin_cfg, 1, PINCTRL_REG_NONE);

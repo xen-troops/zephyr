@@ -10,6 +10,7 @@
 #include <zephyr/dt-bindings/interrupt-controller/r7s9210-intc.h>
 #include <zephyr/dt-bindings/dt-util.h>
 #include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/gpio/rzg3s-gpio.h>
 #include <mem.h>
 
 / {

@@ -16,7 +16,7 @@
  * - Bit 10..9: Pin driving ability value using PINCTRL_RZG3S_PIN_IOLH_xx macro as specified in
  *              dt-bindings/pinctrl/renesas/pinctrl-r9a08g045.h
  *
- *   Use RZA2_GPIO_DRIVE_IOLH_SET(iolh_val) macro for the GPIO pin driving ability configuration.
+ *   Use RZG3S_GPIO_DRIVE_IOLH_SET(iolh_val) macro for the GPIO pin driving ability configuration.
  *
  * @ingroup gpio_interface
  * @{
@@ -30,20 +30,21 @@
 
 /** @cond INTERNAL_HIDDEN */
 /**  Pin driving ability value shift */
-#define RZA2_GPIO_DRIVE_IOLH_SHIFT 9U
-#define RZA2_GPIO_DRIVE_IOLH_MASK  (0x3 << RZA2_GPIO_DRIVE_IOLH_SHIFT)
+#define RZG3S_GPIO_DRIVE_IOLH_SHIFT 9U
+#define RZG3S_GPIO_DRIVE_IOLH_MASK  (0x3 << RZG3S_GPIO_DRIVE_IOLH_SHIFT)
 
 /** @endcond */
 
 /**  Pin driving ability present */
-#define RZA2_GPIO_DRIVE_IOLH_PRESENT BIT(8)
+#define RZG3S_GPIO_DRIVE_IOLH_PRESENT BIT(8)
 
 /**  Pin driving ability configuration macro */
-#define RZA2_GPIO_DRIVE_IOLH_SET(iolh_val)                                                         \
-	(RZA2_GPIO_DRIVE_IOLH_PRESENT | ((iolh_val) << RZA2_GPIO_DRIVE_IOLH_SHIFT)))
+#define RZG3S_GPIO_DRIVE_IOLH_SET(iolh_val)                                                        \
+	(RZG3S_GPIO_DRIVE_IOLH_PRESENT | ((iolh_val) << RZG3S_GPIO_DRIVE_IOLH_SHIFT)))
 
-#define RZA2_GPIO_DRIVE_IOLH_GET(flags)                                                            \
-	(((flags) & RZA2_GPIO_DRIVE_IOLH_MASK) >> RZA2_GPIO_DRIVE_IOLH_SHIFT)
+#define RZG3S_GPIO_DRIVE_IOLH_GET(flags)                                                           \
+	(((flags) & RZG3S_GPIO_DRIVE_IOLH_MASK) >> RZG3S_GPIO_DRIVE_IOLH_SHIFT)
+
 
 /** @} */
 
