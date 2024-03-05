@@ -1,0 +1,12 @@
+# Copyright (c) 2024, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ G3S general purpose PWM timer channel
+
+compatible: "renesas,rzg3s-pwm"
+
+include: ["renesas,rza2m-pwm.yaml", reset-device.yaml]
+
+properties:
+  resets:
+    required: true
