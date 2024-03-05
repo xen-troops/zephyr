@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT renesas_rza2m_pwm
-
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/spinlock.h>
@@ -15,8 +13,16 @@
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
 #include <zephyr/drivers/pinctrl.h>
-
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#include <zephyr/drivers/reset.h>
+#endif
 #include <zephyr/logging/log.h>
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rza2m_pwm)
+#define DT_DRV_COMPAT renesas_rza2m_pwm
+#elif DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#define DT_DRV_COMPAT renesas_rzg3s_pwm
+#endif
 
 LOG_MODULE_REGISTER(pwm_rza2m, CONFIG_PWM_LOG_LEVEL);
 
@@ -231,7 +237,9 @@ struct pwm_rza2m_config {
 	const struct device *clock_dev;
 	struct renesas_cpg_clk mod_clk;
 	struct renesas_cpg_clk bus_clk;
-
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	const struct reset_dt_spec reset;
+#endif
 	uint32_t irq_lines[ISR_MAX];
 	void (*cfg_irqs)(const struct device *dev);
 };
@@ -811,6 +819,15 @@ static int pwm_rza2m_init(const struct device *dev)
 		return -ENODEV;
 	}
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	if (!device_is_ready(config->reset.dev)) {
+		LOG_ERR("%s: resets isn't ready", dev->name);
+		return -ENODEV;
+	}
+
+	(void)reset_line_deassert_dt(&config->reset);
+#endif
+
 	ret = clock_control_on(config->clock_dev, (clock_control_subsys_t)&config->mod_clk);
 	if (ret < 0) {
 		LOG_ERR("%s: can't enable module clock", dev->name);
@@ -858,6 +875,20 @@ static void pwm_rza2m_ccmpb_isr(struct device *dev)
 #endif /* CONFIG_PWM_CAPTURE */
 }
 
+#define DT_IRQ_HAS_CELL_AT_NAME(node_id, name, cell)                                               \
+	IS_ENABLED(DT_CAT6(node_id, _IRQ_NAME_, name, _VAL_, cell, _EXISTS))
+
+#define DT_IRQ_FLAGS_OR_ZERO(inst, name)                                                           \
+	COND_CODE_1(DT_IRQ_HAS_CELL_AT_NAME(DT_DRV_INST(inst), name, flags),                       \
+		    (DT_INST_IRQ_BY_NAME(inst, name, flags)), (0))
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#define PWM_SET_RESET(n)                                                                           \
+	.reset = RESET_DT_SPEC_INST_GET(n),
+#else
+#define PWM_SET_RESET(n)
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
+
 #define IRQ_GET_LINE(n, inst) DT_INST_IRQ_BY_IDX(inst, n, irq)
 #define GET_IRQ_LINES_ARRAY(inst)                                                                  \
 	{                                                                                          \
@@ -873,10 +904,10 @@ static void pwm_rza2m_ccmpb_isr(struct device *dev)
 		/* todo: add other IRQs when additional PWM modes are introduced */                \
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, ccmpa, irq),                                    \
 			    DT_INST_IRQ_BY_NAME(n, ccmpa, priority), pwm_rza2m_ccmpa_isr,          \
-			    DEVICE_DT_INST_GET(n), DT_INST_IRQ_BY_NAME(n, ccmpa, flags));          \
+			    DEVICE_DT_INST_GET(n), DT_IRQ_FLAGS_OR_ZERO(n, ccmpa));                \
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, ccmpb, irq),                                    \
 			    DT_INST_IRQ_BY_NAME(n, ccmpb, priority), pwm_rza2m_ccmpb_isr,          \
-			    DEVICE_DT_INST_GET(n), DT_INST_IRQ_BY_NAME(n, ccmpb, flags));          \
+			    DEVICE_DT_INST_GET(n), DT_IRQ_FLAGS_OR_ZERO(n, ccmpb));                \
 	}                                                                                          \
                                                                                                    \
 	static const struct pwm_rza2m_config pwm_rza2m_config_##n = {                              \
@@ -891,7 +922,7 @@ static void pwm_rza2m_ccmpb_isr(struct device *dev)
 		.irq_lines = GET_IRQ_LINES_ARRAY(n),                                               \
 		.cfg_irqs = config_isr_##n,                                                        \
 		.divider = DT_INST_PROP_OR(n, divider, 1),                                         \
-	};                                                                                         \
+		PWM_SET_RESET(n)};                                                                 \
                                                                                                    \
 	BUILD_ASSERT(DT_NUM_IRQS(DT_DRV_INST(n)) == ISR_MAX,                                       \
 		     "Different interrupt number in dts and driver");                              \
