@@ -18,9 +18,6 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(pinctrl_rzg3s, CONFIG_PINCTRL_LOG_LEVEL);
 
-/* TODO: remove */
-#include "../../soc/arm/renesas_rz/rz_g/pinctrl_soc.h"
-
 #define LOG_DEV_ERR(dev, format, ...)	LOG_ERR("%s:"#format, (dev)->name, ##__VA_ARGS__)
 #define LOG_DEV_WRN(dev, format, ...)	LOG_WRN("%s:"#format, (dev)->name, ##__VA_ARGS__)
 #define LOG_DEV_INF(dev, format, ...)	LOG_INF("%s:"#format, (dev)->name, ##__VA_ARGS__)
@@ -717,10 +714,10 @@ static int rzg3s_pinctrl_configure_pin(const struct device *dev, const pinctrl_s
 		ret = rzg3s_pinctrl_pinmux(dev, &pin->pinmux);
 		break;
 	case PINCTRL_RZG3S_TYPE_SPIN:
-		ret = rzg3s_pinctrl_pingrp(dev, &pin->grp);
+		ret = rzg3s_pinctrl_spin(dev, &pin->spin);
 		break;
 	case PINCTRL_RZG3S_TYPE_GRP:
-		ret = rzg3s_pinctrl_spin(dev, &pin->spin);
+		ret = rzg3s_pinctrl_pingrp(dev, &pin->grp);
 		break;
 	default:
 		ret = -EOPNOTSUPP;
