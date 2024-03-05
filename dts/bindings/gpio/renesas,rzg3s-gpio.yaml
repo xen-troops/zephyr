@@ -49,4 +49,4 @@ child-binding:
 
   gpio-cells:
   - pin
-  - flagss
+  - flags
