@@ -27,6 +27,12 @@
 	keyboard_pins: keyboard_pins {
 		sw3-pinmux {
 			pinmux = <RZG3S_PINMUX(PORT0, 3, 7)>; /* IRQ1 */
+			input-debounce = <(PINCTRL_RZG3S_FILTER_SET(3, 3))>;
+		};
+
+		sw3-pins {
+			pins = "NMI";
+			input-debounce = <(PINCTRL_RZG3S_FILTER_SET(1, 2))>;
 		};
 	};
 };
