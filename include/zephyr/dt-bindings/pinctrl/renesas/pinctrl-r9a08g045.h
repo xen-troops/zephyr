@@ -81,4 +81,20 @@
 #define PINCTRL_RZG3S_PIN_IOLH_C_1_8V_6550	2
 #define PINCTRL_RZG3S_PIN_IOLH_C_1_8V_6800	3
 
+/* Pin Digital Noise Filter Number */
+#define PINCTRL_RZG3S_FILTER_NUM_SHIFT 0x0
+#define PINCTRL_RZG3S_FILTER_NUM_MASK  (0x3 << PINCTRL_RZG3S_FILTER_NUM_SHIFT)
+/* Pin Digital Noise Filter Clock Selection */
+#define PINCTRL_RZG3S_FILTER_CLK_SHIFT 0x2
+#define PINCTRL_RZG3S_FILTER_CLK_MASK  (0x3 << PINCTRL_RZG3S_FILTER_CLK_SHIFT)
+
+/*
+ * Pin Digital Noise Filter ability configuration macro
+ * @filnum - number of filter stages (FILNUM_m)
+ * @filclksel - filter clk divider (FILCLKSEL_m)
+ */
+#define PINCTRL_RZG3S_FILTER_SET(filnum, filclksel)                                                \
+	((((filnum) << PINCTRL_RZG3S_FILTER_NUM_SHIFT) & PINCTRL_RZG3S_FILTER_NUM_MASK) |          \
+	 (((filclksel) << PINCTRL_RZG3S_FILTER_CLK_SHIFT) & PINCTRL_RZG3S_FILTER_CLK_MASK))
+
 #endif /* ZEPHYR_INCLUDE_DT_BINDINGS_PINCTRL_RENESAS_PINCTRL_R9A08G045_H_ */
