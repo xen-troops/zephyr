@@ -293,3 +293,4 @@ Supported Features Details
    ostm_gtm/ostm_gtm.rst
    openamp/mhu.rst
    openamp/openamp.rst
+   pwm/GPT.rst
