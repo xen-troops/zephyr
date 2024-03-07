@@ -3,16 +3,10 @@
 
 description: Renesas OS timer
 
-compatible: "renesas,ostm-timer"
+compatible: "renesas,ostm-r9a08g045"
 
-include: base.yaml
+include: ["renesas,ostm.yaml", reset-device.yaml]
 
 properties:
-  reg:
-    required: true
-
-  clocks:
-    required: true
-
-  interrupts:
+  resets:
     required: true

@@ -535,6 +535,78 @@
 				status = "disabled";
 			};
 		};
+
+		gtm0: timer@42801000 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42801000 0x30>;
+			interrupts = <44 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM0_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM0_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm1: timer@42801400 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42801400 0x30>;
+			interrupts = <45 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM1_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM1_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm2: timer@42801800 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42801800 0x30>;
+			interrupts = <46 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM2_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM2_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm3: timer@42801c00 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42801c00 0x30>;
+			interrupts = <47 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM3_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM3_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm4: timer@42802000 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42802000 0x30>;
+			interrupts = <48 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM4_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM4_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm5: timer@42802400 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42802400 0x30>;
+			interrupts = <49 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM5_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM5_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm6: timer@42802800 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42802800 0x30>;
+			interrupts = <50 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM6_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM6_PRESETZ>;
+			status = "disabled";
+		};
+
+		gtm7: timer@42802c00 {
+			compatible = "renesas,ostm-r9a08g045", "renesas,ostm";
+			reg = <0x42802c00 0x30>;
+			interrupts = <51 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_OSTM7_PCLK>;
+			resets = <&cpg_rctl R9A08G045_OSTM7_PRESETZ>;
+			status = "disabled";
+		};
 	};
 };
 
