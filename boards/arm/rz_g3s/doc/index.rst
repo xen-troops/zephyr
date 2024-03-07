@@ -290,5 +290,6 @@ Supported Features Details
    wdt/wdt.rst
    adc/adc.rst
    canfd/canfd.rst
+   ostm_gtm/ostm_gtm.rst
    openamp/mhu.rst
    openamp/openamp.rst
