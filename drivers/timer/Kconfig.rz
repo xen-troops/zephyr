@@ -9,5 +9,5 @@ config RZ_OS_TIMER
 	select SYSTEM_TIMER_HAS_DISABLE_SUPPORT
 	select TICKLESS_CAPABLE
 	help
-	  This module implements a kernel device driver for the Renesas RZ
+	  This module implements a kernel device driver for the Renesas RZ A2M/G3S
 	  platform provides the standard "system clock driver" interfaces.
