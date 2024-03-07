@@ -9,7 +9,15 @@ config PWM_RZA2M
 	depends on DT_HAS_RENESAS_RZA2M_PWM_ENABLED || DT_HAS_RENESAS_RZG3S_PWM_ENABLED
 	help
 	  Enable General Purpose PWM timer driver. This driver is
-	  compatible with botch RZ/A2M and RZ/G3S boards.
+	  compatible with both RZ/A2M and RZ/G3S boards.
+
+config POEG_RZG3S
+	bool "Renesas RZ/G3S POEG driver"
+	default y
+	depends on DT_HAS_RENESAS_RZG3S_POEG_ENABLED
+	help
+	  Enable POEG driver. This driver is compatible with
+	  RZ/G3S GPT driver.
 
 config PWM_MTU_RZA2M
 	bool "Renesas RZ/A2M multi-functional PWM timer driver"
