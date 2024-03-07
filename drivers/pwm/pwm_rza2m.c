@@ -9,6 +9,9 @@
 #include <zephyr/spinlock.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/pwm.h>
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#include <zephyr/drivers/poeg.h>
+#endif
 #include <zephyr/dt-bindings/pwm/rza2m_pwm.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
@@ -137,9 +140,19 @@ LOG_MODULE_REGISTER(pwm_rza2m, CONFIG_PWM_LOG_LEVEL);
 #define GTIOR_OAE BIT(8)  /* GTIOCA Pin Output Enable */
 #define GTIOR_OBE BIT(24) /* GTIOCB Pin Output Enable */
 
+#define GTIOR_OADF_OFF  (9) /* GTIOCA Pin Disable Value Setting */
+#define GTIOR_OADF_MASK (BIT(10) | BIT(9))
+#define GTIOR_OBDF_OFF  (25) /* GTIOCB Pin Disable Value Setting */
+#define GTIOR_OBDF_MASK (BIT(26) | BIT(25))
+
 #define GTINTAD_OFFSET 0x38   /* Interrupt Output Setting Register */
 #define GTINTAD_GTINTA BIT(0) /* GTCCRA Compare Match/InputCapture Interrupt Enable */
 #define GTINTAD_GTINTB BIT(1) /* GTCCRB Compare Match/InputCapture Interrupt Enable */
+#define GTINTAD_GRPDTE BIT(28) /* Dead-Time Disable request offset */
+#define GTINTAD_GRPABH BIT(29) /* Same time output level high disable request offset */
+#define GTINTAD_GRPABL BIT(30) /* Same time output level low disable request offset */
+
+#define GTINTAD_GRP_REQ_MASK (GTINTAD_GRPDTE | GTINTAD_GRPABH | GTINTAD_GRPABL)
 
 #define GTST_OFFSET 0x3C /* Status Register */
 #define GTST_TCFA   BIT(0) /* Input capture/compare match of GTCCRA occurred */
@@ -194,6 +207,25 @@ LOG_MODULE_REGISTER(pwm_rza2m, CONFIG_PWM_LOG_LEVEL);
 #define GTSOS_OFFSET  0x9C /* Output Protection Function Status Register */
 #define GTSOTR_OFFSET 0xA0 /* Output Protection Function Temporary Release Register */
 
+#define GRP_OFF (24) /* Output disable group offset */
+#define GRPA    (0 << 24)
+#define GRPB    (1 << 24)
+#define GRPC    (2 << 24)
+#define GRPD    (3 << 24)
+
+#define GTINT_PROV           (1 << 6)
+#define GTINTAD_GTINTPR_MASK (3 << 6)
+
+#define GTDTCR_OFFSET (0x88)
+#define GTDVU_OFFSET  (0x8c)
+#define TDBUE         BIT(4)
+#define TDFER         BIT(8)
+
+#define GTIOC_PIN_OUTPUT_DISABLE 0 /* Prohibit output disable */
+#define GTIOC_PIN_HIZ_DISABLE    1 /* Set GTIOC pin to Hi-Z on output disable */
+#define GTIOC_PIN_L_DISABLE      2 /* Set GTIOC pin to 0 on output disable */
+#define GTIOC_PIN_H_DISABLE      3 /* Set GTIOC pin to 1 on output disable */
+
 /* todo: only saw-wave mode is supported now, add other modes */
 enum pwm_modes {
 	PWM_MD_SAW_WAVE = 0,
@@ -229,6 +261,45 @@ enum isr_idx {
 	ISR_MAX,
 };
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+struct poeg_reg_params {
+	uint32_t value;
+	uint32_t reg_off;
+};
+
+struct poeg_params {
+	uint32_t poeg;
+	struct poeg_reg_params regs[3];
+};
+
+enum poeg_channels {
+	POEG_A = 0,
+	POEG_B,
+	POEG_C,
+	POEG_D,
+	POEG_NOT_USED,
+};
+
+static const struct poeg_params poeg_channels[] = {
+	[POEG_A] = {
+			GRPA,
+			{{0x2, GTSSR_OFFSET}, {0x1, GTPSR_OFFSET}, {0x1, GTCSR_OFFSET}},
+		},
+	[POEG_B] = {
+			GRPB,
+			{{0x8, GTSSR_OFFSET}, {0x4, GTPSR_OFFSET}, {0x4, GTCSR_OFFSET}},
+		},
+	[POEG_C] = {
+			GRPC,
+			{{0x20, GTSSR_OFFSET}, {0x10, GTPSR_OFFSET}, {0x10, GTCSR_OFFSET}},
+		},
+	[POEG_D] = {
+			GRPD,
+			{{0x80, GTSSR_OFFSET}, {0x40, GTPSR_OFFSET}, {0x40, GTCSR_OFFSET}},
+		},
+};
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
+
 struct pwm_rza2m_config {
 	DEVICE_MMIO_ROM; /* Must be first */
 	uint32_t channel_id;
@@ -242,6 +313,11 @@ struct pwm_rza2m_config {
 #endif
 	uint32_t irq_lines[ISR_MAX];
 	void (*cfg_irqs)(const struct device *dev);
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	int poeg_idx;
+	int disable_mask;
+	const struct device *poeg_dev;
+#endif
 };
 
 struct pwm_channel_pin {
@@ -290,6 +366,7 @@ static inline void rza2m_pwm_set_duty_setting(mm_reg_t base, uint32_t period_cyc
 
 	reg = sys_read32(base + GTUDDTYC_OFFSET);
 	new_reg = reg & ~duty_cyc_masks[is_channel_b];
+
 	if (period_cycles == pulse_cycles) {
 		new_reg |= duty_cyc_cfgs[is_channel_b][DUTY_100][is_inverted];
 	} else if (pulse_cycles == 0) {
@@ -312,11 +389,35 @@ static void rza2m_pwm_cfg_io(mm_reg_t base, bool is_channel_b, bool is_inv)
 		{CH_A_IO_FLAGS_NORMAL, CH_A_IO_FLAGS_INV},
 		{CH_B_IO_FLAGS_NORMAL, CH_B_IO_FLAGS_INV},
 	};
+	mm_reg_t reg = sys_read32(base + GTIOR_OFFSET);
 
-	sys_write32(ctior_states[is_channel_b][is_inv], base + GTIOR_OFFSET);
+	reg &= ~(ctior_states[is_channel_b][is_inv] | ctior_states[is_channel_b][!is_inv]);
+	sys_write32(reg | (ctior_states[is_channel_b][is_inv]), base + GTIOR_OFFSET);
 }
 
-/* todo: add support of two in/out pins on the same channel */
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+static void set_channel_protection(const struct device *dev, uint32_t channel, bool is_channel_b)
+{
+	const struct pwm_rza2m_config *config = dev->config;
+	mm_reg_t base = DEVICE_MMIO_GET(dev);
+	mm_reg_t gtior;
+
+	if (config->poeg_idx == POEG_NOT_USED) {
+		return;
+	}
+
+	gtior = sys_read32(base + GTIOR_OFFSET);
+	gtior &= (is_channel_b) ? ~(GTIOR_OBDF_MASK) : ~(GTIOR_OADF_MASK);
+	if (channel & PWM_CHANNEL_PROTECTED) {
+		/* TODO: support PIN_L_DISABLE and PIN_H_DISABLE state */
+		gtior |= (is_channel_b) ? (GTIOC_PIN_HIZ_DISABLE << GTIOR_OBDF_OFF)
+					: (GTIOC_PIN_HIZ_DISABLE << GTIOR_OADF_OFF);
+	}
+
+	sys_write32(gtior, base + GTIOR_OFFSET);
+}
+#endif
+
 static int rza2m_pwm_set_cycles(const struct device *dev, uint32_t channel, uint32_t period_cyc,
 				uint32_t pulse_cyc, pwm_flags_t flags)
 {
@@ -329,7 +430,7 @@ static int rza2m_pwm_set_cycles(const struct device *dev, uint32_t channel, uint
 	bool is_channel_b = ((channel & PWM_CHANNEL_INPUT_B) == PWM_CHANNEL_INPUT_B);
 	bool is_inv = ((flags & PWM_POLARITY_INVERTED) == PWM_POLARITY_INVERTED);
 
-	if (config->channel_id != (channel & ~PWM_CHANNEL_INPUT_B)) {
+	if (config->channel_id != (channel & ~(PWM_CHANNEL_INPUT_B | PWM_CHANNEL_PROTECTED))) {
 		LOG_ERR("%s:%s: request channel (%u) from another pwm device", __func__, dev->name,
 			channel);
 		return -EINVAL;
@@ -349,13 +450,12 @@ static int rza2m_pwm_set_cycles(const struct device *dev, uint32_t channel, uint
 	pin_cfg = &data->pins[is_channel_b];
 
 	key = k_spin_lock(&data->lock);
-	if (data->pins[!is_channel_b].initialized) {
-		LOG_ERR("%s: currently it is possible to use only one IO pin per channel",
-			dev->name);
-		ret = -ENOTSUP;
-		goto exit;
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	/* poeg_ids will always be set in pair with poeg_dev */
+	if (config->poeg_idx != POEG_NOT_USED) {
+		poeg_reset(config->poeg_dev);
 	}
-
+#endif
 	if (pin_cfg->initialized) {
 		if (pin_cfg->is_input) {
 			LOG_ERR("%s: channel has been configured as input", dev->name);
@@ -376,6 +476,9 @@ static int rza2m_pwm_set_cycles(const struct device *dev, uint32_t channel, uint
 			rza2m_pwm_cfg_io(base, is_channel_b, is_inv);
 			pin_cfg->is_inverted = is_inv;
 		}
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+		set_channel_protection(dev, channel, is_channel_b);
+#endif
 		pin_cfg->flags = flags;
 		goto exit;
 	}
@@ -394,26 +497,28 @@ static int rza2m_pwm_set_cycles(const struct device *dev, uint32_t channel, uint
 	sys_write32(0, base + GTCNT_OFFSET);
 
 	if (is_channel_b) {
-		sys_write32(pulse_cyc, base + GTCCRD_OFFSET);
 		sys_write32(pulse_cyc, base + GTCCRB_OFFSET);
+		sys_write32(pulse_cyc, base + GTCCRD_OFFSET);
 	} else {
-		sys_write32(pulse_cyc, base + GTCCRC_OFFSET);
 		sys_write32(pulse_cyc, base + GTCCRA_OFFSET);
+		sys_write32(pulse_cyc, base + GTCCRC_OFFSET);
 	}
 
-	/* todo: add possibility to use A and B at the same time at the same PWM channel */
 	sys_write32(period_cyc - 1, base + GTPR_OFFSET);
 	sys_write32(period_cyc - 1, base + GTPBR_OFFSET);
 
+	reg = sys_read32(base + GTBER_OFFSET);
 	/* enable bufferization for registers GTCCRA, GTCCRB and GTPR */
 	if (is_channel_b) {
-		sys_write32(GTBER_CCRB_1_BUF_EN | GTBER_PR_1_BUF, base + GTBER_OFFSET);
+		sys_write32(reg | GTBER_CCRB_1_BUF_EN | GTBER_PR_1_BUF, base + GTBER_OFFSET);
 	} else {
-		sys_write32(GTBER_CCRA_1_BUF_EN | GTBER_PR_1_BUF, base + GTBER_OFFSET);
+		sys_write32(reg | GTBER_CCRA_1_BUF_EN | GTBER_PR_1_BUF, base + GTBER_OFFSET);
 	}
 
 	rza2m_pwm_cfg_io(base, is_channel_b, is_inv);
-
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	set_channel_protection(dev, channel, is_channel_b);
+#endif
 	/* start counter operation */
 	reg = sys_read32(base + GTCR_OFFSET);
 	sys_write32(reg | GTCR_START_CNT, base + GTCR_OFFSET);
@@ -800,6 +905,51 @@ static const struct pwm_driver_api pwm_rza2m_driver_api = {
 #endif /* CONFIG_PWM_CAPTURE */
 };
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+static void pwm_set_poeg(const struct device *dev, const struct poeg_params *params)
+{
+	mm_reg_t base, reg;
+	int i;
+
+	base = DEVICE_MMIO_GET(dev);
+
+	reg = sys_read32(base + GTINTAD_OFFSET);
+	sys_write32(reg | params->poeg, base + GTINTAD_OFFSET);
+
+	for (i = 0; i < ARRAY_SIZE(params->regs); i++) {
+		sys_write32(params->regs[i].value, base + params->regs[i].reg_off);
+	}
+}
+
+static void pwm_set_int_cfg(const struct device *dev)
+{
+	mm_reg_t base, reg;
+	const struct pwm_rza2m_config *config = dev->config;
+
+	base = DEVICE_MMIO_GET(dev);
+
+	if (!config->disable_mask) {
+		return;
+	}
+
+	reg = sys_read32(base + GTINTAD_OFFSET);
+
+	if ((config->disable_mask & PWM_HIGH) == PWM_HIGH) {
+		reg |= GTINTAD_GRPABH;
+	}
+
+	if ((config->disable_mask & PWM_LOW) == PWM_LOW) {
+		reg |= GTINTAD_GRPABL;
+	}
+
+	if ((config->disable_mask & PWM_DT) == PWM_DT) {
+		reg |= GTINTAD_GRPDTE;
+	}
+
+	sys_write32(reg, base + GTINTAD_OFFSET);
+}
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
+
 static int pwm_rza2m_init(const struct device *dev)
 {
 	int ret;
@@ -828,6 +978,14 @@ static int pwm_rza2m_init(const struct device *dev)
 	(void)reset_line_deassert_dt(&config->reset);
 #endif
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	if (((config->poeg_idx != POEG_NOT_USED) && (!config->poeg_dev)) ||
+	    ((config->poeg_idx == POEG_NOT_USED) && (config->poeg_dev))) {
+		LOG_ERR("%s: poeg settings are incorrect", dev->name);
+		return -ENODEV;
+	}
+#endif
+
 	ret = clock_control_on(config->clock_dev, (clock_control_subsys_t)&config->mod_clk);
 	if (ret < 0) {
 		LOG_ERR("%s: can't enable module clock", dev->name);
@@ -854,6 +1012,14 @@ static int pwm_rza2m_init(const struct device *dev)
 		config->cfg_irqs(dev);
 	}
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+	if (config->poeg_idx != POEG_NOT_USED) {
+		pwm_set_poeg(dev, &poeg_channels[config->poeg_idx]);
+
+		pwm_set_int_cfg(dev);
+	}
+#endif
+
 	return 0;
 }
 
@@ -874,6 +1040,26 @@ static void pwm_rza2m_ccmpb_isr(struct device *dev)
 	pwm_rza2m_ccmp_isr_cmn(dev, &data->pins[PIN_B], true);
 #endif /* CONFIG_PWM_CAPTURE */
 }
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+
+#define PWM_POEG_NAME(n)                                                                           \
+	.poeg_idx = COND_CODE_1(DT_INST_NODE_HAS_PROP(n, renesas_poeg),                            \
+				(DT_INST_ENUM_IDX(n, renesas_poeg)), (POEG_NOT_USED)),
+#else
+#define PWM_POEG_NAME(n)
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#define PWM_POEG_DEV(n) .poeg_dev = DEVICE_DT_GET_OR_NULL(DT_INST_PHANDLE(n, renesas_poeg_device)),
+#else
+#define PWM_POEG_DEV(n)
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm)
+#define PWM_SET_DISABLE(n) .disable_mask = DT_INST_PROP_OR(n, renesas_disable_requests, 0),
+#else
+#define PWM_SET_DISABLE(n)
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_rzg3s_pwm) */
 
 #define DT_IRQ_HAS_CELL_AT_NAME(node_id, name, cell)                                               \
 	IS_ENABLED(DT_CAT6(node_id, _IRQ_NAME_, name, _VAL_, cell, _EXISTS))
@@ -922,7 +1108,7 @@ static void pwm_rza2m_ccmpb_isr(struct device *dev)
 		.irq_lines = GET_IRQ_LINES_ARRAY(n),                                               \
 		.cfg_irqs = config_isr_##n,                                                        \
 		.divider = DT_INST_PROP_OR(n, divider, 1),                                         \
-		PWM_SET_RESET(n)};                                                                 \
+		PWM_POEG_NAME(n) PWM_SET_RESET(n) PWM_SET_DISABLE(n) PWM_POEG_DEV(n)};             \
                                                                                                    \
 	BUILD_ASSERT(DT_NUM_IRQS(DT_DRV_INST(n)) == ISR_MAX,                                       \
 		     "Different interrupt number in dts and driver");                              \
