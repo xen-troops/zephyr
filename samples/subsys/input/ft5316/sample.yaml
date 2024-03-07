@@ -6,3 +6,5 @@ tests:
     build_only: true
     integration_platforms:
       - rz_a2m
+    platform_allow:
+      - rz_a2m
