@@ -1020,6 +1020,42 @@
 			channel-id = <7>;
 			status = "disabled";
 		};
+
+		poega: poega@40048800 {
+			compatible = "renesas,rzg3s-poeg";
+			reg = <0x40048800 0x4>;
+			interrupts = <236 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_POEG_A_CLKP>;
+			resets = <&cpg_rctl R9A08G045_POEG_A_RST>;
+			status = "disabled";
+		};
+
+		poegb: poegb@40048c00 {
+			compatible = "renesas,rzg3s-poeg";
+			reg = <0x40048c00 0x4>;
+			interrupts = <237 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_POEG_B_CLKP>;
+			resets = <&cpg_rctl R9A08G045_POEG_B_RST>;
+			status = "disabled";
+		};
+
+		poegc: poegc@40049000 {
+			compatible = "renesas,rzg3s-poeg";
+			reg = <0x40049000 0x4>;
+			interrupts = <238 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_POEG_C_CLKP>;
+			resets = <&cpg_rctl R9A08G045_POEG_C_RST>;
+			status = "disabled";
+		};
+
+		poegd: poegc@40049400 {
+			compatible = "renesas,rzg3s-poeg";
+			reg = <0x40049400 0x4>;
+			interrupts = <239 0>;
+			clocks = <&cpg CPG_MOD R9A08G045_POEG_D_CLKP>;
+			resets = <&cpg_rctl R9A08G045_POEG_D_RST>;
+			status = "disabled";
+		};
 	};
 };
 
