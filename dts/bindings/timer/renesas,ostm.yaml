@@ -1,6 +1,6 @@
 description: Renesas OS timer
 
-compatible: "renesas,ostm"
+compatible: "renesas,ostm-timer"
 
 include: base.yaml
 

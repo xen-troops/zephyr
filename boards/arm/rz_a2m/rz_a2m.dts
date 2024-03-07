@@ -132,6 +132,7 @@
 };
 
 &ostm1 {
+	compatible = "renesas,ostm-timer";
 	status = "okay";
 };
 

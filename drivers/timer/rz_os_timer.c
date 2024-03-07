@@ -11,7 +11,7 @@
 #include <zephyr/irq.h>
 #include <zephyr/sys_clock.h>
 
-#define DT_DRV_COMPAT renesas_ostm
+#define DT_DRV_COMPAT renesas_ostm_timer
 
 DEVICE_MMIO_TOPLEVEL_STATIC(ostm_base, DT_DRV_INST(0));
 
