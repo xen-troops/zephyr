@@ -42,7 +42,6 @@ doc-job:
     - cd ./zephyr
     - source zephyr-env.sh
     - export ZEPHYR_BASE=/builds/${CI_PROJECT_NAMESPACE}/zephyr
-    - echo "Generating release notes"
     - west build -b ${BOARD} -t doc samples/basic/hash_map
   artifacts:
     paths:
