@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&gtm0 {
+	compatible = "renesas,ostm-r9a08g045", "renesas,ostm-timer", "renesas,ostm";
+	status = "okay";
+};
+
+&systick {
+	status = "disabled";
+};

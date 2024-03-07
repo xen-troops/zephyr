@@ -1,0 +1,8 @@
+name: rz-g3s-gtm-timer-test
+boards:
+  rz_g3s:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-g3s-gtm-timer-test.overlay
+  rz_g3s_fpu:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-g3s-gtm-timer-test.overlay
