@@ -10,6 +10,9 @@
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys_clock.h>
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045)
+#include <zephyr/drivers/reset.h>
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045) */
 
 #define DT_DRV_COMPAT renesas_ostm_timer
 
@@ -146,6 +149,9 @@ static int sys_clock_driver_init(void)
 {
 	int ret;
 	const struct device *clk;
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045)
+	struct reset_dt_spec rspin_rst = RESET_DT_SPEC_INST_GET(0);
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045) */
 
 	struct renesas_cpg_clk mod_clk = {
 		.module = DT_INST_CLOCKS_CELL(0, module),
@@ -156,6 +162,12 @@ static int sys_clock_driver_init(void)
 	if (!device_is_ready(clk)) {
 		return -ENODEV;
 	}
+
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045)
+	if (!device_is_ready(rspin_rst.dev)) {
+		return -ENODEV;
+	}
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045) */
 
 	ret = clock_control_on(clk, (clock_control_subsys_t)&mod_clk);
 	if (ret < 0) {
@@ -168,12 +180,20 @@ static int sys_clock_driver_init(void)
 		return ret;
 	}
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045)
+	(void)reset_line_deassert_dt(&rspin_rst);
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045) */
+
 	cyc_per_tick  = sys_clock_hw_cycles_per_sec() / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
 	DEVICE_MMIO_TOPLEVEL_MAP(ostm_base, K_MEM_CACHE_NONE);
 
+#if DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045)
+	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), ostm_irq_handler, NULL, 0);
+#else
 	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), ostm_irq_handler,
 		    NULL, DT_INST_IRQ(0, flags));
+#endif /* DT_HAS_COMPAT_STATUS_OKAY(renesas_ostm_r9a08g045) */
 
 	/* restarting the timer will cause reset of CNT register in free-running mode */
 	sys_clock_disable();
