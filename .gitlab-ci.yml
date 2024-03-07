@@ -2,6 +2,7 @@ stages:
   - compliance
   - guidlines
   - doc
+  - twister-build
 
 variables:
   BOARD: rz_g3s
@@ -46,3 +47,19 @@ doc-job:
   artifacts:
     paths:
       - /builds/${CI_PROJECT_NAMESPACE}/zephyr/build/zephyr/rzg3s_release_notes.pdf
+
+twister-build-job:
+  stage: twister-build
+  script:
+    - echo "Twister check"
+    - cd /builds/${CI_PROJECT_NAMESPACE}
+    - west init -l zephyr > /dev/null 2>&1 || true
+    - cd ./zephyr
+    - source zephyr-env.sh
+    - export ZEPHYR_BASE=/builds/${CI_PROJECT_NAMESPACE}/zephyr
+    - scripts/twister -p ${BOARD} --enable-slow
+  artifacts:
+    paths:
+      - twister-out/twister_report.xml
+      - twister-out/twister.xml
+      - twister-out/twister.json
