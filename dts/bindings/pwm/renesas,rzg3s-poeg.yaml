@@ -1,0 +1,28 @@
+# Copyright (c) 2024, EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+description: Renesas RZ G3S POEG driver for GPT
+
+compatible: "renesas,rzg3s-poeg"
+
+include: [base.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  renesas,invert:
+    type: int
+    enum:
+      - 0
+      - 1
+    description: |
+      Sets output request level of the external source. When external
+      pin initial state is high then ivertion should be made to raise
+      output request on low state.
