@@ -1,0 +1,10 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+config COUNTER_RZ_GTM_COUNTER
+	bool "Renesas RZ General Timer (GTM) Counter driver"
+	default y
+	depends on DT_HAS_RENESAS_OSTM_ENABLED
+	help
+	  This module implements a kernel Counter driver for the Renesas RZ A2M/G3S
+	  General Timer (GTM/OSTM).
