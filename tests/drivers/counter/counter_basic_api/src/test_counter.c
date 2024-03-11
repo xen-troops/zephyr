@@ -96,6 +96,7 @@ static const struct device *const devices[] = {
 #ifdef CONFIG_COUNTER_TIMER_RPI_PICO
 	DEVS_FOR_DT_COMPAT(raspberrypi_pico_timer)
 #endif
+	DEVS_FOR_DT_COMPAT(renesas_ostm)
 };
 
 static const struct device *const period_devs[] = {
@@ -950,6 +951,11 @@ static bool reliable_cancel_capable(const struct device *dev)
 	}
 #endif
 #ifdef CONFIG_COUNTER_NXP_S32_SYS_TIMER
+	if (single_channel_alarm_capable(dev)) {
+		return true;
+	}
+#endif
+#ifdef CONFIG_COUNTER_RZ_GTM_COUNTER
 	if (single_channel_alarm_capable(dev)) {
 		return true;
 	}
