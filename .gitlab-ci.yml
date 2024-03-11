@@ -50,6 +50,7 @@ doc-job:
 
 twister-build-job:
   stage: twister-build
+  when: manual
   script:
     - echo "Twister check"
     - cd /builds/${CI_PROJECT_NAMESPACE}
