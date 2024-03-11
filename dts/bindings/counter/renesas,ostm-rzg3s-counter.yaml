@@ -1,0 +1,11 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+description: Renesas OS timer Counter
+
+compatible: "renesas,ostm-r9a08g045"
+
+include: ["renesas,ostm-counter.yaml", reset-device.yaml]
+
+properties:
+  resets:
+    required: true
