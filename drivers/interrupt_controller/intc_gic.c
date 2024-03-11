@@ -89,6 +89,16 @@ void arm_gic_irq_clear_pending(unsigned int irq)
 	sys_write32((1 << int_off), (GICD_ICPENDRn + int_grp * 4));
 }
 
+void arm_gic_irq_set_pending(unsigned int irq)
+{
+	int int_grp, int_off;
+
+	int_grp = irq / 32;
+	int_off = irq % 32;
+
+	sys_write32((1 << int_off), (GICD_ISPENDRn + int_grp * 4));
+}
+
 void arm_gic_irq_set_priority(
 	unsigned int irq, unsigned int prio, uint32_t flags)
 {
