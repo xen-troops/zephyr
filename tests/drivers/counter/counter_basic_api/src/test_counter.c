@@ -663,6 +663,9 @@ static void test_late_alarm_instance(const struct device *dev)
 		.user_data = NULL
 	};
 
+	tick_us = tick_us == 0 ? 1 : tick_us;
+	counter_stop(dev);
+
 	err = counter_set_guard_period(dev, guard,
 					COUNTER_GUARD_PERIOD_LATE_TO_SET);
 	zassert_equal(0, err, "%s: Unexpected error", dev->name);
@@ -713,6 +716,9 @@ static void test_late_alarm_error_instance(const struct device *dev)
 		.flags = COUNTER_ALARM_CFG_ABSOLUTE,
 		.user_data = NULL
 	};
+
+	tick_us = tick_us == 0 ? 1 : tick_us;
+	counter_stop(dev);
 
 	err = counter_set_guard_period(dev, guard,
 					COUNTER_GUARD_PERIOD_LATE_TO_SET);
