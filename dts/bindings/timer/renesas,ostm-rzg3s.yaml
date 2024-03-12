@@ -3,7 +3,7 @@
 
 description: Renesas OS timer
 
-compatible: "renesas,ostm-r9a08g045"
+compatible: "renesas,ostm-r9a08g045-timer"
 
 include: ["renesas,ostm.yaml", reset-device.yaml]
 
