@@ -5,7 +5,7 @@
  */
 
 &gtm0 {
-	compatible = "renesas,ostm-r9a08g045", "renesas,ostm-timer", "renesas,ostm";
+	compatible = "renesas,ostm-r9a08g045-timer", "renesas,ostm-timer";
 	status = "okay";
 };
 
