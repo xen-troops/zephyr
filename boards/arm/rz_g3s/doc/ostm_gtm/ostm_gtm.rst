@@ -34,7 +34,7 @@ To enable GTM as Zephyr OS timer the **"compatible"** property of the selected G
 .. code-block:: dts
 
     &gtm0 {
-        compatible = "renesas,ostm-r9a08g045", "renesas,ostm-timer", "renesas,ostm";
+        compatible = "renesas,ostm-r9a08g045-timer", "renesas,ostm-timer";
         status = "okay";
     };
 
@@ -65,51 +65,55 @@ The GTM OS timer driver code can be found at:
     drivers/timer/rz_os_timer.c
     drivers/timer/Kconfig.rz
 
-GTM as Zephyr OS timer
-----------------------
+GTM as Zephyr OS timer testing
+------------------------------
 
-tests/kernel/tickless/tickless_concept
-``````````````````````````````````````
+.. toctree::
+   :maxdepth: 4
 
-Zephyr RZ/G3S GTM as Zephyr OS timer driver can be tested by using **tests/kernel/tickless/tickless_concept** test.
-To build **tests/kernel/tickless/tickless_concept** test run command:
+   timer_tickless_test.rst
 
-.. code-block:: bash
+GTM as Zephyr Counter
+---------------------
 
-   west build -p always -b rz_g3s -S rz-g3s-gtm-timer-test tests/kernel/tickless/tickless_concept
+Zephyr RZ/G3S Renesas GTM/OSTM Counter driver provides Zephyr :ref:`counter_api` System interface implementation.
 
-Console output:
+GTM/OSTM counter can't support both alarms and changing top value in free-running mode,
+so this driver allows to use either alarms in free-running (counting up) mode, or
+either changing top (CMP) value in interval mode (counting down).
 
-.. code-block:: console
+Therefore:
 
-    *** Booting Zephyr OS build v3.5.0-rc2-331-gb7a06954094c ***
-    Running TESTSUITE tickless_concept
-    ===================================================================
-    START - test_tickless_slice
-    elapsed slice 110, expected: <100, 110>
-    elapsed slice 100, expected: <100, 110>
-    elapsed slice 100, expected: <100, 110>
-    elapsed slice 100, expected: <100, 110>
-     PASS - test_tickless_slice in 0.611 seconds
-    ===================================================================
-    START - test_tickless_sysclock
-    time 2920, 3130
-    time 3140, 3340
-     PASS - test_tickless_sysclock in 0.426 seconds
-    ===================================================================
-    TESTSUITE tickless_concept succeeded
+ * driver starts with counter in free-running mode with alarms support by default;
+ * set top value is rejected if alarm is active;
+ * set top value causes counter to switch to interval mode and disables alarms;
+ * set top to RZ_GTM_TIMER_TOP_VALUE (0xFFFFFFFF) switches counter back to free-running mode and enables alarms;
 
-    ------ TESTSUITE SUMMARY START ------
+Over all it could be practical to use GTM Counter instance as either free-running with alarms or as
+interval counter with supporting of changing top value, but not both.
 
-    SUITE PASS - 100.00% [tickless_concept]: pass = 2, fail = 0, skip = 0, total = 2 duration = 1.037
-    ses
-     - PASS - [tickless_concept.test_tickless_slice] duration = 0.611 seconds
-     - PASS - [tickless_concept.test_tickless_sysclock] duration = 0.426 seconds
+The Zephyr Counter subsystem is **not** enabled by default in ``rz_g3s_defconfig``. To enable Zephyr
+Counter functionality and RZ G3S GTM/OSTM Counter driver below Kconfig options have to be enabled:
 
-    ------ TESTSUITE SUMMARY END ------
+.. code-block:: text
 
-    ===================================================================
-    PROJECT EXECUTION SUCCESSFUL
+    CONFIG_COUNTER=y
+    /* automatically enabled */
+    CONFIG_COUNTER_RZ_GTM_COUNTER=y
+
+The RZ G3S GTM/OSTM Counter driver code can be found at:
+
+.. code-block:: text
+
+    drivers/counter/counter_rz_gtm.c
+
+GTM Counter testing
+-------------------
+
+.. toctree::
+   :maxdepth: 4
+
+   counter_api_test.rst
 
 .. raw:: latex
 
