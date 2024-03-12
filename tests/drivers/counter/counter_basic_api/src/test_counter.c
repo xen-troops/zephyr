@@ -113,6 +113,10 @@ typedef void (*counter_test_func_t)(const struct device *dev);
 
 typedef bool (*counter_capability_func_t)(const struct device *dev);
 
+static void alarm_handler(const struct device *dev, uint8_t chan_id,
+			  uint32_t counter,
+			  void *user_data);
+
 static inline uint32_t get_counter_period_us(const struct device *dev)
 {
 	for (int i = 0; i < ARRAY_SIZE(period_devs); i++) {
@@ -263,6 +267,163 @@ static void test_set_top_value_with_alarm_instance(const struct device *dev)
 ZTEST(counter_basic, test_set_top_value_with_alarm)
 {
 	test_all_instances(test_set_top_value_with_alarm_instance,
+			   set_top_value_capable);
+}
+
+static void test_set_top_before_start_with_callback(const struct device *dev)
+{
+	int err;
+	uint32_t counter_period_us;
+	uint32_t top_handler_cnt;
+	struct counter_top_cfg top_cfg = {
+		.callback = top_handler, .user_data = exp_user_data, .flags = 0};
+
+	k_sem_reset(&top_cnt_sem);
+	top_cnt = 0;
+
+	counter_period_us = get_counter_period_us(dev);
+	top_cfg.ticks = counter_us_to_ticks(dev, counter_period_us);
+
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(0, err, "%s: Counter failed to set top value (err: %d)", dev->name, err);
+
+	err = counter_start(dev);
+	zassert_equal(0, err, "%s: Counter failed to start", dev->name);
+
+	k_busy_wait(5.2 * counter_period_us);
+
+	top_handler_cnt =
+		IS_ENABLED(CONFIG_ZERO_LATENCY_IRQS) ? top_cnt : k_sem_count_get(&top_cnt_sem);
+	zassert_true(top_handler_cnt == 5U, "%s: Unexpected number of turnarounds (%d).", dev->name,
+		     top_handler_cnt);
+}
+
+ZTEST(counter_basic, test_set_top_before_start_with_callback)
+{
+	test_all_instances(test_set_top_before_start_with_callback,
+			   set_top_value_capable);
+}
+
+static void test_set_top_before_start_switch_freerun(const struct device *dev)
+{
+	int err;
+	uint32_t cnt;
+	uint32_t ticks;
+	uint32_t counter_period_us;
+	uint32_t top_handler_cnt;
+	struct counter_top_cfg top_cfg = {
+		.callback = top_handler, .user_data = exp_user_data, .flags = 0};
+
+	cntr_alarm_cfg.flags = 0;
+	cntr_alarm_cfg.callback = alarm_handler;
+	cntr_alarm_cfg.user_data = &cntr_alarm_cfg;
+	cntr_alarm_cfg.ticks = 0;
+	k_sem_reset(&top_cnt_sem);
+	top_cnt = 0;
+	k_sem_reset(&alarm_cnt_sem);
+	alarm_cnt = 0;
+
+	counter_period_us = get_counter_period_us(dev);
+	ticks = counter_us_to_ticks(dev, counter_period_us);
+	top_cfg.ticks = ticks;
+
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(0, err, "%s: Counter failed to set top value (err: %d)", dev->name, err);
+
+	err = counter_start(dev);
+	zassert_equal(0, err, "%s: Counter failed to start", dev->name);
+
+	err = counter_set_channel_alarm(dev, 0, &cntr_alarm_cfg);
+	zassert_equal(-ENOTSUP, err, "%s: Counter alarm can't be set (err: %d)", dev->name, err);
+
+	k_busy_wait(5.2 * counter_period_us);
+
+	top_handler_cnt =
+		IS_ENABLED(CONFIG_ZERO_LATENCY_IRQS) ? top_cnt : k_sem_count_get(&top_cnt_sem);
+	zassert_true(top_handler_cnt == 5U, "%s: Unexpected number of turnarounds (%d).", dev->name,
+		     top_handler_cnt);
+
+	top_cfg.ticks = counter_get_max_top_value(dev);
+	top_cfg.callback = NULL;
+	top_cfg.user_data = NULL;
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_true((err == 0) || (err == -ENOTSUP), "%s: Setting top value to default failed",
+		     dev->name);
+
+	if (counter_get_num_of_channels(dev) < 1U) {
+		/* Counter does not support any alarm */
+		return;
+	}
+
+	cntr_alarm_cfg.ticks = ticks;
+	err = counter_set_channel_alarm(dev, 0, &cntr_alarm_cfg);
+	zassert_equal(0, err, "%s: Counter set alarm failed (err: %d)", dev->name, err);
+
+	k_busy_wait(2 * (uint32_t)counter_ticks_to_us(dev, ticks));
+
+	cnt = IS_ENABLED(CONFIG_ZERO_LATENCY_IRQS) ? alarm_cnt : k_sem_count_get(&alarm_cnt_sem);
+	zassert_equal(1, cnt, "%s: Expecting alarm callback", dev->name);
+}
+
+ZTEST(counter_basic, test_set_top_before_start_with_alarm)
+{
+	test_all_instances(test_set_top_before_start_switch_freerun,
+			   set_top_value_capable);
+}
+
+static void test_set_top_with_callback_two_times(const struct device *dev)
+{
+	int err;
+	uint32_t counter_period_us;
+	uint32_t top_handler_cnt;
+	struct counter_top_cfg top_cfg = {
+		.callback = top_handler, .user_data = exp_user_data, .flags = 0};
+
+	k_sem_reset(&top_cnt_sem);
+	top_cnt = 0;
+
+	counter_period_us = get_counter_period_us(dev);
+	top_cfg.ticks = counter_us_to_ticks(dev, counter_period_us);
+
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(0, err, "%s: Counter failed to set top value:%u (err: %d)", top_cfg.ticks,
+		      dev->name, err);
+
+	err = counter_start(dev);
+	zassert_equal(0, err, "%s: Counter failed to start", dev->name);
+
+	k_busy_wait(5.2 * counter_period_us);
+
+	top_handler_cnt =
+		IS_ENABLED(CONFIG_ZERO_LATENCY_IRQS) ? top_cnt : k_sem_count_get(&top_cnt_sem);
+	zassert_true(top_handler_cnt == 5U, "%s: Unexpected number of turnarounds (%d).", dev->name,
+		     top_handler_cnt);
+
+	top_cfg.ticks = top_cfg.ticks * 2;
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(0, err, "%s: Counter failed to set top value:%u (err: %d)", top_cfg.ticks,
+		      dev->name, err);
+
+	k_busy_wait(6.2 * counter_period_us);
+	top_handler_cnt =
+		IS_ENABLED(CONFIG_ZERO_LATENCY_IRQS) ? top_cnt : k_sem_count_get(&top_cnt_sem);
+	zassert_true(top_handler_cnt == 8U, "%s: Unexpected number of turnarounds (%d).", dev->name,
+		     top_handler_cnt);
+
+	top_cfg.callback = NULL;
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(0, err, "%s: Counter failed to set top value:%u (err: %d)", top_cfg.ticks,
+		      dev->name, err);
+	top_cfg.ticks = top_cfg.ticks / 2;
+	top_cfg.flags = COUNTER_TOP_CFG_RESET_WHEN_LATE | COUNTER_TOP_CFG_DONT_RESET;
+	err = counter_set_top_value(dev, &top_cfg);
+	zassert_equal(-ETIME, err, "%s: Counter failed to set top value:%u (err: %d)",
+		      top_cfg.ticks, dev->name, err);
+}
+
+ZTEST(counter_basic, test_set_top_with_callback_two_times)
+{
+	test_all_instances(test_set_top_with_callback_two_times,
 			   set_top_value_capable);
 }
 
@@ -455,8 +616,13 @@ static bool single_channel_alarm_capable(const struct device *dev)
 
 static bool single_channel_alarm_and_custom_top_capable(const struct device *dev)
 {
+#ifdef CONFIG_COUNTER_RZ_GTM_COUNTER
+	/* both top change and alarm is not supported */
+	return false;
+#else
 	return single_channel_alarm_capable(dev) &&
 		set_top_value_capable(dev);
+#endif
 }
 
 ZTEST(counter_basic, test_single_shot_alarm_notop)
