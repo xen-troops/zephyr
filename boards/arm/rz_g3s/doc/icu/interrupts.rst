@@ -207,6 +207,119 @@ The **irq_keys** test will produce below console output when executed:
     [00:00:20.860,000] <inf> main: Button (irq line 512) pressed 9 times
     [00:00:20.861,000] <inf> main: Changing of IRQ line (512) detection mode to FALLING EDGE
 
+ARM NVIC testing
+----------------
+
+tests/arch/arm/arm_interrupt
+````````````````````````````
+
+This test to verify code fault handling in ISR execution context and the behavior of irq_lock() and irq_unlock()
+when invoked from User Mode. An additional test case verifies that null pointer dereferencing
+attempts are detected and interpreted as CPU faults.
+
+To build **tests/arch/arm/arm_interrupt** test run command:
+
+.. code-block:: bash
+
+    west build -b rz_g3s -p always tests/arch/arm/arm_interrupt
+
+Console output:
+
+.. code-block:: console
+
+    *** Booting Zephyr OS build v3.5.0-rc2-340-g17158a79e662 ***
+    Running TESTSUITE arm_interrupt
+    ===================================================================
+    START - test_arm_esf_collection
+    Testing ESF Reporting
+    E: ***** USAGE FAULT *****
+    E:   Attempt to execute undefined instruction
+    E: r0/a1:  0x00000000  r1/a2:  0x00000001  r2/a3:  0x00000002
+    E: r3/a4:  0x00000003 r12/ip:  0x0000000c r14/lr:  0x0000000f
+    E:  xpsr:  0x01000000
+    E: Faulting instruction address (r15/pc): 0x0002ec68
+    E: >>> ZEPHYR FATAL ERROR 0: CPU exception on CPU 0
+    E: Current thread: 0x20050080 (unknown)
+    Caught system error -- reason 0
+     PASS - test_arm_esf_collection in 0.038 seconds
+    ===================================================================
+    START - test_arm_interrupt
+    Available IRQ line: 479
+    E: >>> ZEPHYR FATAL ERROR 1: Unhandled interrupt on CPU 0
+    E: Current thread: 0x20050140 (test_arm_interrupt)
+    Caught system error -- reason 1
+    E: r0/a1:  0x00000003  r1/a2:  0x20054944  r2/a3:  0x00000003
+    E: r3/a4:  0x200539a0 r12/ip:  0x00000008 r14/lr:  0x000255cf
+    E:  xpsr:  0x610001ef
+    E: Faulting instruction address (r15/pc): 0x00023de2
+    E: >>> ZEPHYR FATAL ERROR 3: Kernel oops on CPU 0
+    E: Fault during interrupt handling
+
+    E: Current thread: 0x20050140 (test_arm_interrupt)
+    Caught system error -- reason 3
+    E: r0/a1:  0x00000004  r1/a2:  0x20054944  r2/a3:  0x00000004
+    E: r3/a4:  0x200539a0 r12/ip:  0x00000000 r14/lr:  0x000255cf
+    E:  xpsr:  0x610001ef
+    E: Faulting instruction address (r15/pc): 0x00023e00
+    E: >>> ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+    E: Fault during interrupt handling
+
+    E: Current thread: 0x20050140 (test_arm_interrupt)
+    Caught system error -- reason 4
+    ASSERTION FAIL [0] @ WEST_TOPDIR/zephyr/tests/arch/arm/arm_interrupt/src/arm_interrupt.c:225
+    Intentional assert
+
+    E: r0/a1:  0x00000004  r1/a2:  0x000000e1  r2/a3:  0x20050140
+    E: r3/a4:  0x000001ef r12/ip:  0x00000000 r14/lr:  0x000255cf
+    E:  xpsr:  0x610001ef
+    E: Faulting instruction address (r15/pc): 0x0002ef54
+    E: >>> ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+    E: Fault during interrupt handling
+
+    E: Current thread: 0x20050140 (test_arm_interrupt)
+    Caught system error -- reason 4
+    E: ***** USAGE FAULT *****
+    E:   Stack overflow (context area not valid)
+    E: r0/a1:  0x00000000  r1/a2:  0x00000000  r2/a3:  0x000240b6
+    E: r3/a4:  0x01000000 r12/ip:  0x00000000 r14/lr:  0x00000000
+    E:  xpsr:  0x00000000
+    E: Faulting instruction address (r15/pc): 0x00000000
+    E: >>> ZEPHYR FATAL ERROR 2: Stack overflow on CPU 0
+    E: Current thread: 0x20050140 (test_arm_interrupt)
+    Caught system error -- reason 2
+     PASS - test_arm_interrupt in 0.161 seconds
+    ===================================================================
+    START - test_arm_null_pointer_exception
+    E: ***** MPU FAULT *****
+    E:   Data Access Violation
+    E:   MMFAR Address: 0x4
+    E: r0/a1:  0x00000000  r1/a2:  0x00030054  r2/a3:  0x00000000
+    E: r3/a4:  0x00000000 r12/ip:  0x00030040 r14/lr:  0x0002ec1f
+    E:  xpsr:  0x61000000
+    E: Faulting instruction address (r15/pc): 0x00023cae
+    E: >>> ZEPHYR FATAL ERROR 0: CPU exception on CPU 0
+    E: Current thread: 0x20050140 (test_arm_null_pointer_exception)
+    Caught system error -- reason 0
+     PASS - test_arm_null_pointer_exception in 0.038 seconds
+    ===================================================================
+    START - test_arm_user_interrupt
+     PASS - test_arm_user_interrupt in 0.001 seconds
+    ===================================================================
+    TESTSUITE arm_interrupt succeeded
+
+    ------ TESTSUITE SUMMARY START ------
+
+    SUITE PASS - 100.00% [arm_interrupt]: pass = 4, fail = 0, skip = 0, total = 4 duration = 0.238 seconds
+     - PASS - [arm_interrupt.test_arm_esf_collection] duration = 0.038 seconds
+     - PASS - [arm_interrupt.test_arm_interrupt] duration = 0.161 seconds
+     - PASS - [arm_interrupt.test_arm_null_pointer_exception] duration = 0.038 seconds
+     - PASS - [arm_interrupt.test_arm_user_interrupt] duration = 0.001 seconds
+
+    ------ TESTSUITE SUMMARY END ------
+
+    ===================================================================
+    PROJECT EXECUTION SUCCESSFUL
+
 .. raw:: latex
 
     \newpage
