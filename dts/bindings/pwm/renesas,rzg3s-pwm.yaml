@@ -10,3 +10,31 @@ include: ["renesas,rza2m-pwm.yaml", reset-device.yaml]
 properties:
   resets:
     required: true
+
+  renesas,poeg:
+    type: string
+    enum:
+      - "POEGA"
+      - "POEGB"
+      - "POEGC"
+      - "POEGD"
+    description: |
+      Associated POEG device name choice. Should be set if
+      `renesas,poeg-device` phandle was provided.
+
+  renesas,disable-requests:
+    type: int
+    description: |
+      Sets the Output-disable requests from POEG.
+      Possible values are:
+       - PWM_HIGH to sends output-disable requests if both GTIOCA and
+         GTICB are in HIGH state
+       - PWM_LOW to sends output-disable requests if both GTIOCA and
+         GTICB are in LOW state
+       - PWM_DT to sends output-disable requests if deadtime error occurred.
+
+  renesas,poeg-device:
+    type: phandle
+    description: |
+      Link to the POEG device which controls GPT channel
+      This phandle should be set if `renesas,poeg` property was provided.
