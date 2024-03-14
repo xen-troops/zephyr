@@ -11,6 +11,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/flash.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/linker/linker-defs.h>
 
 #define PR_SHELL(sh, fmt, ...)				\
 	shell_fprintf(sh, SHELL_NORMAL, fmt, ##__VA_ARGS__)
@@ -19,8 +20,16 @@
 
 /* Assumption: our devices have less than 64MB of memory */
 #define RESERVED_MEM_MAP (CONFIG_SRAM_BASE_ADDRESS + 0x4000000)
+
+#if defined(CONFIG_SOC_SERIES_RZ_G)
+#define FLASH_MEM         (uintptr_t)__rom_region_start
+#define RO_ADDR           (FLASH_MEM + 0x100)
+#define RAM_MEM           (uintptr_t)__kernel_ram_start
+#else
 #define FLASH_MEM         CONFIG_FLASH_BASE_ADDRESS
+#define RO_ADDR           (FLASH_MEM + 0x4000)
 #define RAM_MEM           CONFIG_SRAM_BASE_ADDRESS
+#endif /* CONFIG_SOC_SERIES_RZ_G */
 
 /* MPU test command help texts */
 #define READ_CMD_HELP  "Read from a reserved address in the memory map"
@@ -98,9 +107,10 @@ static int cmd_write(const struct shell *sh, size_t argc, char *argv[])
 	ARG_UNUSED(argv);
 
 	/* 16K reserved to the application */
-	uint32_t *p_mem = (uint32_t *) (FLASH_MEM + 0x4000);
+	uint32_t *p_mem = (uint32_t *)(RO_ADDR);
 
-	PR_SHELL(sh, "write address: 0x%x\n", FLASH_MEM + 0x4000);
+	PR_SHELL(sh, "write address: 0x%x\n", (uint32_t)RO_ADDR);
+	printf("write address: 0x%x\n", (uint32_t)p_mem);
 
 	/* Write in to boot FLASH/ROM */
 	*p_mem = 0xBADC0DE;
@@ -115,6 +125,9 @@ static int cmd_run(const struct shell *sh, size_t argc, char *argv[])
 	ARG_UNUSED(argv);
 
 	void (*func_ptr)(void) = (void (*)(void)) RAM_MEM;
+
+	PR_SHELL(sh, "exec address: 0x%x\n", (uint32_t)func_ptr);
+	printf("exec address: 0x%x\n", (uint32_t)func_ptr);
 
 	/* Run code located in RAM */
 	func_ptr();
