@@ -342,4 +342,5 @@ Supported Features Details
    openamp/mhu.rst
    openamp/openamp.rst
    pwm/GPT.rst
+   pwm/poeg.rst
    dma/dma.rst
