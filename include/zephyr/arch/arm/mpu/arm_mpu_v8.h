@@ -259,6 +259,42 @@
 	  .attr = p_attr(p_base, p_size),			\
 	}
 
+#define REGION_RAM_ATTR_NO_EXEC(limit)						    \
+	{								    \
+		.rbar = NOT_EXEC |					    \
+			P_RW_U_NA_Msk | NON_SHAREABLE_Msk, /* AP, XN, SH */ \
+		/* Cache-ability */					    \
+		.mair_idx = MPU_MAIR_INDEX_SRAM,			    \
+		.r_limit = (limit) - 1,  /* Region Limit */		    \
+	}
+
+#define REGION_RAM_TEXT_ATTR(limit)					    \
+	{								    \
+		.rbar = P_RO_U_RO_Msk | NON_SHAREABLE_Msk, /* AP, XN, SH */ \
+		/* Cache-ability */					    \
+		.mair_idx = MPU_MAIR_INDEX_SRAM,			    \
+		.r_limit = (limit) - 1,  /* Region Limit */		    \
+	}
+
+#define REGION_RAM_RO_ATTR(limit)					    \
+	{								    \
+		.rbar = NOT_EXEC |					    \
+			P_RO_U_RO_Msk | NON_SHAREABLE_Msk, /* AP, XN, SH */ \
+		/* Cache-ability */					    \
+		.mair_idx = MPU_MAIR_INDEX_SRAM,			    \
+		.r_limit = (limit) - 1,  /* Region Limit */		    \
+	}
+
+#define REGION_DEVICE_ATTR(limit)				      \
+	{							      \
+		/* AP, XN, SH */				      \
+		.rbar = NOT_EXEC | P_RW_U_NA_Msk | NON_SHAREABLE_Msk, \
+		/* Cache-ability */				      \
+		.mair_idx = MPU_MAIR_INDEX_SRAM_NOCACHE,		      \
+		/* Region Limit */				      \
+		.r_limit = (limit) - 1,				      \
+	}
+
 /* On Cortex-M, we can only set the XN bit when CONFIG_XIP=y. When
  * CONFIG_XIP=n, the entire image will be linked to SRAM, so we need to keep
  * the SRAM region XN bit clear or the application code will not be executable.
