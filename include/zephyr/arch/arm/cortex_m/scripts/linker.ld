@@ -107,7 +107,11 @@ SECTIONS
 
     GROUP_START(ROMABLE_REGION)
 
-	__rom_region_start = ROM_ADDR;
+#if defined(CONFIG_XIP)
+    __rom_region_start = ROM_ADDR;
+#else
+    __rom_region_start = RAM_ADDR;
+#endif
 
     SECTION_PROLOGUE(rom_start,,)
 	{
@@ -171,6 +175,7 @@ SECTIONS
 	*(.ARM.exidx* gnu.linkonce.armexidx.*)
 #endif
 	__exidx_end = .;
+	. = ALIGN(_region_min_align);
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
 	__rodata_region_start = .;
@@ -190,6 +195,7 @@ SECTIONS
 #include <snippets-rodata.ld>
 
 #include <zephyr/linker/kobject-rom.ld>
+#include <zephyr/linker/cplusplus-rom.ld>
 
 	/*
 	 * For XIP images, in order to avoid the situation when __data_rom_start
@@ -202,9 +208,13 @@ SECTIONS
 	 * usually 4k aligned.
 	 */
 	. = ALIGN(4);
-	} GROUP_LINK_IN(ROMABLE_REGION)
 
-#include <zephyr/linker/cplusplus-rom.ld>
+        /*
+         * RODATA must be the last section so that the size of the entire read
+         * only area will be filled to a power of 2.
+         */
+        MPU_ALIGN(ABSOLUTE(.) - __rom_region_start);
+	} GROUP_LINK_IN(ROMABLE_REGION)
 
 #if defined(CONFIG_BUILD_ALIGN_LMA)
     /*
