@@ -14,7 +14,13 @@ GPT driver overview
 
 Zephyr RZ/G3S Renesas GPT driver provides Zephyr :ref:`pwm_api` interface implementation.
 
-PWM subsystem is enabled by default when PWM nodes are enabled in DT.
+The PWM subsystem is **not** enabled by default in ``rz_g3s_defconfig``. To enable Zephyr
+PWM functionality below Kconfig options have to be enabled:
+
+.. code-block:: text
+
+    CONFIG_PWM=y
+
 Default pwm devices can be set in the alias section:
 
 .. code-block:: dts
@@ -38,8 +44,8 @@ Limitations
 ````````````
 * Only saw-wave mode is supported by now;
 * External pins input is not supported;
-* Two in/out pins in the same channel is not supported;
-* Only A or B channel can be used on each channel at the same time;
+* Two in pins in the same channel is not supported;
+* Capturing both A and B channels is not supported;
 * Overflow handling is not implemented.
 
 GPT testing
@@ -108,7 +114,7 @@ tests/drivers/pwm/pwm_loopback
 ```````````````````````````````
 
 Zephyr RZ/G3S GPT driver can be tested by using **pwm_loopback** test application.
-Use below command to build WDT **pwm_loopback** test application:
+Use below command to build PWM **pwm_loopback** test application:
 
 .. code-block:: bash
 
@@ -183,6 +189,101 @@ Console output:
 
     ===================================================================
     PROJECT EXECUTION SUCCESSFUL
+
+
+tests/drivers/pwm/pwm_ab
+`````````````````````````
+
+Zephyr RZ/G3S GPT driver can be tested by using **pwm_ab** test application.
+This test shows configuration of A and B channels of the PWM device.
+It is including the following set of tests:
+
+* Set/clear pulse on channel A of the PWM device
+* Set/clear pulse on channel A and channel B of the PWM device
+* Set/clear pulse on channel B of the PWM device
+* Set channel A to Always on  ->  Period : Pulse (1 : 1)  ->  3.3V
+* Set channel A to Half on  ->  Period : Pulse (2 : 1)  ->  1.65V
+* Set channel A to Always off  ->  Period : Pulse (1 : 0)  ->  0V
+
+Use below command to build PWM **pwm_ab** test application:
+
+.. code-block:: bash
+
+    west build -p always -b rz_g3s tests/drivers/pwm/pwm_ab
+
+**NOTE** Please connect logic analyzer or similar analyzing tool to PMOD1_6A pin 7 (GPT ch0 A) and PMOD1_6A pin 8(GPT ch0 B)
+to perform **pwm_ab** test. The below image shows the connection schema:
+
+.. image:: ../img/pwm_ab_schema.jpg
+   :height: 250px
+   :align: center
+
+The below image shows the sample wave form on analyzer after successful test:
+
+.. image:: ../img/pwm_ab.jpg
+   :height: 250px
+   :align: center
+
+Console output:
+
+.. code-block:: console
+
+    *** Booting Zephyr OS build v3.5.0-rc2-376-g484f3ddf8e85 ***
+    Running TESTSUITE pwm_ab
+    ===================================================================
+    START - test_pwm_a
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 0
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 0
+     PASS - test_pwm_a in 3.015 seconds
+    ===================================================================
+    START - test_pwm_ab
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 1000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 0
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 0
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 1000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 0
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 0
+     PASS - test_pwm_ab in 3.032 seconds
+    ===================================================================
+    START - test_pwm_b
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 1000000
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 0
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 1000000
+    [PWM]: c0000000, [period]: 2000000, [pulse]: 0
+     PASS - test_pwm_b in 3.017 seconds
+    ===================================================================
+    START - test_pwm_cycle
+    [PWM]: 0, [period]: 64000, [pulse]: 32000
+    [PWM]: 0, [period]: 64000, [pulse]: 64000
+    [PWM]: 0, [period]: 64000, [pulse]: 0
+     PASS - test_pwm_cycle in 3.011 seconds
+    ===================================================================
+    START - test_pwm_nsec
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 2000000
+    [PWM]: 0, [period]: 2000000, [pulse]: 0
+     PASS - test_pwm_nsec in 3.012 seconds
+    ===================================================================
+    TESTSUITE pwm_ab succeeded
+
+    ------ TESTSUITE SUMMARY START ------
+
+    SUITE PASS - 100.00% [pwm_ab]: pass = 5, fail = 0, skip = 0, total = 5 duration = 15.087 seconds
+     - PASS - [pwm_ab.test_pwm_a] duration = 3.015 seconds
+     - PASS - [pwm_ab.test_pwm_ab] duration = 3.032 seconds
+     - PASS - [pwm_ab.test_pwm_b] duration = 3.017 seconds
+     - PASS - [pwm_ab.test_pwm_cycle] duration = 3.011 seconds
+     - PASS - [pwm_ab.test_pwm_nsec] duration = 3.012 seconds
+
+    ------ TESTSUITE SUMMARY END ------
+
+    ===================================================================
+    PROJECT EXECUTION SUCCESSFUL
+
 
 .. raw:: latex
 
