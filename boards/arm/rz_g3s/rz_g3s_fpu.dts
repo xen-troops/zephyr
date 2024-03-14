@@ -27,7 +27,6 @@
 
 	chosen {
 		zephyr,sram = &sram_mcpu1;
-		zephyr,flash = &sram_mcpu1_code;
 		zephyr,console = &scif3;
 		zephyr,shell-uart = &scif3;
 	};
@@ -45,14 +44,9 @@
 		zephyr,memory-attr = <( DT_MEM_ARM(ATTR_MPU_RAM) )>;
 	};
 
-	sram_mcpu1_code: memory@63000 {
+	sram_mcpu1: memory@63000 {
 		compatible = "mmio-sram";
-		reg = <0x63000 DT_SIZE_K(180)>;
-	};
-
-	sram_mcpu1: memory@20090000 {
-		compatible = "mmio-sram";
-		reg = <0x20090000 DT_SIZE_K(63)>;
+		reg = <0x63000 DT_SIZE_K(243)>;
 	};
 
 	buttons {
