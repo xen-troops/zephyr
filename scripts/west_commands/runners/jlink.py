@@ -281,6 +281,8 @@ class JLinkBinaryRunner(ZephyrBinaryRunner):
         lines = [
             'ExitOnError 1',  # Treat any command-error as fatal
             'r',  # Reset and halt the target
+            'Sleep 1000',
+            'h',
         ]
 
         if self.erase:
@@ -318,7 +320,7 @@ class JLinkBinaryRunner(ZephyrBinaryRunner):
                 else:
                     flash_addr = 0
                 flash_file = self.bin_name
-                flash_cmd = f'loadfile "{self.bin_name}" 0x{flash_addr:x}'
+                flash_cmd = f'loadfile "{self.bin_name}" 0x{flash_addr:x} noreset'
             else:
                 err = 'Cannot flash; no hex ({}) or bin ({}) files found.'
                 raise ValueError(err.format(self.hex_name, self.bin_name))
@@ -329,7 +331,7 @@ class JLinkBinaryRunner(ZephyrBinaryRunner):
         if self.reset:
             lines.append('r') # Reset and halt the target
 
-        lines.append('g') # Start the CPU
+        lines.append('r') # Start the CPU
 
         # Reset the Debug Port CTRL/STAT register
         # Under normal operation this is done automatically, but if other
