@@ -26,18 +26,33 @@ The MPU is enabled by default in ``rz_g3s_defconfig``.
 
     CONFIG_ARM_MPU=y
 
-The ``CONFIG_XIP`` has to be enabled for the proper MPU work.
+At boot time Zephyr configures following static memory regions and regions defined in DT:
 
-At boot time Zephyr configures following static memory regions by retrieving
-region parameters from DT:
+.. raw:: latex
 
-+-------------+-------------+-------------------------------------------+
-| Region      | DT chosen   |                                           |
-+=============+=============+===========================================+
-| FLASH_0     | zephyr,flash|  RO_Msk, NON_SHAREABLE_Msk                |
-+-------------+-------------+-------------------------------------------+
-| SRAM_0      | zephyr,sram | NOT_EXEC, P_RW_U_NA_Msk, NON_SHAREABLE_Msk|
-+-------------+-------------+-------------------------------------------+
+    \begin{scriptsize}
+
++----------------+--------------------------------------------------------------+
+| Region         |                                                              |
++================+==============================================================+
+| NULL           | Optional. Any, used for null pointer dereference check       |
+|                |                                                              |
+|                | Enabled in Kconfig                                           |
++----------------+--------------------------------------------------------------+
+| vector         | EXEC, P_RO_U_RO_Msk, NON_SHAREABLE_Msk                       |
++----------------+--------------------------------------------------------------+
+| SRAM_TEXT      | EXEC, P_RO_U_RO_Msk, NON_SHAREABLE_Msk                       |
++----------------+--------------------------------------------------------------+
+| SRAM_RODATA    | NOT_EXEC, P_RW_U_NA_Msk, NON_SHAREABLE_Msk                   |
++----------------+--------------------------------------------------------------+
+| DEVICE         | Optional. NOT_EXEC, P_RW_U_NA_Msk, NON_SHAREABLE_Msk,NOCACHE |
+|                |                                                              |
+|                | Enabled if defined(CONFIG_MPU_DISABLE_BACKGROUND_MAP)        |
++----------------+--------------------------------------------------------------+
+
+.. raw:: latex
+
+    \end{scriptsize}
 
 More regions can be added if specified properly in DT by using standard
 Zephyr DT memory **"zephyr,memory-region"** bindigs.
