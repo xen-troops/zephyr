@@ -1,0 +1,48 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		pwm-0 = &gpt32e0_s;
+	};
+};
+
+&gpt32e0_s {
+	pinctrl-0 = <&gpt0_pins>;
+	pinctrl-names = "default";
+	divider = <16>;
+	renesas,poeg = "POEGB";
+	renesas,poeg-device = <&poegb>;
+	renesas,disable-requests = <PWM_HIGH>;
+	status = "okay";
+};
+
+&poegb {
+	pinctrl-0 = <&poegb_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+	renesas,invert = <1>;
+};
+
+&port13 {
+	status = "okay";
+};
+
+&pinctrl {
+	/omit-if-no-ref/ gpt0_pins: gpt0 {
+		gpt0-pinmux {
+			pinmux = <RZG3S_PINMUX(PORT13, 0, 2)>, /* GTIOC0A */
+				 <RZG3S_PINMUX(PORT13, 1, 2)>; /* GTIOC0B */
+		};
+	};
+
+	/* P18-1 used as GTETGB */
+	/omit-if-no-ref/ poegb_pins: poegb {
+		poegb-pinmux {
+			pinmux = <RZG3S_PINMUX(PORT18, 1, 6)>; /* GTETRGB */
+		};
+	};
+};
