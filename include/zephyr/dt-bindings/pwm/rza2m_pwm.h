@@ -9,6 +9,14 @@
 #define PWM_CHANNEL_INPUT_A (0 << 31)
 #define PWM_CHANNEL_INPUT_B (1 << 31)
 
+#define PWM_CHANNEL_PROTECTED (1 << 30)
+
+#define PWM_PROTECTED(x) (x | PWM_CHANNEL_PROTECTED)
+
+#define PWM_HIGH BIT(0)
+#define PWM_LOW BIT(1)
+#define PWM_DT BIT(2)
+
 #define MTU_PWM_CH_IO_A 0
 #define MTU_PWM_CH_IO_B 1
 #define MTU_PWM_CH_IO_C 2
