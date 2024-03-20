@@ -10,9 +10,12 @@ RZ/G3S SMARC Evaluation Board Kit
   .. contents::
      :depth: 5
 
+.. _Overview:
+
 Overview
 ********
-This evaluation board kit is ideal for evaluating RZ/G3S. The RZ/G3S Evaluation Board Kit consists
+
+The Renesas Evaluation Board Kit for RZ/G3S MPU (RZ/G3S-EVKIT) consists
 of a module board (SOM) and a carrier board. The module board complies with the SMARC v2.1 standard.
 
 .. toctree::
@@ -25,6 +28,18 @@ of a module board (SOM) and a carrier board. The module board complies with the 
 
 Hardware
 ********
+
+The Renesas RZ/G3S MPU documentation can be found at:
+
+`RZ/G3S MPU <https://www.renesas.com/us/en/products/microcontrollers-microprocessors/rz-mpus/rzg3s-general-purpose-microprocessors-single-core-arm-cortex-a55-11-ghz-cpu-and-dual-core-cortex-m33-250>`_
+
+The Renesas Evaluation Board Kit for RZ/G3S MPU (RZ/G3S-EVKIT) documentation can be found at:
+
+`Evaluation Board Kit for RZ/G3S MPU <https://www.renesas.com/us/en/products/microcontrollers-microprocessors/rz-mpus/rzg3s-evkit-evaluation-board-kit-rzg3s-mpu>`_
+
+`RZG3S SMARC Module Board User's Manual Hardware <https://www.renesas.com/us/en/document/mat/rzg3s-smarc-module-board-users-manual-hardware>`_
+
+`RZ SMARC Series Carrier Board II User's Manual Hardware <https://www.renesas.com/us/en/document/mat/rz-smarc-series-carrier-board-ii-users-manual-hardware?r=25458596>`_
 
 The RZ G3S includes:
 
@@ -62,13 +77,10 @@ The RZ G3S includes:
 Connections and IOs
 ===================
 
-RZ G3S board
-------------
+.. toctree::
+   :maxdepth: 4
 
-Views of the Renesas RZ/G3S SMARC Evaluation Board Kit board ``rz_g3s``:
-
-.. figure:: img/rzg3s.jpg
-   :align: center
+   delivery/initial_config.rst
 
 Supported Features
 ==================
@@ -76,27 +88,39 @@ Supported Features
 The Renesas ``rz_g3s`` board configuration supports the following
 hardware features:
 
-+----------+---------------------------+--------------------------------+
-| Interface| Driver/components         | Support level                  |
-+==========+===========================+================================+
-| PINCTRL  | pinctrl                   |                                |
-+----------+---------------------------+--------------------------------+
-| CLOCK    | clock_control             |                                |
-+----------+---------------------------+--------------------------------+
-| gpio     | gpio                      |                                |
-+----------+---------------------------+--------------------------------+
-| UART     | uart                      | serial port-polling            |
-+----------+---------------------------+--------------------------------+
-| rSPI     | spi                       | 8/16 bit transfers             |
-+----------+---------------------------+--------------------------------+
-| I2C      | i2c                       |                                |
-+----------+---------------------------+--------------------------------+
-| Watchdog | wdt                       |                                |
-+----------+---------------------------+--------------------------------+
-| ADC      | adc                       |                                |
-+----------+---------------------------+--------------------------------+
-| CAN-FD   | can                       |                                |
-+----------+---------------------------+--------------------------------+
++----------+------------------+--------------------+
+| Interface| Driver/components| Support level      |
++==========+==================+====================+
+| PINCTRL  | pinctrl          |                    |
++----------+------------------+--------------------+
+| CLOCK    | clock_control    |                    |
++----------+------------------+--------------------+
+| gpio     | gpio             |                    |
++----------+------------------+--------------------+
+| UART     | uart             | serial port-polling|
++----------+------------------+--------------------+
+| rSPI     | spi              | 8/16 bit transfers |
++----------+------------------+--------------------+
+| I2C      | i2c              |                    |
++----------+------------------+--------------------+
+| Watchdog | wdt              |                    |
++----------+------------------+--------------------+
+| ADC      | adc              |                    |
++----------+------------------+--------------------+
+| CAN-FD   | can              |                    |
++----------+------------------+--------------------+
+| DMAC     | dma              |                    |
++----------+------------------+--------------------+
+| GTM      | timer            | GTM as OS Timer    |
++----------+------------------+--------------------+
+| GTM      | counter          | GTM as Counter     |
++----------+------------------+--------------------+
+| GPT      | pwm              |                    |
++----------+------------------+--------------------+
+| POEG     | pwm              | POEG for GPT       |
++----------+------------------+--------------------+
+| GPT      | pwm              |                    |
++----------+------------------+--------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -110,6 +134,11 @@ The default configuration can be found in the defconfig file:
 
 Programming and Debugging
 *************************
+
+.. note::
+
+    Ensure all prerequisite steps, described in :ref:`Overview` section, are done and RZ/G3S-EVKIT board has corresponding BL2 bootloader
+    (ARM trusted firmware TF-A with **PLAT_M33_BOOT_SUPPORT** option enabled) flashed on eMMC(xSPI) and BL2 TF-A is booted properly.
 
 Applications for the ``rz_g3s`` board can be built in the usual way as documented
 in :ref:`build_an_application`.
@@ -139,19 +168,21 @@ which assigned to Cortex-M33 System Cores as following:
 * Cortex-M33: SER0 from PMOD1_3A
 * Cortex-M33_FPU: SER1 from SER1_UART
 
+Refer to the section :ref:`rz_g3s_con` for more information about board connection and console setup.
+
 .. _Debugging:
 
 Debugging
 =========
 
 It is possible to load and execute a Zephyr application binary on
-this board one of the Cortex-M33/Cortex-M33_FPU System Cores from
+this board on one of the Cortex-M33/Cortex-M33_FPU System Cores from
 the internal SRAM, using ``JLink`` debugger (:ref:`jlink-debug-host-tools`).
 
 .. note::
 
-    Currently it's required Renesas  ATF-A to be started on Cortex-A55 System Core
-    before starting Zephyr. As it's affecting at code start address.
+    Currently it's required Renesas BL2 TF-A to be started on Cortex-A55 System Core
+    before starting Zephyr. As BL2 TF-A configures clocks and Cortex-A33 before starting it.
 
 +----------------+--------------------+
 |                | JLink device id    |
@@ -166,47 +197,59 @@ Here is an example for the :ref:`hello_world` application.
 .. zephyr-app-commands::
    :zephyr-app: samples/hello_world
    :board: rz_g3s
-   :goals: build
+   :goals: debug
 
 .. zephyr-app-commands::
    :zephyr-app: samples/hello_world
    :board: rz_g3s_fpu
-   :goals: build
+   :goals: debug
 
 Flashing
 ========
 
-The flashing using west environment is not supported.
+.. note::
+
+    The flashing using west environment is not fully supported.
 
 Zephyr application can be flashed to eMMC or qSPI storage and then loaded by
-Renesas ATF-A running on Cortex-A55 System Core.
-The Renesas ATF-A should be configured to enable support for loading
+Renesas BL2 TF-A running on Cortex-A55 System Core.
 and staring binary at Cortex-M33 System Core.
 
 .. note::
 
     Flashing is supported only for Cortex-M33 System Core.
-    Zephyr application can be started on Cortex-M33_FPU System Core only using debugger.
+    Zephyr application can be started on Cortex-M33_FPU System Core only by using debugger.
 
-Refer to "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide".
+More information about flashing to eMMC(xSPI) can be found in Renesas document:
+
+`Linux Start-up Guide for RZ/G3S Board Support Package <https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100>`_
+
+The Zephyr application binary has to be converted to Motorolla S-record `SREC`_ format
+which is generated automatically in Zephyr application build directory (`*zephyr.srec*`).
+
+.. _SREC: https://en.wikipedia.org/wiki/SREC_(file_format)
+
+Follow :ref:`Linux Start-up Guide for RZ/G3S Board Support Package`:
+
+* section "4.2.3 Settings" for enabling "SCIF Download mode"
+* section "4.3 Download Flash Writer to RAM" (FlashWriter-smarc-rzg3s.mot)
 
 .. _Flashing on eMMC:
 
 Flashing on eMMC
 ----------------
 
-Zephyr binary has to be converted to **srec** format.
-
-* Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
-  load **Flash Writer**.
-* Use **Flash Writer EM_W** command to flash Zephyr binary. Input when asked:
+* Download and start **Flash Writer** as described above.
+* Use **Flash Writer EM_W** command to flash Zephyr binary
+* Input when asked:
 
 .. code-block:: console
 
+    Select area(0-2)>1
     Please Input Start Address in sector :1000
     Please Input Program Start Address : 23000
 
-* then send Zephyr **srec** file from terminal (use ''ascii'').
+* then send Zephyr **srec** file from terminal (use ''ascii'' mode)
 * reboot the board in the **eMMC Boot Mode**
 
 .. code-block:: console
@@ -236,9 +279,9 @@ Flashing on qSPI
 
 Zephyr binary has to be converted to **srec** format.
 
-* Follow "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide" to enable **SCIF Download Mode** and
-  load **Flash Writer**.
-* Use **Flash Writer XLS2** command to flash Zephyr binary. Input when asked:
+* Download and start **Flash Writer** as described above
+* Use **Flash Writer XLS2** command to flash Zephyr binary
+* Input when asked:
 
 .. code-block:: console
 
@@ -247,7 +290,7 @@ Zephyr binary has to be converted to **srec** format.
     ===== Please Input Qspi Save Address ===
       Please Input : H'200000
 
-* then send Zephyr **srec** file from terminal (use ''ascii'').
+* then send Zephyr **srec** file from terminal (use ''ascii'' mode)
 * reboot the board in the **qSPI Boot Mode**
 
 .. code-block:: console
