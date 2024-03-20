@@ -20,7 +20,8 @@ of a module board (SOM) and a carrier board. The module board complies with the 
 
    delivery/delivery_scope.rst
    delivery/getting_source_code.rst
-   delivery/initial_config.rst
+   delivery/yocto_build.rst
+   delivery/hello_world_start.rst
 
 Hardware
 ********
@@ -138,6 +139,8 @@ which assigned to Cortex-M33 System Cores as following:
 * Cortex-M33: SER0 from PMOD1_3A
 * Cortex-M33_FPU: SER1 from SER1_UART
 
+.. _Debugging:
+
 Debugging
 =========
 
@@ -187,6 +190,8 @@ and staring binary at Cortex-M33 System Core.
 
 Refer to "Renesas SMARC EVK of RZ/G3S Linux Start-up Guide".
 
+.. _Flashing on eMMC:
+
 Flashing on eMMC
 ----------------
 
@@ -223,6 +228,8 @@ Zephyr binary has to be converted to **srec** format.
     Please Input Program Start Address : 23000
     Work RAM (H'00020000-H'000FFFFF) Clear....
     please send ! ('.' & CR stop load)
+
+.. _Flashing on qSPI:
 
 Flashing on qSPI
 ----------------
