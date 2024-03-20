@@ -46,6 +46,8 @@ latex_documents = [('index', 'rzg3s_release_notes.tex', project, author, 'manual
 
 latex_elements = {
     'papersize': 'a4paper',
+    'classoptions': ',openany,oneside',
+    'babel' : '\\usepackage[english]{babel}',
     'fvset' : '\\fvset{fontsize=\\scriptsize}',
     'preamble': r'''
     \usepackage[none]{hyphenat}
