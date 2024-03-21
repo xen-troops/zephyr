@@ -37,6 +37,8 @@ The connection diagram of RZ/G3S-EVKIT and PC is shown below:
    :height: 250px
    :align: center
 
+.. _Linux minicom terminal:
+
 Linux minicom terminal
 ``````````````````````
 The **minicom** is a terminal program for Linux and other unix-like systems. Use below command to connect to the dedicated serial device:
@@ -58,7 +60,7 @@ Run below two commands in different terminal windows to access RZ G3S Cortex-A55
 .. code-block:: bash
 
     sudo minicom -D /dev/ttyUSB0
-    sudo minicom -D /dev/ttyUSB0
+    sudo minicom -D /dev/ttyUSB1
 
 RZ/G3S-EVKIT board default HW configuration
 -------------------------------------------
