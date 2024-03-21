@@ -219,18 +219,20 @@ and staring binary at Cortex-M33 System Core.
     Zephyr application can be started on Cortex-M33_FPU System Core only by using debugger.
 
 More information about flashing to eMMC(xSPI) can be found in Renesas document:
-
-`Linux Start-up Guide for RZ/G3S Board Support Package <https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100>`_
+`Linux Start-up Guide for RZ/G3S Board Support Package`_.
 
 The Zephyr application binary has to be converted to Motorolla S-record `SREC`_ format
 which is generated automatically in Zephyr application build directory (`*zephyr.srec*`).
 
 .. _SREC: https://en.wikipedia.org/wiki/SREC_(file_format)
 
-Follow :ref:`Linux Start-up Guide for RZ/G3S Board Support Package`:
+Follow `Linux Start-up Guide for RZ/G3S Board Support Package`_:
 
 * section "4.2.3 Settings" for enabling "SCIF Download mode"
 * section "4.3 Download Flash Writer to RAM" (FlashWriter-smarc-rzg3s.mot)
+
+.. _Linux Start-up Guide for RZ/G3S Board Support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
+
 
 .. _Flashing on eMMC:
 
