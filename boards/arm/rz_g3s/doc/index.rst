@@ -119,8 +119,6 @@ hardware features:
 +----------+------------------+--------------------+
 | POEG     | pwm              | POEG for GPT       |
 +----------+------------------+--------------------+
-| GPT      | pwm              |                    |
-+----------+------------------+--------------------+
 
 Other hardware features have not been enabled yet for this board.
 

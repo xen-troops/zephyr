@@ -14,9 +14,9 @@ Starting on CM33 core using Jlink
 
 Before starting :ref:`hello_world` sample on the board the following preparations should be made:
 
-- Confirm that all switches are set according to :ref:`Board Init Config` section.
+- Confirm that all switches are set according to :ref:`rz_g3s_con` section.
 - Turn on the board.
-- Connect to the CA55 and CM33 console (PMOD1_6A) using minicom (:ref:`Board Init Config`).
+- Connect to the CA55 and CM33 console (PMOD1_3A SER0_UART) using minicom (:ref:`Linux minicom terminal`).
 - Build Yocto images and flash the loaders to the eMMC (:ref:`Building yocto image`).
 - Select eMMC boot mode in SW mode Switch and Reboot.
 
@@ -73,7 +73,7 @@ The result will be the following:
 
 Then type `c` and hit enter.
 
-Afterwards, please check the PMOD1_6A console. You should see the following output:
+Afterwards, please check the PMOD1_3A SER0_UART console. You should see the following output:
 
 .. code-block:: console
 
@@ -87,7 +87,7 @@ Starting on CM33_FPU core using Jlink
 
 Please follow recommendations from :ref:`Starting on CM33 core using Jlink` with the following changes:
 
-* Please connect to SER1_UART instead of PMOD1_6A using minicom (:ref:`Board Init Config`)
+* Please connect to SER1_UART instead of PMOD1_3A SER0_UART using minicom (:ref:`rz_g3s_con`)
 
 After all needed preparations please build :ref:`hello_world` sample using instructions
 from :ref:`Debugging` and use the following command:
@@ -113,9 +113,9 @@ Flashing to SPI
 
 Please follow the instructions to flash :ref:`hello_world` sample to the target board:
 
-- Confirm that all switches are set according to :ref:`Board Init Config` section.
+- Confirm that all switches are set according to :ref:`rz_g3s_con` section.
 - Turn on the board.
-- Connect to the CA55 and CM33 console (PMOD1_6A) using minicom (:ref:`Connect to console`).
+- Connect to the CA55 and CM33 console (PMOD1_3A SER0_UART) using minicom (:ref:`Linux minicom terminal`).
 - Build Yocto images and flash the loaders to the SPI (:ref:`Building yocto image`).
 - Select Select SPI boot mode in SW mode Switch and Reboot.
 
@@ -132,7 +132,7 @@ so in most cases it will have name `zephyr.srec`
 
 `zephyr.srec` file can be flashed to the target board. Please follow instructions in :ref:`Flashing on qSPI`.
 
-After flashing please Reboot the board and the following output will appear on PMOD1_6A console:
+After flashing please Reboot the board and the following output will appear on PMOD1_3A SER0_UART console:
 
 .. code-block:: console
 
@@ -146,9 +146,9 @@ Flash to eMMC
 
 Please follow the instructions to flash :ref:`hello_world` sample to the target board:
 
-- Confirm that all switches are set according to :ref:`Board Init Config` section.
+- Confirm that all switches are set according to :ref:`rz_g3s_con` section.
 - Turn on the board.
-- Connect to the CA55 and CM33 console (PMOD1_6A) using minicom (:ref:`Connect to console`).
+- Connect to the CA55 and CM33 console (PMOD1_3A SER0_UART) using minicom (:ref:`Linux minicom terminal`).
 - Build Yocto images and flash the loaders to the eMMC (:ref:`Building yocto image`).
 - Select Select eMMC boot mode in SW mode Switch and Reboot.
 
@@ -165,7 +165,7 @@ so in most cases it will have name `zephyr.srec`
 
 `zephyr.srec` file can be flashed to the target board. Please follow instructions in :ref:`Flashing on eMMC`.
 
-After flashing please Reboot the board and the following output will appear on PMOD1_6A console:
+After flashing please Reboot the board and the following output will appear on PMOD1_3A SER0_UART console:
 
 .. code-block:: console
 
