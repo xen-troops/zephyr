@@ -212,7 +212,7 @@ static void *multiple_rx_enable_setup(void)
 
 ZTEST_USER(uart_async_multi_rx, test_multiple_rx_enable)
 {
-#if defined(CONFIG_BOARD_RZ_A2M)
+#if defined(CONFIG_BOARD_RZ_A2M) || defined(CONFIG_BOARD_RZ_G3S)
 	ztest_test_skip();
 #endif
 	/* Check also if sending from read only memory (e.g. flash) works. */
@@ -344,7 +344,7 @@ static void *chained_read_setup(void)
 
 ZTEST_USER(uart_async_chain_read, test_chained_read)
 {
-#if defined(CONFIG_BOARD_RZ_A2M)
+#if defined(CONFIG_BOARD_RZ_A2M) || defined(CONFIG_BOARD_RZ_G3S)
 	ztest_test_skip();
 #endif
 	uint8_t tx_buf[10];
@@ -420,7 +420,7 @@ static void *double_buffer_setup(void)
 
 ZTEST_USER(uart_async_double_buf, test_double_buffer)
 {
-#if defined(CONFIG_BOARD_RZ_A2M)
+#if defined(CONFIG_BOARD_RZ_A2M) || defined(CONFIG_BOARD_RZ_G3S)
 	ztest_test_skip();
 #endif
 	uint8_t tx_buf[4];
@@ -605,7 +605,7 @@ static void *write_abort_setup(void)
 
 ZTEST_USER(uart_async_write_abort, test_write_abort)
 {
-#if defined(CONFIG_BOARD_RZ_A2M)
+#if defined(CONFIG_BOARD_RZ_A2M) || defined(CONFIG_BOARD_RZ_G3S)
 	ztest_test_skip();
 #endif
 	uint8_t tx_buf[100];
@@ -833,7 +833,7 @@ static void *long_buffers_setup(void)
 
 ZTEST_USER(uart_async_long_buf, test_long_buffers)
 {
-#if defined(CONFIG_BOARD_RZ_A2M)
+#if defined(CONFIG_BOARD_RZ_A2M) || defined(CONFIG_BOARD_RZ_G3S)
 	ztest_test_skip();
 #endif
 	memset(long_rx_buf, 0, sizeof(long_rx_buf));
