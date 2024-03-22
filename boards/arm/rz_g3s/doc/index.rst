@@ -28,6 +28,8 @@ of a module board (SOM) and a carrier board. The module board complies with the 
    delivery/yocto_build.rst
    delivery/hello_world_start.rst
    delivery/boot.rst
+   delivery/uboot_int.rst
+   delivery/linux_int.rst
 
 Hardware
 ********
