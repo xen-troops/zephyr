@@ -33,7 +33,7 @@ The top-level meta-layer is `meta-rz-zephyr`, please see README.md file for deta
 Compatibility
 -------------
 
-This Yocto build is based on top of RZ/G3S Board Support Package Version 1.0.0 (`Renesas Board support Package`_)
+This Yocto build is based on top of RZ/G3S Board Support Package Version 1.0.0 (`Linux Start-up Guide for RZ/G3S Board Support Package`_)
 with ``meta-rz-features`` layer provided with Multi-OS Package v2.0.0. Please note that current release is based
 on Multi-OS Package v2.0.0 and do not support Multi-OS-Package v2.0.1.
 
