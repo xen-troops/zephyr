@@ -28,6 +28,20 @@ The top-level meta-layer is `meta-rz-zephyr`, please see README.md file for deta
 
 .. _meta-rz-zephyr: https://gitbud.epam.com/rec-rzzp/meta-zephyr-rz/-/blob/rzg3s_dev/README.md
 
+Compatibility
+-------------
+
+This Yocto build is based on top of RZ/G3S Board Support Package Version 1.0.0 (`Renesas Board support Package`_)
+with ``meta-rz-features`` layer provided with Multi-OS Package v2.0.0. Please note that current release is based
+on Multi-OS Package v2.0.0 and do not support Multi-OS-Package v2.0.1.
+
+Current Yocto repo provides the following changes to the Renesas yocto recipes:
+
+* trusted-firmware-a: Add `PLAT_M33_BOOT_SUPPORT=1` to start CM33 core on boot;
+* rpmsg-sample_0.1: Updates to rpmsg-sample code to work with newer versions of OpenAMP;
+* linux-renesas_5.10: Update kernel CPG driver to enable SCIF and OSTM clocks for Zephyr;
+* u-boot_2021.10: Disable sdhi2 device as it shares scif1 pin used by Cortex-M33 core.
+
 Getting started with Yocto
 --------------------------
 
@@ -241,6 +255,10 @@ Flash to eMMC
 
 Starting Linux on the target board
 ----------------------------------
+
+This step is optional for all Zephyr tests referenced in this document, except for :ref:`rz_g3s_openamp`.
+
+For :ref:`rz_g3s_openamp` this step is mandatory.
 
 To load Linux rootfs microSD card should be used.
 

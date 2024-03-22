@@ -1,3 +1,5 @@
+.. _rz_g3s_openamp:
+
 OpenAMP
 =======
 
