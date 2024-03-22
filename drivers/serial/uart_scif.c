@@ -1132,6 +1132,8 @@ static int uart_scif_async_tx_abort(const struct device *dev)
 	struct uart_scif_data *data = dev->data;
 
 	(void)k_work_cancel_delayable(&data->dma_tx.timeout_work);
+	/* Turn off TX Interrupts to prevent hung in ISR */
+	uart_scif_write_16(dev, SCSCR, uart_scif_read_16(dev, SCSCR) & ~(SCSCR_TIE));
 	return 0;
 }
 
@@ -1233,6 +1235,8 @@ static void dma_tx_callback(const struct device *dev, void *user_data,
 	if (!dma_get_status(data->dma_tx.dma_dev, data->dma_tx.dma_channel, &stat)) {
 		data->dma_tx.counter = data->dma_tx.buffer_length - stat.pending_length;
 	}
+	/* Turn off TX Interrupts to prevent hung in ISR */
+	uart_scif_write_16(uart_dev, SCSCR, uart_scif_read_16(uart_dev, SCSCR) & ~(SCSCR_TIE));
 	scif_async_evt_tx_done(data);
 	K_SPINLOCK(&data->dma_tx.lock) {
 		data->dma_tx.buffer_length = 0;
