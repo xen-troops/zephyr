@@ -33,9 +33,10 @@ You can configure that peripheral in device-tree in the following way:
             status = "okay";
     };
 
+.. _ser1_usage:
+
 SER1 usage
 ``````````
-
 .. image:: ../img/SER1.jpg
    :height: 250px
    :align: center
@@ -53,12 +54,6 @@ device-tree overlay file in the following way:
             pinctrl-names = "default";
             status = "okay";
     };
-
-Limitations:
-````````````
-
-* No DMA support implemented.
-* uart_async_api test should be implemented once UART will support DMA.
 
 UART driver overview
 --------------------
@@ -150,6 +145,111 @@ The **uart_basic_api** test will produce below console output when executed:
 
    ===================================================================
    PROJECT EXECUTION SUCCESSFUL
+
+tests/drivers/uart/uart_async_api
+`````````````````````````````````
+Async api uses DMA for communication.
+To build **uart_async_api** test run command:
+
+.. code-block:: bash
+
+    west build -b rz_g3s -p always tests/drivers/uart/uart_async_api
+
+Before run this test connect pins 1 (RX) and 2 (TX) on SER1 connector. Refer to :ref:`ser1_usage` chapter.
+
+The **uart_async_api** test will produce below console output when executed:
+
+.. code-block:: console
+
+    *** Booting Zephyr OS build v3.5.0-rc2-372-ge216e1e5896c ***
+    Running TESTSUITE uart_async_chain_read
+    ===================================================================
+    START - test_chained_read
+     SKIP - test_chained_read in 0.002 seconds
+    ===================================================================
+    TESTSUITE uart_async_chain_read succeeded
+    Running TESTSUITE uart_async_chain_write
+    ===================================================================
+    START - test_chained_write
+     PASS - test_chained_write in 0.004 seconds
+    ===================================================================
+    TESTSUITE uart_async_chain_write succeeded
+    Running TESTSUITE uart_async_double_buf
+    ===================================================================
+    START - test_double_buffer
+     SKIP - test_double_buffer in 0.002 seconds
+    ===================================================================
+    TESTSUITE uart_async_double_buf succeeded
+    Running TESTSUITE uart_async_long_buf
+    ===================================================================
+    START - test_long_buffers
+     SKIP - test_long_buffers in 0.002 seconds
+    ===================================================================
+    TESTSUITE uart_async_long_buf succeeded
+    Running TESTSUITE uart_async_multi_rx
+    ===================================================================
+    START - test_multiple_rx_enable
+     SKIP - test_multiple_rx_enable in 0.002 seconds
+    ===================================================================
+    TESTSUITE uart_async_multi_rx succeeded
+    Running TESTSUITE uart_async_read_abort
+    ===================================================================
+    START - test_read_abort
+     PASS - test_read_abort in 1.121 seconds
+    ===================================================================
+    TESTSUITE uart_async_read_abort succeeded
+    Running TESTSUITE uart_async_single_read
+    ===================================================================
+    START - test_single_read
+     PASS - test_single_read in 0.354 seconds
+    ===================================================================
+    TESTSUITE uart_async_single_read succeeded
+    Running TESTSUITE uart_async_timeout
+    ===================================================================
+    START - test_forever_timeout
+     PASS - test_forever_timeout in 3.003 seconds
+    ===================================================================
+    TESTSUITE uart_async_timeout succeeded
+    Running TESTSUITE uart_async_write_abort
+    ===================================================================
+    START - test_write_abort
+     SKIP - test_write_abort in 0.002 seconds
+    ===================================================================
+    TESTSUITE uart_async_write_abort succeeded
+
+    ------ TESTSUITE SUMMARY START ------
+
+    SUITE SKIP -   0.00% [uart_async_chain_read]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.002 ss
+     - SKIP - [uart_async_chain_read.test_chained_read] duration = 0.002 seconds
+
+    SUITE PASS - 100.00% [uart_async_chain_write]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.004 s
+     - PASS - [uart_async_chain_write.test_chained_write] duration = 0.004 seconds
+
+    SUITE SKIP -   0.00% [uart_async_double_buf]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.002 ss
+     - SKIP - [uart_async_double_buf.test_double_buffer] duration = 0.002 seconds
+
+    SUITE SKIP -   0.00% [uart_async_long_buf]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.002 secs
+     - SKIP - [uart_async_long_buf.test_long_buffers] duration = 0.002 seconds
+
+    SUITE SKIP -   0.00% [uart_async_multi_rx]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.002 secs
+     - SKIP - [uart_async_multi_rx.test_multiple_rx_enable] duration = 0.002 seconds
+
+    SUITE PASS - 100.00% [uart_async_read_abort]: pass = 1, fail = 0, skip = 0, total = 1 duration = 1.121 ss
+     - PASS - [uart_async_read_abort.test_read_abort] duration = 1.121 seconds
+
+    SUITE PASS - 100.00% [uart_async_single_read]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.354 s
+     - PASS - [uart_async_single_read.test_single_read] duration = 0.354 seconds
+
+    SUITE PASS - 100.00% [uart_async_timeout]: pass = 1, fail = 0, skip = 0, total = 1 duration = 3.003 secos
+     - PASS - [uart_async_timeout.test_forever_timeout] duration = 3.003 seconds
+
+    SUITE SKIP -   0.00% [uart_async_write_abort]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.002 s
+     - SKIP - [uart_async_write_abort.test_write_abort] duration = 0.002 seconds
+
+    ------ TESTSUITE SUMMARY END ------
+
+    ===================================================================
+    PROJECT EXECUTION SUCCESSFUL
 
 .. raw:: latex
 
