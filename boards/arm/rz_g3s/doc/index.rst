@@ -10,6 +10,8 @@ RZ/G3S SMARC Evaluation Board Kit
   .. contents::
      :depth: 5
 
+.. _Linux Start-up Guide for RZ/G3S Board Support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
+
 .. _Overview:
 
 Overview
@@ -25,6 +27,7 @@ of a module board (SOM) and a carrier board. The module board complies with the 
    delivery/getting_source_code.rst
    delivery/yocto_build.rst
    delivery/hello_world_start.rst
+   delivery/boot.rst
 
 Hardware
 ********
@@ -230,9 +233,6 @@ Follow `Linux Start-up Guide for RZ/G3S Board Support Package`_:
 
 * section "4.2.3 Settings" for enabling "SCIF Download mode"
 * section "4.3 Download Flash Writer to RAM" (FlashWriter-smarc-rzg3s.mot)
-
-.. _Linux Start-up Guide for RZ/G3S Board Support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
-
 
 .. _Flashing on eMMC:
 
