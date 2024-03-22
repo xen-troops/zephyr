@@ -346,3 +346,4 @@ Supported Features Details
    pwm/GPT.rst
    pwm/poeg.rst
    dma/dma.rst
+   delivery/west_flash.rst
