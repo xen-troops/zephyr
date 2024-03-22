@@ -3,13 +3,15 @@
 Building yocto image
 ====================
 
+.. _Linux Start-up Guide for RZ/G3S Board Support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
+
 Overview
 --------
 
 RZ/G3S board is designed to start different systems on cores. It uses Yocto as the build system
 to build Linux system and BootLoaders to run Linux on CA55 core.
 
-The provided Yocto layer is an enhancement on top of Reneass FSP build see `Linux BSP guide`_.
+The provided Yocto layer is an enhancement on top of Reneass FSP build see `Linux Start-up Guide for RZ/G3S Board Support Package`_.
 And it will build the following artifacts in the directory `build/tmp/deploy/images/smarc-rzg3s`:
 
 * RZ/G3S Linux kernel: Image-smarc-rzg3s.bin
@@ -57,9 +59,7 @@ Initialize yocto repository:
 .. _repo Install: https://gerrit.googlesource.com/git-repo#install
 
 Before building please install all needed packages, provided in *Section 2.1 Building images*
-in `Renesas Board support Package`_.
-
-.. _Renesas Board support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
+in `Linux Start-up Guide for RZ/G3S Board Support Package`_.
 
 Initializate bitbake environment using command:
 
@@ -87,7 +87,7 @@ Flash loaders to the target board
 
 To Flash bootloaders to the target board please follows this steps:
 
-* Switch the board to SCIF Download mode. See section 4.1.1 of `Linux BSP guide`_;
+* Switch the board to SCIF Download mode. See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_;
 * Connect to the board minicom consoles using minicom (:ref:`Linux minicom terminal`);
 * When the following message appear:
 
@@ -168,7 +168,7 @@ Flash to qSPI
     SpiFlashMemory End Address : H'0014782E
     ===========================================================
 
-* Switch the board to qSPI boot mode. See section 4.1.1 of `Linux BSP guide`_;
+* Switch the board to qSPI boot mode. See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_;
 
 Flash to eMMC
 `````````````
@@ -249,7 +249,7 @@ Flash to eMMC
     EXT_CSD[B3] = 0x08
     >
 
-* Switch the board to eMMC boot mode. See section 4.1.1 of `Linux BSP guide`_;
+* Switch the board to eMMC boot mode. See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_;
 
 .. _Start Linux:
 
@@ -269,10 +269,8 @@ Please plug in micro SD card to your PC and then execute:
     sudo bmaptool copy core-image-minimal-smarc-rzg3s.wic.gz /dev/sda
 
 From `/build/tmp/deploy/images/smarc-rzg3s` folder where `/dev/sda` is the device associated with microSD card.
-See section 3.1 of `Linux BSP guide`_ for details.
+See section 3.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ for details.
 
-Then plug this microSD card to slot on carry board. Schema is provided in Section 5 of `Linux BSP guide`_.
+Then plug this microSD card to slot on carry board. Schema is provided in Section 5 of `Linux Start-up Guide for RZ/G3S Board Support Package`_.
 
 Hit reset.
-
-.. _Linux BSP guide: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100

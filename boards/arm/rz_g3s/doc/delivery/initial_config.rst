@@ -22,7 +22,7 @@ The connection diagram of RZ/G3S-EVKIT and PC is shown below:
 
 .. figure:: ../img/rzg3s_ser0.jpg
    :align: center
-   :height: 250px
+   :height: 300px
 
 * 4-pin connector SER1_UART (1.8V) - shell be connected to PC using UART-USB adapter, like MCS-73LV.
   It's used as console for SW running on Cortex-M33_FPU System Core.

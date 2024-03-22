@@ -171,3 +171,7 @@ After flashing please Reboot the board and the following output will appear on P
 
    *** Booting Zephyr OS build v3.5.0-rc2-370-g5f6ce67b2d9f ***
    Hello World! rz_g3s
+
+.. raw:: latex
+
+    \newpage

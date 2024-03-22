@@ -1,11 +1,9 @@
 Getting Source Code
 ===================
 
-Follow Zephyr Getting Started Guide:
-
-https://docs.zephyrproject.org/latest/develop/getting_started/index.html
-
+Follow Zephyr Getting Started Guide: :ref:`getting_started`,
 but change the one step from “Get the Zephyr source code”:
+
 Instead of using this command west init *˜/zephyrproject* use the next one from your working directory:
 
 .. code-block:: bash
