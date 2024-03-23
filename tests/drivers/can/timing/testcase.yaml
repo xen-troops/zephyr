@@ -5,3 +5,11 @@ tests:
       - can
     depends_on: can
     filter: dt_chosen_enabled("zephyr,canbus")
+  drivers.can.timing.rz_g3s:
+    tags:
+      - drivers
+      - can
+    depends_on: can
+    extra_args: SNIPPET="rz-g3s-canfd0-test"
+    platform_allow:
+      - rz_g3s
