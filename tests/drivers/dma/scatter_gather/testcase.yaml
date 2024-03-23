@@ -9,6 +9,7 @@ tests:
       - frdm_k64f
       - mimxrt1060_evk
       - lpcxpresso55s36
+      - rz_g3s
     filter: dt_alias_exists("dma0")
     integration_platforms:
       - intel_adsp_cavs25
