@@ -7,10 +7,18 @@ toolchain:
   - gnuarmemb
 supported:
   - clock_control
+  - pinctrl
   - uart
   - spi
+  - gpio
   - watchdog
   - adc
+  - counter
+  - i2c
+  - can
+  - pwm
+  - dma
+  - input
 testing:
   default: true
   ignore_tags:
