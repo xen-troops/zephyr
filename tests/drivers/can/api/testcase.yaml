@@ -18,3 +18,11 @@ tests:
       - esp32s2_saola
       - esp32s3_devkitm
       - xiao_esp32s3
+  drivers.can.api.rz_g3s:
+    tags:
+      - drivers
+      - can
+    depends_on: can
+    extra_args: SNIPPET="rz-g3s-canfd0-test"
+    platform_allow:
+      - rz_g3s
