@@ -1,5 +1,5 @@
 tests:
-  drivers.pwm:
+  drivers.pwm_ab:
     tags:
       - drivers
       - pwm
