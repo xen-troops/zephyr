@@ -1,0 +1,15 @@
+/ {
+	chosen {
+		zephyr,i2c = &i2c0;
+	};
+};
+
+&i2c0 {
+	dmas = <&dma0 6 DMA_RS_I2C_INTRIIC_RI0 0>, <&dma0 5 DMA_RS_I2C_INTRIIC_TI0 0>;
+	dma-names = "rx", "tx";
+};
+
+&dma0 {
+	status = "okay";
+	dma-buf-addr-alignment = <1>;
+};
