@@ -6,5 +6,8 @@ tests:
     platform_allow:
       - rz_a2m
       - rz_g3s
-    tags: input
+    tags:
+      - drivers
+      - button
     depends_on: pinctrl
+    harness: button
