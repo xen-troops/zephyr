@@ -2238,7 +2238,7 @@ static int dma_rza2_init(const struct device *dev)
 #define IRQ_CONFIGURE(n, inst)                                                                     \
 	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, n, irq), DT_INST_IRQ_BY_IDX(inst, n, priority),       \
 		    dma_rza2_##n##_##inst##_isr, DEVICE_DT_INST_GET(inst),                         \
-		    COND_CODE_1(DT_IRQ_HAS_CELL_AT_NAME(DT_DRV_INST(inst), name, flags),           \
+		    COND_CODE_1(DT_IRQ_HAS_CELL_AT_IDX(DT_DRV_INST(inst), n, flags),               \
 				(DT_INST_IRQ_BY_IDX(inst, n, flags)), (0)));                       \
 	irq_enable(DT_INST_IRQ_BY_IDX(inst, n, irq));
 
