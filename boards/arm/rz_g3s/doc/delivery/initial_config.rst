@@ -24,12 +24,30 @@ The connection diagram of RZ/G3S-EVKIT and PC is shown below:
    :align: center
    :height: 300px
 
+The connection schema is the following:
+
+* USB->SERIAL RX -> PMOD1_3A PIN2 (PMOD1_SER0_TX)
+* USB->SERIAL TX -> PMOD1_3A PIN3 (PMOD1_SER0_RX)
+* USB->SERIAL GND -> PMOD1_3A PIN5 (GND)
+
+Link: `YP-05 adapter`_.
+
+.. _YP-05 adapter: https://www.ebay.com/itm/144718688888
+
 * 4-pin connector SER1_UART (1.8V) - shell be connected to PC using UART-USB adapter, like MCS-73LV.
   It's used as console for SW running on Cortex-M33_FPU System Core.
 
 .. image:: ../img/SER1.jpg
    :height: 250px
    :align: center
+
+* USB->SERIAL RX -> SER1_UART PIN1
+* USB->SERIAL TX -> SER1_UART PIN2
+* USB->SERIAL GND -> SER1_UART PIN4
+
+Link: `MCS-73LV adapter`_.
+
+.. _MCS-73LV adapter: https://www.amazon.com/Level-Serial-Converter-Adapter-Module/dp/B0CDHHGGCV
 
 * The G3S SMARC Module JTAG interface - shell be connected to PC through SEGGER JLink probe
 
