@@ -37,6 +37,10 @@ The connection diagram of RZ/G3S-EVKIT and PC is shown below:
    :height: 250px
    :align: center
 
+Link to the SEGGER JLink software: `JLink istallation page`_.
+
+.. _JLink istallation page: https://www.segger.com/downloads/jlink/
+
 .. _Linux minicom terminal:
 
 Linux minicom terminal
@@ -54,13 +58,23 @@ For example:
 
 * connect micro-USB SER3_UART to PC - the **/dev/ttyUSB0** serial device will be created (Cortex-A55)
 * connect PMOD1_3A SER0_UART to PC - the **/dev/ttyUSB1** serial device will be created (Cortex-M33)
+* connect SER1_UART to PC - the **/dev/ttyUSB2** serial device will be created (Cortex-M33_FPU)
 
-Run below two commands in different terminal windows to access RZ G3S Cortex-A55 and Cortex-M33 console:
+Run below three commands in different terminal windows to access RZ G3S Cortex-A55 and Cortex-M33 console:
 
 .. code-block:: bash
 
     sudo minicom -D /dev/ttyUSB0
     sudo minicom -D /dev/ttyUSB1
+    sudo minicom -D /dev/ttyUSB2
+
+Minicom configuration should be the following:
+
+* Bps/Par/Bits: 115200 8N1
+* Hardware Flow Control: No
+* Software Flow Control: No
+
+.. _rz_g3s_hw_conf:
 
 RZ/G3S-EVKIT board default HW configuration
 -------------------------------------------
@@ -85,7 +99,12 @@ The RZ SMARC Carrier II:
 * DIP switch **SW_M2_DIS** (M.2 Card Control Signals): **1:ON 2:ON 3:ON 4:ON**
 * DIP switch **SW_PCIE_MUX**: **1:ON 2:OFF 3:OFF 4:ON**
 
-RZ/G3S-EVKIT boot sequence
---------------------------
+RZ/G3S-EVKIT power on
+---------------------
 
-TODO
+* Validate DIP switch settings according to the :ref:`rz_g3s_hw_conf`
+* Attach all external Hardware and connect to the console according to the :ref:`rz_g3s_con`
+* Do the preparations according to the Section 4.2 Startup Procedure of `Linux Start-up Guide for RZ/G3S Board Support Package`_
+* Turn on the board
+
+.. _Linux Start-up Guide for RZ/G3S Board Support Package: https://www.renesas.com/us/en/document/mas/linux-start-guide-rzg3s-board-support-package-v100
