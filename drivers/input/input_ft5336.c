@@ -75,7 +75,7 @@ struct ft5336_config {
 	struct gpio_dt_spec reset_gpio;
 	int tag;
 #ifdef CONFIG_INPUT_FT5336_INTERRUPT
-#ifdef CONFIG_FT5335_GPIO_INTERRUPT
+#ifdef CONFIG_INPUT_FT5335_GPIO_INTERRUPT
 	/** Interrupt GPIO information. */
 	struct gpio_dt_spec int_gpio;
 #else
