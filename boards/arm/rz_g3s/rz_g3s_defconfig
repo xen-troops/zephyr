@@ -32,3 +32,8 @@ CONFIG_GPIO=y
 
 CONFIG_MULTI_LEVEL_INTERRUPTS=y
 CONFIG_DYNAMIC_INTERRUPTS=y
+
+#this is required to enable debug with xSPI boot when Zephyr already booted by TF-A
+#and MPU configured which prevent running debug code with exception
+CONFIG_INIT_ARCH_HW_AT_BOOT=y
+CONFIG_PLATFORM_SPECIFIC_INIT=n
