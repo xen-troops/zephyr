@@ -28,6 +28,9 @@ LOG_MODULE_REGISTER(riic);
 #define NUM_SLAVES		3
 #define NO_ACTIVE_SLAVE		(-1)
 
+#define DMA_READ_THRESHOLD 6
+#define DMA_READ_MANUAL 2
+
 #if DT_HAS_COMPAT_STATUS_OKAY(renesas_riic)
 #define DT_DRV_COMPAT renesas_riic
 #else
@@ -398,6 +401,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 	struct dma_block_config dma_blk = { 0 };
 	bool is_rie_on;
 	int error;
+	uint32_t start_manual = 0;
 
 	if (msg->len == 0) {
 		return -EIO;
@@ -408,13 +412,11 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		return -EIO;
 	}
 
-	/* TODO: disable RDRFS for whole driver and make the appropriate changes
-	 * to the master and slave API.
-	 */
-	/* Disable RDRFS to automatically send ACK/NACK after each byte */
-	riic_clear_set_bit(dev, RIIC_MR3, RIIC_MR3_RDRFS, 0);
-
-	if (msg->len > 1) {
+	/* Send 2 last bytes in sync mode. It needs to set NACK after receiving last byte */
+	if (msg->len > DMA_READ_THRESHOLD) {
+		/* Disable RDRFS to automatically send ACK/NACK after each byte */
+		riic_clear_set_bit(dev, RIIC_MR3, RIIC_MR3_RDRFS, 0);
+		start_manual = msg->len - DMA_READ_MANUAL;
 		/* Use DMA only for transfers bigger than 1 byte */
 		dma_cfg.channel_direction = PERIPHERAL_TO_MEMORY;
 		dma_cfg.source_data_size = 1;
@@ -426,7 +428,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		dma_cfg.dma_slot = cfg->read_dma_slot;
 
 		/* Last byte will received below in sync mode */
-		dma_blk.block_size = msg->len - 1;
+		dma_blk.block_size = msg->len - DMA_READ_MANUAL;
 		dma_blk.dest_address = (uint32_t)msg->buf;
 		dma_blk.dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
 		dma_blk.source_address = *(mm_reg_t *)DEVICE_MMIO_ROM_PTR(dev) + RIIC_DRR;
@@ -470,27 +472,36 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 			riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_RIE, 0);
 			riic_wait_for_clear(dev, RIIC_IER, RIIC_IER_RIE);
 		}
+		/* Restore RDRFS */
+		riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_RDRFS);
+		riic_wait_for_set(dev, RIIC_MR3, RIIC_MR3_RDRFS);
 	} else {
+		if (msg->len == 1) {
+			riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
+		}
+
 		/* Dummy read for clearing RDRF flag. This start data reading transaction */
 		riic_read8(dev, RIIC_DRR);
 	}
 
-	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
+	for (int i = start_manual; i < msg->len; i++) {
+		if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
+			return -EIO;
+		}
+		if (msg->len == i + 2) {
+			riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
+		}
+		if (msg->len == i + 1) {
+			riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
+			/* Set NACK transmitting after last byte */
+			riic_transmit_nack(dev);
+		} else {
+			riic_transmit_ack(dev);
+		}
 
-	/* Set NACK transmitting after last byte */
-	riic_transmit_nack(dev);
-
-	/* Receive last byte */
-	if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
-		return -EIO;
+		/* Receive next byte */
+		msg->buf[i] = riic_read8(dev, RIIC_DRR) & 0xff;
 	}
-	msg->buf[msg->len - 1] = riic_read8(dev, RIIC_DRR) & 0xff;
-
-	/* Terminate transaction */
-	riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
-
-	/* Restore RDRFS */
-	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_RDRFS);
 
 	return 0;
 }
@@ -596,7 +607,7 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 		}
 	}
 #else /* CONFIG_I2C_RIIC_DMA_DRIVEN */
-	uint32_t i, status;
+	uint32_t i;
 
 	if ((msg->flags & I2C_MSG_RW_MASK) == I2C_MSG_READ) {
 		/* Master read operation in sync mode */
@@ -614,7 +625,6 @@ static int riic_transfer_msg(const struct device *dev, struct i2c_msg *msg)
 
 		for (i = 0; i < msg->len; i++) {
 			if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
-				status = riic_read8(dev, RIIC_SR2);
 				return -EIO;
 			}
 			if (msg->len == i + 2) {
@@ -738,6 +748,9 @@ static int riic_transfer(const struct device *dev,
 	} while (num_msgs);
 	data->master_active = 0;
 
+	if (riic_read8(dev, RIIC_CR2) & RIIC_CR2_BBSY) {
+		riic_finish(dev);
+	}
 	/* Complete without error */
 exit:
 	k_mutex_unlock(&data->i2c_lock_mtx);
