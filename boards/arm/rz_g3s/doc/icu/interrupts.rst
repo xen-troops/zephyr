@@ -127,10 +127,11 @@ The **irq_keys** sample allows to test both NMI and IRQ pin Interrupts on RZ/G3S
 
 * GPIO P0_3 pin is configured as IRQ1 and routed to the USER_SW3 button (GPIO7). IRQ is tested by pressing button.
 
-.. warning:: !!Caution!!
+.. warning:: !!Do with Caution!!
 
-* NMI pin connected to PCIE_WAKE# signal which is routed to the B11 pin of the PCIE_SLOT connector.
-  NMI pin IRQ can be tested by grounding B11 pin of the PCIE_SLOT connector.
+    NMI pin connected to PCIE_WAKE# signal which is routed to the B11 pin of the PCIE_SLOT connector.
+    NMI pin IRQ can be tested by grounding B11 pin of the PCIE_SLOT connector.
+    Caution: pin B10 is power line don't touch it.
 
 The **irq_keys** DT overlay (samples/drivers/irq_keys/boards/rz_g3s.overlay) for RZ/G3S SMARC Evaluation Board Kit,
 which shows example DT configuration is below:
@@ -176,7 +177,9 @@ To build **irq_keys** test run command:
 
     west build -b rz_g3s -p always samples/drivers/irq_keys/
 
-The **irq_keys** test will produce below console output when executed:
+The **irq_keys** test will produce below console output when executed,
+where lines marked as **"irq line 1536"** corresponds to USER_SW3 and
+lines marked as **"irq line 512"** corresponds to NMI IRQ:
 
 .. code-block:: console
 

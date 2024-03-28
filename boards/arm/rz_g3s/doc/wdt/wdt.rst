@@ -84,7 +84,7 @@ Use below command to build WDT **wdt_basic_api** test application:
 
 .. code-block:: bash
 
-    west build -b rz_g3s -p tests/drivers/watchdog/wdt_basic_api
+    west build -b rz_g3s -p always tests/drivers/watchdog/wdt_basic_api
 
 It runs several tests: running WDT without a callback and waiting for the SoC to reset,
 running WDT with a callback and waiting for it to fire, setting an invalid timeout
