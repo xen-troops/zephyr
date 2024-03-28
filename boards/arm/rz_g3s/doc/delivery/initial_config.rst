@@ -56,6 +56,7 @@ Link: `MCS-73LV adapter`_.
    :align: center
 
 Link to the SEGGER JLink software: `JLink istallation page`_.
+Please install JLink software version V7.96 or later.
 
 .. _JLink istallation page: https://www.segger.com/downloads/jlink/
 
