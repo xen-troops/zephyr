@@ -13,7 +13,7 @@ sys.path.insert(0, "_extensions")
 project = 'Renesas RZ G3S Cortex-M33 Zephyr on SMARC Evaluation Board Kit'
 copyright = 'Copyright (c) 2024 EPAM Systems'
 author = 'EPAM'
-release = 'v0.1'
+release = 'v1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
