@@ -79,6 +79,10 @@ After this, the SoC should reset.
 tests/drivers/watchdog/wdt_basic_api
 ````````````````````````````````````
 
+.. note::
+
+    This test is not working from JLink debugger (west debug) and has to be run by flashing on xSPI/eMMC.
+
 Zephyr RZ/G3S WDT driver can be tested by using **wdt_basic_api** test application.
 Use below command to build WDT **wdt_basic_api** test application:
 
@@ -86,9 +90,11 @@ Use below command to build WDT **wdt_basic_api** test application:
 
     west build -b rz_g3s -p always tests/drivers/watchdog/wdt_basic_api
 
-It runs several tests: running WDT without a callback and waiting for the SoC to reset,
-running WDT with a callback and waiting for it to fire, setting an invalid timeout
-and waiting for the WDT API to generate an error.
+It runs several tests: running WDT without a callback and waiting for the Cortex-M33 to reset,
+running WDT with a callback and waiting for it to fire and Cortex-M33 to reset,
+setting an invalid timeout and waiting for the WDT API to generate an error.
+
+Only Cortex-M33 System Core will be reset during this test.
 
 The **wdt_basic_api** will application will produce below console output when executed:
 
