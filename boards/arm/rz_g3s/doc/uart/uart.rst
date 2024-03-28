@@ -17,8 +17,14 @@ There are 2 UART ports supported from Zephyr on RZ/G3S SMARC Evaluation Board Ki
 * SER0 from PMOD1_3A which is currently used to access Console of M33 cores;
 * SER1 from SER1_UART which can be use as M33_FPU console.
 
+.. _ser0_usage:
+
 SER0 usage
 ``````````
+
+.. figure:: ../img/rzg3s_ser0.jpg
+   :align: center
+   :height: 300px
 
 SER0 can be used with USB/UART adapter which support 3.3V level.
 SER0 connector corresponds to SCIF ch1 peripheral on the board.
@@ -155,7 +161,11 @@ To build **uart_async_api** test run command:
 
     west build -b rz_g3s -p always tests/drivers/uart/uart_async_api
 
-Before run this test connect pins 1 (RX) and 2 (TX) on SER1 connector. Refer to :ref:`ser1_usage` chapter.
+Before run this test on Cortex-M33 connect pins 1 (RX) and 2 (TX) on SER1 connector.
+Refer to :ref:`ser1_usage` chapter.
+
+Before run this test on Cortex-M33 with FPU connect PMOD pin 2 (RX) PMOD pin 3 (TX) on SER0 connector.
+Refer to :ref:`ser0_usage` chapter.
 
 The **uart_async_api** test will produce below console output when executed:
 
