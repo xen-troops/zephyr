@@ -21,5 +21,5 @@ add_custom_target(doc
 )
 
 set_property(GLOBAL APPEND PROPERTY extra_post_build_commands
-    COMMAND ${CMAKE_OBJCOPY} -O srec --srec-forceS3 ${ZEPHYR_BINARY_DIR}/${KERNEL_ELF_NAME} ${ZEPHYR_BINARY_DIR}/${KERNEL_SREC_NAME}
+    COMMAND ${CMAKE_OBJCOPY} -I binary -O srec --srec-forceS --adjust-vma 0x23000 ${ZEPHYR_BINARY_DIR}/${KERNEL_NAME}.bin ${ZEPHYR_BINARY_DIR}/${KERNEL_SREC_NAME}
 )
