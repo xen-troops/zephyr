@@ -1,0 +1,27 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		pwm-0 = &gpt32e0_s;
+	};
+};
+
+&gpt32e0_s {
+	pinctrl-0 = <&gpt0_pins>;
+	pinctrl-names = "default";
+	divider = <16>;
+	status = "okay";
+};
+
+&pinctrl {
+	/omit-if-no-ref/ gpt0_pins: gpt0 {
+		gpt0-pinmux {
+			pinmux = <RZG3S_PINMUX(PORT13, 0, 2)>, /* GTIOC0A */
+				 <RZG3S_PINMUX(PORT13, 1, 2)>; /* GTIOC0B */
+		};
+	};
+};
