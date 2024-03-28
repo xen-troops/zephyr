@@ -265,6 +265,8 @@ class JLinkBinaryRunner(ZephyrBinaryRunner):
             if command == 'debug':
                 client_cmd += ['-ex', 'monitor halt',
                                '-ex', 'monitor reset',
+                               '-ex', 'shell sleep 1',
+                               '-ex', 'monitor halt',
                                '-ex', 'load']
                 if self.reset:
                     client_cmd += ['-ex', 'monitor reset']
