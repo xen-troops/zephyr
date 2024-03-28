@@ -206,7 +206,7 @@ static int test_wdt_no_callback(void)
 	}
 
 	m_cfg_wdt0.callback = NULL;
-	m_cfg_wdt0.flags = WDT_FLAG_RESET_SOC;
+	m_cfg_wdt0.flags = WDT_FLAG_RESET_CPU_CORE;
 	m_cfg_wdt0.window.max = WDT_TEST_MAX_WINDOW;
 	err = wdt_install_timeout(wdt, &m_cfg_wdt0);
 	if (err < 0) {
@@ -251,7 +251,7 @@ static int test_wdt_callback_1(void)
 	}
 
 	m_testvalue = 0U;
-	m_cfg_wdt0.flags = WDT_FLAG_RESET_SOC;
+	m_cfg_wdt0.flags = WDT_FLAG_RESET_CPU_CORE;
 	m_cfg_wdt0.callback = wdt_int_cb0;
 	m_cfg_wdt0.window.max = WDT_TEST_MAX_WINDOW;
 	err = wdt_install_timeout(wdt, &m_cfg_wdt0);
@@ -273,7 +273,6 @@ static int test_wdt_callback_1(void)
 	}
 
 	TC_PRINT("Waiting to restart MCU\n");
-	m_testvalue = 0U;
 	m_state = WDT_TEST_STATE_CHECK_RESET;
 	while (1) {
 		k_yield();
@@ -308,7 +307,7 @@ static int test_wdt_callback_2(void)
 
 	m_testvalue = 0U;
 	m_cfg_wdt0.callback = wdt_int_cb0;
-	m_cfg_wdt0.flags = WDT_FLAG_RESET_SOC;
+	m_cfg_wdt0.flags = WDT_FLAG_RESET_CPU_CORE;
 	m_cfg_wdt0.window.max = WDT_TEST_MAX_WINDOW;
 	err = wdt_install_timeout(wdt, &m_cfg_wdt0);
 
@@ -318,7 +317,7 @@ static int test_wdt_callback_2(void)
 	}
 
 	m_cfg_wdt1.callback = wdt_int_cb1;
-	m_cfg_wdt1.flags = WDT_FLAG_RESET_SOC;
+	m_cfg_wdt1.flags = WDT_FLAG_RESET_CPU_CORE;
 	m_cfg_wdt1.window.max = WDT_TEST_MAX_WINDOW;
 	err = wdt_install_timeout(wdt, &m_cfg_wdt1);
 	if (err < 0) {
@@ -356,7 +355,7 @@ static int test_wdt_bad_window_max(void)
 	TC_PRINT("Testcase: %s\n", __func__);
 
 	m_cfg_wdt0.callback = NULL;
-	m_cfg_wdt0.flags = WDT_FLAG_RESET_SOC;
+	m_cfg_wdt0.flags = WDT_FLAG_RESET_CPU_CORE;
 	m_cfg_wdt0.window.max = 0U;
 	err = wdt_install_timeout(wdt, &m_cfg_wdt0);
 	if (err == -EINVAL) {
