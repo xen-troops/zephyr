@@ -177,7 +177,53 @@ After the test run the following signal schema should appear on Logic Analyzer s
 Where Ch2 is GPIO controlled pin and CH0 is PWM output channel. As can be seen - there are 2 interrupts when control pin goes low:
 
 * when GPIO is configured;
-* when Control PIN toggles low then PWM timer stops and then restores after 1ms.
+* when Control PIN toggles low then PWM timer stops and then restores after 1s.
+
+To perform **poeg_api** test from Cortex-M33_FPU core the following command should be executed:
+
+.. code-block:: bash
+
+    west build -p always -b rz_g3s_fpu tests/drivers/pwm/poeg_api
+
+**poeg_api** test can be found in the Zephyr source code on the following
+path:
+
+.. code-block:: bash
+
+    ./tests/drivers/pwm/poeg_api/
+
+To perform the test please use Logic Analyzer or Oscilloscope to connect to the
+following pins:
+
+* connect PMOD1_3A pin 7 (GPT ch0) and PMOD0_2A pin 8
+* connect analyzer channel2 to PMOD0_2A pin 8
+* connect analyzer channel1 to PMOD1_6A pin 7
+* connect analyzer GND to PMOD1_6A pin 5
+
+.. code-block:: console
+
+    *** Booting Zephyr OS build v3.5.0-rc2-414-g37387d0cc89b ***
+    Running TESTSUITE poeg_basic
+    ===================================================================
+    START - test_poeg_trigger
+    Got POEG status 1
+    [PWM]: 0, [period]: 2000000, [pulse]: 1000000
+    Got POEG status 1
+     PASS - test_poeg_trigger in 4.007 seconds
+    ===================================================================
+    TESTSUITE poeg_basic succeeded
+
+    ------ TESTSUITE SUMMARY START ------
+
+    SUITE PASS - 100.00% [poeg_basic]: pass = 1, fail = 0, skip = 0, total = 1 duration = 4.007 secs
+     - PASS - [poeg_basic.test_poeg_trigger] duration = 4.007 seconds
+
+    ------ TESTSUITE SUMMARY END ------
+
+After the test run the following signal schema should appear on Logic Analyzer sample:
+
+.. image:: ../img/poeg_api.jpg
+   :align: center
 
 tests/drivers/pwm/pwm_ab
 `````````````````````````
