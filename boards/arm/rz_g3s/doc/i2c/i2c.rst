@@ -34,6 +34,12 @@ I2C testing
 samples/sensor/bme280
 `````````````````````
 
+BME280 sensor (or any I2C device) can be connected to the PMOD1_6A connector as shown on picture:
+
+.. image:: ../img/i2c_rzg3s.jpg
+   :height: 350px
+   :align: center
+
 Zephyr RZ/G3S I2C driver can be tested by using **bme280** sample application with BME280 sensor.
 To build **bme280** test run command:
 
