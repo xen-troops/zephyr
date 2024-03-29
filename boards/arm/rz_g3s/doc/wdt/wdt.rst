@@ -82,6 +82,9 @@ tests/drivers/watchdog/wdt_basic_api
 .. note::
 
     This test is not working from JLink debugger (west debug) and has to be run by flashing on xSPI/eMMC.
+    This is because test code stores some data in the memory and expects it no to be corrupted after reset.
+    In case of running WDT test from JLink debugger system will be rebooted by JLink which causes Cortex-A55
+    to start and TF-A to reinitialize memory which leads to test data corruption.
 
 Zephyr RZ/G3S WDT driver can be tested by using **wdt_basic_api** test application.
 Use below command to build WDT **wdt_basic_api** test application:
