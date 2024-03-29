@@ -81,8 +81,9 @@ struct uart_scif_cfg {
 	const struct reset_dt_spec reset;
 	const struct scif_params *params;
 	uint32_t type;
-	bool usart_mode;
-	bool external_clock;
+	bool usart_mode: 1;
+	bool external_clock: 1;
+	bool loopback_en: 1;
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	void (*irq_config_func)(const struct device *dev);
 #endif
@@ -459,6 +460,9 @@ static int uart_scif_configure(const struct device *dev, const struct uart_confi
 	reg_val = uart_scif_read_16(dev, SCFCR);
 	reg_val &= ~(SCFCR_RTRG1 | SCFCR_RTRG0 | SCFCR_TTRG1 | SCFCR_TTRG0 |
 		     SCFCR_MCE | SCFCR_TFRST | SCFCR_RFRST);
+	if (config->loopback_en) {
+		reg_val |= SCFCR_LOOP;
+	}
 	uart_scif_write_16(dev, SCFCR, reg_val);
 
 	/* Enable Transmit & Receive + disable Interrupts */
@@ -1329,6 +1333,7 @@ static const struct uart_driver_api uart_scif_driver_api = {
 		.params = &port_params[soc_type],					\
 		.usart_mode = DT_INST_PROP(n, usart_mode),				\
 		.external_clock = DT_INST_PROP(n, external_clock),			\
+		.loopback_en = DT_INST_PROP_OR(n, renesas_loopback, false),             \
 		.type = soc_type,							\
 		SCIF_RESET(n)								\
 		IRQ_FUNC_INIT								\

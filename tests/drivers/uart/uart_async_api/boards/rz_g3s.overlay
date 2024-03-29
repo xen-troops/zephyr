@@ -11,6 +11,7 @@
 	pinctrl-0 = <&scif3_pins>;
 	pinctrl-names = "default";
 	status = "okay";
+	renesas,loopback;
 };
 
 &dma0 {
