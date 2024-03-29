@@ -153,7 +153,7 @@ Please use the following **srec** file generated on build:
 
 .. code-block:: bash
 
-   <build_dir>/zephyr/openamp_rsc_table_rzg3.srec
+   <build_dir>/zephyr/zephyr_openamp_rsc_table.srec
 
 Linux BSP build preparation
 ```````````````````````````
