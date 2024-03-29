@@ -42,3 +42,8 @@ properties:
     description:
       This parameter actual only in Clock Synchronous mode. Use external
       source as clock
+
+  renesas,loopback:
+    type: boolean
+    description:
+      Enable test loopback mode
