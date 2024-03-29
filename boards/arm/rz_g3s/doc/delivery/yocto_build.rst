@@ -142,7 +142,7 @@ Flash to qSPI
 
 * use XLS2 command to upload fip image:
 
-.. code-block console
+.. code-block:: console
 
     >XLS2
     ===== Qspi writing of RZ/G3 Board Command =============
@@ -158,7 +158,7 @@ Flash to qSPI
 * upload fip-smarc-rzg3s.srec from minicom
 * after successful download the following output will appear:
 
-.. code-block console
+.. code-block:: bash
 
     Erase SPI Flash memory...
     Erase Completed
