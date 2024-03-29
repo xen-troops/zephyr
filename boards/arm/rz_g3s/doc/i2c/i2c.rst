@@ -28,6 +28,15 @@ The RZ G3S I2C driver code can be found at:
 
     drivers/i2c/i2c_riic.c
 
+Current implementation of I2C driver supports DMA transfer. Currently DMA used if amount of
+transferred bytes more then 6 for read and more then 1 for write.
+
+DMA transfer capability in RZ G3C I2C driver below Kconfig options have to be enabled:
+
+.. code-block:: text
+
+    CONFIG_I2C_RIIC_DMA_DRIVEN=y
+
 I2C testing
 -----------
 
@@ -86,6 +95,14 @@ Console output:
     temp: 27.230000; press: 98.496042; humidity: 98.838867
     temp: 27.340000; press: 98.484203; humidity: 98.780273
     temp: 27.420000; press: 98.461601; humidity: 98.681640
+
+To build **bme280** test run command with DMA support:
+
+.. code-block:: bash
+
+    west build -b rz_g3s -p always samples/sensor/bme280 -S rz-g3s-i2c-dma
+
+Console output looks the same as above.
 
 .. raw:: latex
 
