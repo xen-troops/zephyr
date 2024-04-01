@@ -154,18 +154,12 @@ The **uart_basic_api** test will produce below console output when executed:
 
 tests/drivers/uart/uart_async_api
 `````````````````````````````````
-Async api uses DMA for communication.
+Async api uses DMA for communication. This test is using SCIF loopback test mode to run the **uart_async_api** test.
 To build **uart_async_api** test run command:
 
 .. code-block:: bash
 
     west build -b rz_g3s -p always tests/drivers/uart/uart_async_api
-
-Before run this test on Cortex-M33 connect pins 1 (RX) and 2 (TX) on SER1 connector.
-Refer to :ref:`ser1_usage` chapter.
-
-Before run this test on Cortex-M33 with FPU connect PMOD pin 2 (RX) PMOD pin 3 (TX) on SER0 connector.
-Refer to :ref:`ser0_usage` chapter.
 
 The **uart_async_api** test will produce below console output when executed:
 
