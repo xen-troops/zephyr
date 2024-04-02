@@ -110,7 +110,7 @@ The RZ SMARC Carrier II:
 
 * DIP switch **SW_MODE** (Boot Mode): **1:ON 2:OFF 3:OFF**. Module eMMC flash E.g. eMMC
 * DIP switch **SW_MODE** (Power): **4:ON** (15V, 2A, 30W, VBUS_SEL=3)
-* DIP switch **SW_OPT_MUX**: **1:ON 2:ON 3:OFF 4:ON**
+* DIP switch **SW_OPT_MUX**: **1:OFF 2:ON 3:OFF 4:ON**
 * DIP switch **SW_GPIO_CAN_PMOD** (CAN Standby): **(2-3, 5-6)**
 * JP **PMOD_PWR_SEL** (PMOD Power):  should be configured to supply 3.3V
 * DIP switch **SW_PMOD0_PWR_SLP** (PMOD Power/Sleep Control): **(2-3, 5-6)**
