@@ -131,6 +131,11 @@ following pins:
 * connect analyzer channel1 to PMOD0_2A pin 7
 * connect analyzer GND to PMOD1_6A pin 5
 
+.. note::
+    Connection schema is different when the test is running on Cortex-M33_FPU core
+    please connect logic analyzer channel2 to PMOD1_6A pin 7 instead of
+    PMOD0_2A pin 7.
+
 The below image shows the connection schema:
 
 .. image:: ../img/poeg_connection.jpg
