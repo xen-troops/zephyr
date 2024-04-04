@@ -282,6 +282,12 @@ Please plug in micro SD card to your PC and then execute:
 From `/build/tmp/deploy/images/smarc-rzg3s` folder where `/dev/sda` is the device associated with microSD card.
 See section 3.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ for details.
 
-Then plug this microSD card to slot on carry board. Schema is provided in Section 5 of `Linux Start-up Guide for RZ/G3S Board Support Package`_.
+Then plug this microSD card to slot on carry board as shown on the following schema:
+
+.. figure:: ../img/sd_connection.jpg
+   :align: center
+   :height: 300px
+
+For details pleas see Section 5 of `Linux Start-up Guide for RZ/G3S Board Support Package`_.
 
 Hit reset.
