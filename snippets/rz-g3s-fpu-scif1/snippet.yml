@@ -1,0 +1,5 @@
+name: rz-g3s-fpu-scif1
+boards:
+  rz_g3s_fpu:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: rz-g3s-fpu-scif1.overlay
