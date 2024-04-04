@@ -118,6 +118,39 @@ The RZ SMARC Carrier II:
 * DIP switch **SW_M2_DIS** (M.2 Card Control Signals): **1:ON 2:ON 3:ON 4:ON**
 * DIP switch **SW_PCIE_MUX**: **1:ON 2:OFF 3:OFF 4:ON**
 
+RZ/G3S-EVKIT board How to set boot mode
+---------------------------------------
+
+Pins no. 1 to no. 3 of **SW_MODE** are used to control the boot mode of the RZ/G3S
+Boot mode should be selected as follow:
+
+.. _SCIF boot:
+
+SCIF download mode
+``````````````````
+
+.. figure:: ../img/scif_mode.png
+   :align: center
+   :height: 125px
+
+.. _SPI boot:
+
+SPI boot mode
+`````````````
+
+.. figure:: ../img/spi_mode.png
+   :align: center
+   :height: 125px
+
+.. _eMMC boot:
+
+eMMC boot mode
+``````````````
+
+.. figure:: ../img/emmc_mode.png
+   :align: center
+   :height: 125px
+
 RZ/G3S-EVKIT power on
 ---------------------
 
