@@ -347,3 +347,4 @@ Supported Features Details
    pwm/poeg.rst
    dma/dma.rst
    delivery/west_flash.rst
+   delivery/fpu_snippet.rst
