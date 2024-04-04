@@ -118,13 +118,13 @@ From Linux side the following command should be used to initiate the communicati
 
 .. code-block:: bash
 
-   rpmsg_client_sample 0 0
+   rpmsg_sample_client 0 0
 
 to access Cortex-M33 core and
 
 .. code-block:: bash
 
-   rpmsg_client_sample 0 1
+   rpmsg_sample_client 0 1
 
 to access Cortex-M33_FPU core.
 
