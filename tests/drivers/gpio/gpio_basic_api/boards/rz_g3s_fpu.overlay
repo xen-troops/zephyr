@@ -1,0 +1,17 @@
+/*
+ * Copyright (c) 2024 EPAM Systems
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	resources {
+		compatible = "test-gpio-basic-api";
+		out-gpios = <&port8 2 0>;
+		in-gpios = <&port8 3 0>;
+	};
+};
+
+&port8 {
+	status = "okay";
+};
