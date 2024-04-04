@@ -88,7 +88,7 @@ Flash loaders to the target board
 To Flash bootloaders to the target board please follows this steps:
 
 * Switch the board to SCIF Download mode. Refer to :ref:`SCIF boot`.
-See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ for details.
+  See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ for details.
 
 * Connect to the board minicom consoles using minicom (:ref:`Linux minicom terminal`);
 * When the following message appear:
@@ -99,7 +99,7 @@ See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ fo
     -- Load Program to SRAM -----------------
 
 * Use minicom `ASCII` mode to upload FlashWriter (FlashWriter-smarc-rzg3s.mot).
-Refer to :ref:`Upload with minicom`;
+  Refer to :ref:`Upload with minicom`;
 
 * After upload the following message appear:
 
