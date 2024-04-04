@@ -36,4 +36,4 @@ will minimize interfering with SCIF1 from Cortex-M33.
 
     * **uart_async_api**
     * **wdt_basic_api** can be run only from the JLink using command **west debug**
-    because TF-A do not support Cortex-M33_FPU core.
+      because TF-A do not support Cortex-M33_FPU core.
