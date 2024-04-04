@@ -99,6 +99,12 @@ To build **uart_basic_api** test run command:
 
 The **uart_basic_api** test will produce below console output when executed:
 
+.. note::
+
+     During test run when the following message appear on screen:
+       Please send characters to serial console
+     please input some characters to the console to continue test.
+
 .. code-block:: console
 
    *** Booting Zephyr OS build zephyr-v3.3.0-10465-gb8ad06c6248d ***
