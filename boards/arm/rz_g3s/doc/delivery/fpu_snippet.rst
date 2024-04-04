@@ -32,7 +32,7 @@ will minimize interfering with SCIF1 from Cortex-M33.
 
 .. note::
     Please be aware that this is experimental feature. The following tests
-    will now work in this configuration due to hw sharing conflicts:
+    will not work in this configuration due to hw sharing conflicts:
 
     * **uart_async_api**
     * **wdt_basic_api** can be run only from the JLink using command **west debug**
