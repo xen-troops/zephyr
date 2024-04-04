@@ -87,7 +87,9 @@ Flash loaders to the target board
 
 To Flash bootloaders to the target board please follows this steps:
 
-* Switch the board to SCIF Download mode. See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_;
+* Switch the board to SCIF Download mode. Refer to :ref:`SCIF boot`.
+See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_ for details.
+
 * Connect to the board minicom consoles using minicom (:ref:`Linux minicom terminal`);
 * When the following message appear:
 
@@ -96,7 +98,9 @@ To Flash bootloaders to the target board please follows this steps:
     SCI Download mode (Notmal SCI boot)
     -- Load Program to SRAM -----------------
 
-* Use minicom `ASCII` mode to upload FlashWriter (FlashWriter-smarc-rzg3s.mot);
+* Use minicom `ASCII` mode to upload FlashWriter (FlashWriter-smarc-rzg3s.mot).
+Refer to :ref:`Upload with minicom`;
+
 * After upload the following message appear:
 
 .. code-block:: bash
@@ -125,7 +129,7 @@ Flash to qSPI
     Please Input : H'0
     please send ! ('.' & CR stop load)
 
-* upload bl2_bp_spi-smarc-rzg3s.srec from minicom
+* upload bl2_bp_spi-smarc-rzg3s.srec from minicom. Refer to :ref:`Upload with minicom`;
 * after successful download the following output will appear:
 
 .. code-block:: bash
@@ -155,7 +159,7 @@ Flash to qSPI
     Please Input : H'64000
     please send ! ('.' & CR stop load)
 
-* upload fip-smarc-rzg3s.srec from minicom
+* upload fip-smarc-rzg3s.srec from minicom. Refer to :ref:`Upload with minicom`;
 * after successful download the following output will appear:
 
 .. code-block:: bash
@@ -195,7 +199,7 @@ Flash to eMMC
     Work RAM (H'00020000-H'000FFFFF) Clear....
     please send ! ('.' & CR stop load)
 
-* upload bl2_bp_emmc-smarc-rzg3s.srec from minicom
+* upload bl2_bp_emmc-smarc-rzg3s.srec from minicom. Refer to :ref:`Upload with minicom`;
 * after successful download the following output will appear:
 
 .. code-block:: console
@@ -225,7 +229,7 @@ Flash to eMMC
     Work RAM(H'00020000-H'000FFFFF) Clear....
     please send ! ('.' & CR stop load)
 
-* upload fip-smarc-rzg3s.srec from minicom
+* upload fip-smarc-rzg3s.srec from minicom. Refer to :ref:`Upload with minicom`;
 * after successful download the following output will appear:
 
 .. code-block:: console
@@ -250,6 +254,13 @@ Flash to eMMC
     >
 
 * Switch the board to eMMC boot mode. See section 4.1.1 of `Linux Start-up Guide for RZ/G3S Board Support Package`_;
+
+.. _Upload with minicom:
+
+Upload with minicom
+```````````````````
+
+For upload file with mimicom press `Ctrl+a` then `s`. In menu choose `ascii` then file to upload.
 
 .. _Start Linux:
 

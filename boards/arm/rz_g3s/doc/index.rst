@@ -233,8 +233,8 @@ which is generated automatically in Zephyr application build directory (`*zephyr
 
 Follow `Linux Start-up Guide for RZ/G3S Board Support Package`_:
 
-* section "4.2.3 Settings" for enabling "SCIF Download mode"
-* section "4.3 Download Flash Writer to RAM" (FlashWriter-smarc-rzg3s.mot)
+* section "4.2.3 Settings" for enabling :ref:`SCIF boot`
+* section "4.3 Download Flash Writer to RAM" (FlashWriter-smarc-rzg3s.mot). Refer to :ref:`Upload with minicom`
 
 .. _Flashing on eMMC:
 
