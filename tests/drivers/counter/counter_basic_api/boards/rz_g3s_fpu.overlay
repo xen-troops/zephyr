@@ -1,0 +1,31 @@
+&gtm0 {
+	status = "okay";
+};
+
+&gtm1 {
+	status = "okay";
+};
+
+&gtm2 {
+	status = "okay";
+};
+
+&gtm3 {
+	status = "okay";
+};
+
+&gtm4 {
+	status = "okay";
+};
+
+&gtm5 {
+	status = "okay";
+};
+
+&gtm6 {
+	status = "okay";
+};
+
+&gtm7 {
+	status = "okay";
+};
