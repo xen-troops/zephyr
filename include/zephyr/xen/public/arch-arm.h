@@ -111,7 +111,9 @@
  *   All generic sub-operations
  *
  *  HYPERVISOR_physdev_op
- *   No sub-operations are currently supported
+ *   Exactly these sub-operations are supported:
+ *   PHYSDEVOP_pci_device_add
+ *   PHYSDEVOP_pci_device_remove
  *
  *  HYPERVISOR_sysctl
  *   All generic sub-operations, with the exception of:
@@ -123,6 +125,7 @@
  *   Exactly these sub-operations are supported:
  *    * HVMOP_set_param
  *    * HVMOP_get_param
+ *    * HVMOP_guest_request_vm_event
  *
  *  HYPERVISOR_grant_table_op
  *   All generic sub-operations
@@ -132,6 +135,34 @@
  *    * VCPUOP_register_vcpu_info
  *    * VCPUOP_register_runstate_memory_area
  *
+ *  HYPERVISOR_argo_op
+ *   All generic sub-operations
+ *
+ *  HYPERVISOR_hypfs_op
+ *   All generic sub-operations
+ *
+ *  HYPERVISOR_platform_op
+ *   Exactly these sub-operations are supported:
+ *    * XENPF_settime64
+ *
+ *  HYPERVISOR_vm_assist
+ *   All generic sub-operations
+ *
+ *  HYPERVISOR_dm_op
+ *   Exactly these sub-operations are supported:
+ *    * XEN_DMOP_create_ioreq_server
+ *    * XEN_DMOP_get_ioreq_server_info
+ *    * XEN_DMOP_map_io_range_to_ioreq_server
+ *    * XEN_DMOP_unmap_io_range_from_ioreq_server
+ *    * XEN_DMOP_set_ioreq_server_state
+ *    * XEN_DMOP_destroy_ioreq_server
+ *    * XEN_DMOP_set_irq_level
+ *    * XEN_DMOP_nr_vcpus
+ *
+ *  HYPERVISOR_xsm_op
+ *   All generic sub-operations
+ *
+ *  HYPERVISOR_multicall
  *
  * Other notes on the ARM ABI:
  *
@@ -270,10 +301,18 @@ struct vcpu_guest_core_regs {
 
 	/* Return address and mode */
 	__DECL_REG(pc64,        pc32);  /* ELR_EL2 */
+#if __XEN_INTERFACE_VERSION__ < 0x00040e00
 	uint32_t cpsr;                  /* SPSR_EL2 */
+#else
+	uint64_t cpsr;                  /* SPSR_EL2 */
+#endif
 
 	union {
+#if __XEN_INTERFACE_VERSION__ < 0x00040e00
 		uint32_t spsr_el1;      /* AArch64 */
+#else
+		uint64_t spsr_el1;      /* AArch64 */
+#endif
 		uint32_t spsr_svc;      /* AArch32 */
 	};
 
@@ -312,10 +351,15 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_guest_context_t);
 
 #define XEN_DOMCTL_CONFIG_TEE_NONE     0
 #define XEN_DOMCTL_CONFIG_TEE_OPTEE    1
+#define XEN_DOMCTL_CONFIG_TEE_FFA       2
 
 struct xen_arch_domainconfig {
 	/* IN/OUT */
 	uint8_t gic_version;
+#if __XEN_INTERFACE_VERSION__ >= 0x00040e00
+	/* IN - Contains SVE vector length divided by 128 */
+	uint8_t sve_vl;
+#endif
 	/* IN */
 	uint16_t tee_type;
 	/* IN */
@@ -359,6 +403,7 @@ typedef uint64_t xen_callback_t;
 #define PSR_DBG_MASK                   (1<<9) /* arm64: Debug Exception mask */
 #define PSR_IT_MASK                    (0x0600fc00) /* Thumb If-Then Mask */
 #define PSR_JAZELLE                    (1<<24) /* Jazelle Mode */
+#define PSR_Z                          (1U << 30) /* Zero condition flag */
 
 /* 32 bit modes */
 #define PSR_MODE_USR                   0x10
@@ -381,7 +426,19 @@ typedef uint64_t xen_callback_t;
 #define PSR_MODE_EL1t                  0x04
 #define PSR_MODE_EL0t                  0x00
 
+#if __XEN_INTERFACE_VERSION__ >= 0x00040e00
+/*
+ * We set PSR_Z to be able to boot Linux kernel versions with an invalid
+ * encoding of the first 8 NOP instructions. See commit a92882a4d270 in
+ * Linux.
+ *
+ * Note that PSR_Z is also set by U-Boot and QEMU -kernel when loading
+ * zImage kernels on aarch32.
+ */
+#define PSR_GUEST32_INIT               (PSR_Z|PSR_ABT_MASK|PSR_FIQ_MASK|PSR_IRQ_MASK|PSR_MODE_SVC)
+#else
 #define PSR_GUEST32_INIT               (PSR_ABT_MASK|PSR_FIQ_MASK|PSR_IRQ_MASK|PSR_MODE_SVC)
+#endif
 #define PSR_GUEST64_INIT               (PSR_ABT_MASK|PSR_FIQ_MASK|PSR_IRQ_MASK|PSR_MODE_EL1h)
 
 #define SCTLR_GUEST_INIT               xen_mk_ullong(0x00c50078)
@@ -396,6 +453,9 @@ typedef uint64_t xen_callback_t;
 
 /* Physical Address Space */
 
+/* Virtio MMIO mappings */
+#define GUEST_VIRTIO_MMIO_BASE   xen_mk_ullong(0x02000000)
+#define GUEST_VIRTIO_MMIO_SIZE   xen_mk_ullong(0x00100000)
 /*
  * vGIC mappings: Only one set of mapping is used by the guest.
  * Therefore they can overlap.
@@ -415,6 +475,12 @@ typedef uint64_t xen_callback_t;
 
 #define GUEST_GICV3_GICR0_BASE         xen_mk_ullong(0x03020000) /* vCPU0..127 */
 #define GUEST_GICV3_GICR0_SIZE         xen_mk_ullong(0x01000000)
+/*
+ * 256 MB is reserved for VPCI configuration space based on calculation
+ * 256 buses x 32 devices x 8 functions x 4 KB = 256 MB
+ */
+#define GUEST_VPCI_ECAM_BASE    xen_mk_ullong(0x10000000)
+#define GUEST_VPCI_ECAM_SIZE    xen_mk_ullong(0x10000000)
 
 /* ACPI tables physical address */
 #define GUEST_ACPI_BASE                        xen_mk_ullong(0x20000000)
@@ -423,6 +489,10 @@ typedef uint64_t xen_callback_t;
 /* PL011 mappings */
 #define GUEST_PL011_BASE               xen_mk_ullong(0x22000000)
 #define GUEST_PL011_SIZE               xen_mk_ullong(0x00001000)
+/* Guest PCI-PCIe memory space where config space and BAR will be available.*/
+#define GUEST_VPCI_ADDR_TYPE_MEM            xen_mk_ullong(0x02000000)
+#define GUEST_VPCI_MEM_ADDR                 xen_mk_ullong(0x23000000)
+#define GUEST_VPCI_MEM_SIZE                 xen_mk_ullong(0x10000000)
 
 /*
  * 16MB == 4096 pages reserved for guest to use as a region to map its
@@ -439,6 +509,10 @@ typedef uint64_t xen_callback_t;
 #define GUEST_RAM0_BASE                        xen_mk_ullong(0x40000000) /* 3GB of low RAM @ 1GB */
 #define GUEST_RAM0_SIZE                        xen_mk_ullong(0xc0000000)
 
+/* 4GB @ 4GB Prefetch Memory for VPCI */
+#define GUEST_VPCI_ADDR_TYPE_PREFETCH_MEM   xen_mk_ullong(0x42000000)
+#define GUEST_VPCI_PREFETCH_MEM_ADDR        xen_mk_ullong(0x100000000)
+#define GUEST_VPCI_PREFETCH_MEM_SIZE        xen_mk_ullong(0x100000000)
 #define GUEST_RAM1_BASE                        xen_mk_ullong(0x0200000000) /* 1016GB of RAM @ 8GB */
 #define GUEST_RAM1_SIZE                        xen_mk_ullong(0xfe00000000)
 
@@ -459,6 +533,8 @@ typedef uint64_t xen_callback_t;
 #define GUEST_EVTCHN_PPI               31
 
 #define GUEST_VPL011_SPI               32
+#define GUEST_VIRTIO_MMIO_SPI_FIRST   33
+#define GUEST_VIRTIO_MMIO_SPI_LAST    43
 
 /* PSCI functions */
 #define PSCI_cpu_suspend               0
