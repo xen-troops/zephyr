@@ -16,3 +16,6 @@ boards:
   rcar_spider_ca55:
     append:
       EXTRA_DTC_OVERLAY_FILE: boards/rcar_spider_ca55.overlay
+  rpi_5:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: boards/rpi_5.overlay
