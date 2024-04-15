@@ -29,6 +29,12 @@ config XEN_GRANT_TABLE_INIT_PRIORITY
 	depends on XEN_GRANT_TABLE
 	default 50
 
+config XEN_EVENTS
+	bool "Xen events driver"
+	default y
+	help
+	  Xen event channels driver.
+
 endmenu
 
 endif # XEN
