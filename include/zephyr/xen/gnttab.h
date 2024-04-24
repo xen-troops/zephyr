@@ -9,12 +9,18 @@
 #include <zephyr/xen/public/grant_table.h>
 
 /*
+ * Grant refs are unsigned integer and we need some value for invalid cases. Since
+ * first GNTTAB_NR_RESERVED_ENTRIES are reserved we can use 0 for these purposes.
+ */
+#define GNTTAB_INVAL_GREF	0
+
+/*
  * Assigns gref and permits access to 4K page for specific domain.
  *
  * @param domid - id of the domain you sharing gref with
  * @param gfn - guest frame number of page, where grant will be located
  * @param readonly - permit readonly access to shared grant
- * @return - gref assigned to shared grant
+ * @return - gref assigned to shared grant on success, GNTTAB_INVAL_GREF on error
  */
 grant_ref_t gnttab_grant_access(domid_t domid, unsigned long gfn,
 		bool readonly);
