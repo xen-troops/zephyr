@@ -45,6 +45,14 @@ Link: `YP-05 adapter`_.
 * USB->SERIAL TX -> SER1_UART PIN2
 * USB->SERIAL GND -> SER1_UART PIN4
 
+.. note::
+   Please note that UART adapter should be switched to 1.8v mode using Jumper as shown on the
+   picture below.
+
+.. image:: ../img/1_8v.jpg
+   :height: 250px
+   :align: center
+
 Link: `MCS-73LV adapter`_.
 
 .. _MCS-73LV adapter: https://www.amazon.com/Level-Serial-Converter-Adapter-Module/dp/B0CDHHGGCV
