@@ -38,6 +38,7 @@ LOG_MODULE_REGISTER(xen_gnttab);
 #define DT_GNTTAB_SIZE		DT_REG_SIZE_BY_IDX(DT_INST(0, xen_xen), 0)
 #define GNT_ENTRIES_PER_FRAME	(XEN_PAGE_SIZE / sizeof(grant_entry_v1_t))
 
+#define GNTTAB_GREF_USED	(UINT32_MAX - 1)
 #define GNTTAB_LAST_GREF	UINT32_MAX
 
 BUILD_ASSERT(!(DT_GNTTAB_SIZE % XEN_PAGE_SIZE),
@@ -74,6 +75,7 @@ static grant_ref_t get_grant_entry(void)
 
 	gref = gnttab.gref_list[0];
 	gnttab.gref_list[0] = gnttab.gref_list[gref];
+	gnttab.gref_list[gref] = GNTTAB_GREF_USED;
 	k_mutex_unlock(&gnttab.lock);
 
 	return gref;
@@ -82,6 +84,13 @@ static grant_ref_t get_grant_entry(void)
 static void put_grant_entry(grant_ref_t gref)
 {
 	k_mutex_lock(&gnttab.lock, K_FOREVER);
+	if (gnttab.gref_list[gref] != GNTTAB_GREF_USED) {
+		k_mutex_unlock(&gnttab.lock);
+		LOG_WRN("Trying to put already free gref = %u", gref);
+
+		return;
+	}
+
 	gnttab.gref_list[gref] = gnttab.gref_list[0];
 	gnttab.gref_list[0] = gref;
 	k_mutex_unlock(&gnttab.lock);
