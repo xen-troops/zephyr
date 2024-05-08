@@ -412,6 +412,8 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		return -EIO;
 	}
 
+	riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
+
 	/* Send 2 last bytes in sync mode. It needs to set NACK after receiving last byte */
 	if (msg->len > DMA_READ_THRESHOLD) {
 		/* Disable RDRFS to automatically send ACK/NACK after each byte */
@@ -465,8 +467,7 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		/* Waiting for DMA operation to complete */
 		k_sem_take(&data->sem, K_FOREVER);
 
-		/* Stop DMA and restore interrupts */
-		dma_stop(cfg->dma_dev, cfg->dma_channel);
+		/* Restore interrupts */
 		if (!is_rie_on) {
 			/* Disable Receive Data Full interrupt if needed */
 			riic_clear_set_bit(dev, RIIC_IER, RIIC_IER_RIE, 0);
@@ -476,10 +477,6 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 		riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_RDRFS);
 		riic_wait_for_set(dev, RIIC_MR3, RIIC_MR3_RDRFS);
 	} else {
-		if (msg->len == 1) {
-			riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
-		}
-
 		/* Dummy read for clearing RDRF flag. This start data reading transaction */
 		riic_read8(dev, RIIC_DRR);
 	}
@@ -487,9 +484,6 @@ static int riic_dma_read(const struct device *dev, struct i2c_msg *msg)
 	for (int i = start_manual; i < msg->len; i++) {
 		if (riic_wait_for_state(dev, RIIC_IER_RIE, false)) {
 			return -EIO;
-		}
-		if (msg->len == i + 2) {
-			riic_clear_set_bit(dev, RIIC_MR3, 0, RIIC_MR3_WAIT);
 		}
 		if (msg->len == i + 1) {
 			riic_clear_set_bit(dev, RIIC_CR2, 0, RIIC_CR2_SP);
