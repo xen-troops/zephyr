@@ -10,10 +10,10 @@ Instead of using this command west init *˜/zephyrproject* use the next one from
 
 .. code-block:: bash
 
-    west init -m git@gitbud.epam.com:rec-rzzp/zephyr.git --mr rzg3-release-v1.0.1 zephyr_rzg3s
+    west init -m git@github.com:xen-troops/zephyr.git --mr rzg3-release-v1.0.2 zephyr_rzg3s
     cd zephyr_rzg3s/zephyr
 
 Cloning GIT repo for the first time requires SSH keys to be registration. Please follow this guide for the detailed
 instructions:
 
-https://gitbud.epam.com/help/user/ssh.md
+`Generating SSH Keys <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`_
