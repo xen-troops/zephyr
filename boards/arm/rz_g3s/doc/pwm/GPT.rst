@@ -36,7 +36,7 @@ The RZ G3S PWM driver code can be found at:
 
 .. code-block:: text
 
-    drivers/pwm/pwm_rz2am.c
+    drivers/pwm/pwm_rza2m.c
 
 This driver is compatible with RZ/A2M driver so the implementation is shared.
 
