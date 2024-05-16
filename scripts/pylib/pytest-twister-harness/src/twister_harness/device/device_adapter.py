@@ -74,7 +74,7 @@ class DeviceAdapter(abc.ABC):
         self._start_reader_thread()
         self.connect()
 
-        if self.device_config.type == 'hardware':
+        if not self.device_config.skip_flash and self.device_config.type == 'hardware':
             # On hardware, flash after connecting to COM port, otherwise some messages
             # from target can be lost.
             self._flash_and_run()

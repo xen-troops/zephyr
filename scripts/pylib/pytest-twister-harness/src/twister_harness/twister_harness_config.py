@@ -30,6 +30,7 @@ class DeviceConfig:
     pre_script: Path | None = None
     post_script: Path | None = None
     post_flash_script: Path | None = None
+    skip_flash: bool = False
 
 
 @dataclass
@@ -61,6 +62,7 @@ class TwisterHarnessConfig:
             pre_script=_cast_to_path(config.option.pre_script),
             post_script=_cast_to_path(config.option.post_script),
             post_flash_script=_cast_to_path(config.option.post_flash_script),
+            skip_flash=config.option.skip_flash,
         )
 
         devices.append(device_from_cli)
