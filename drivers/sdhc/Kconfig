@@ -16,6 +16,8 @@ source "drivers/sdhc/Kconfig.rcar"
 source "drivers/sdhc/Kconfig.sam_hsmci"
 source "drivers/sdhc/Kconfig.intel"
 source "drivers/sdhc/Kconfig.sdhc_cdns"
+source "drivers/sdhc/Kconfig.sdhc"
+source "drivers/sdhc/Kconfig.brcm"
 
 config SDHC_INIT_PRIORITY
 	int "SDHC driver init priority"
