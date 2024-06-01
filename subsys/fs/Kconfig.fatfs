@@ -236,6 +236,20 @@ config FS_FATFS_LBA64
 	  This option enables support for 64-bit LBA, which also
 	  enables GPT support.
 
+config FS_MULTI_PARTITION
+	bool "Support for multiple volumes on the physical drive"
+	help
+	  This option switches support for multiple volumes on the physical drive.
+	  By default (0), each logical drive number is bound to the same physical
+	  drive number and only an FAT volume found on the physical drive will be
+	  mounted. When this function is enabled (1), each logical drive number can
+	  be bound to arbitrary physical drive and partition listed
+	  in the VolToPart[].
+	  For example, 2 FAT partition on SD disk (3) in terms of Zephyr:
+	   {3, 1} - mount point "/0:"
+	   {3, 2} - mount point "/1:"
+	  The mount points have to be numbered in this case.
+
 endmenu
 
 endif # FAT_FILESYSTEM_ELM
