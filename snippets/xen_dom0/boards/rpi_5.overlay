@@ -21,9 +21,9 @@
 	 * Xen passes actual values for setup in domain device tree, but Zephyr
 	 * is not capable to parse and handle it in runtime.
 	 */
-	hypervisor: hypervisor@2800000 {
+	hypervisor: hypervisor@2000000 {
 		compatible = "xen,xen";
-		reg = <0x00 0x2800000 0x40000>, <0x00 0x2a00000 0x5400000>;
+		reg = <0x00 0x2000000 0x40000>, <0x00 0x2200000 0x5400000>;
 		interrupts = <GIC_PPI 0x0 IRQ_TYPE_EDGE IRQ_DEFAULT_PRIORITY>;
 		interrupt-parent = <&gic>;
 		status = "okay";
@@ -40,9 +40,9 @@
 	 * Xen passes actual values for setup in domain device tree, but Zephyr
 	 * is not capable to parse and handle it in runtime.
 	 */
-	sram0: memory@8000000 {
+	sram0: memory@10000000 {
 		compatible = "mmio-sram";
-		reg = <0x00 0x8000000 DT_SIZE_M(128)>;
+		reg = <0x00 0x10000000 DT_SIZE_M(128)>;
 	};
 };
 
