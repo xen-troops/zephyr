@@ -372,12 +372,12 @@ static int gnttab_init(void)
 		gnttab.gref_list[0] = gref;
 	}
 
-	for (i = 0; i < CONFIG_NR_GRANT_FRAMES; i++) {
+	for (i = CONFIG_NR_GRANT_FRAMES; i; i--) {
 		xatp.domid = DOMID_SELF;
 		xatp.size = 0;
 		xatp.space = XENMAPSPACE_grant_table;
-		xatp.idx = i;
-		xatp.gpfn = xen_virt_to_gfn(gnttab_base) + i;
+		xatp.idx = i - 1;
+		xatp.gpfn = xen_virt_to_gfn(gnttab_base) + (i - 1);
 		rc = HYPERVISOR_memory_op(XENMEM_add_to_physmap, &xatp);
 		__ASSERT(!rc, "add_to_physmap failed; status = %d\n", rc);
 	}
