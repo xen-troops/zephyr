@@ -113,6 +113,7 @@ struct shm_cache_entry {
 	struct tee_shm *shm;
 };
 
+#if IS_ENABLED(CONFIG_MMU)
 /*
  * Use arch_page_phys_get instead of z_mem_phys_addr for address
  * conversion.
@@ -132,7 +133,13 @@ static uintptr_t optee_mem_phys_addr(void *virt)
 	arch_page_phys_get((void *)((uintptr_t)virt - offt), &phys);
 	return phys + offt;
 }
-
+#else
+/*
+ * When MMU is disabled we should use common zephyr approach because
+ * there is no CONFIG_MMU_PAGE_SIZE definition.
+ */
+#define optee_mem_phys_addr(x) z_mem_phys_addr(x)
+#endif /* IS_ENABLED(CONFIG_MMU) */
 /* Wrapping functions so function pointer can be used */
 static void optee_smccc_smc(unsigned long a0, unsigned long a1, unsigned long a2, unsigned long a3,
 			    unsigned long a4, unsigned long a5, unsigned long a6, unsigned long a7,
