@@ -1133,7 +1133,7 @@ static int optee_shm_register(const struct device *dev, struct tee_shm *shm)
 	msg_arg->params->u.tmem.shm_ref = (uint64_t)shm;
 	msg_arg->params->u.tmem.size = shm->size;
 
-	if (optee_call(dev, msg_arg, shm)) {
+	if (optee_call(dev, msg_arg, shm_arg)) {
 		rc = -EINVAL;
 	}
 
@@ -1165,7 +1165,7 @@ static int optee_shm_unregister(const struct device *dev, struct tee_shm *shm)
 	msg_arg->params[0].attr = OPTEE_MSG_ATTR_TYPE_RMEM_INPUT;
 	msg_arg->params[0].u.rmem.shm_ref = (uint64_t)shm;
 
-	if (optee_call(dev, msg_arg, shm)) {
+	if (optee_call(dev, msg_arg, shm_arg)) {
 		rc = -EINVAL;
 	}
 
