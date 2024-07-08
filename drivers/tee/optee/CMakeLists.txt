@@ -5,4 +5,4 @@ zephyr_library()
 
 zephyr_library_sources(optee.c)
 
-zephyr_library_include_directories(${ZEPHYR_BASE}/arch/${ARCH}/include)
+zephyr_library_include_directories(${ZEPHYR_BASE}/arch/${ARCH}/include ${ZEPHYR_BASE}/kernel/include)
