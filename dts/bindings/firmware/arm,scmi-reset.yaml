@@ -1,0 +1,21 @@
+# Copyright (c) 2024 EPAM Systems
+# Copyright 2021 ARM Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+description: SCMI Reset domain management Interface
+
+compatible: "arm,scmi-reset"
+
+include: [base.yaml, reset-controller.yaml]
+
+properties:
+  "#reset-cells":
+    const: 1
+
+  reg:
+    required: true
+    description: Reset domain Proto identifier 0x16
+    const: [0x16]
+
+reset-cells:
+  - id
