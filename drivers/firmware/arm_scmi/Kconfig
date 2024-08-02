@@ -1,0 +1,45 @@
+# Copyright (c) 2024 EPAM Systems
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig ARM_SCMI
+	bool "ARM System Control and Management Interface (SCMI)"
+	help
+	  Include ARM SCMI drivers in system config.
+
+if ARM_SCMI
+
+module = ARM_SCMI
+module-str = ARM_SCMI
+source "subsys/logging/Kconfig.template.log_config"
+
+config ARM_SCMI_TRANSPORT_SMC
+	bool
+	default y if DT_HAS_ARM_SCMI_SMC_ENABLED
+	default y if DT_HAS_ARM_SCMI_SMC_PARAM_ENABLED
+	help
+	  Enable support of SCMI compliant firmware with ARM SMC/HVC transport
+	  with/without shmem address(4KB-page, offset) as parameters
+
+config ARM_SCMI_BASE_EXT_REV
+	bool "Select to report ARM SCMI base protocol extended revision"
+	default y
+	help
+	  Enable report of ARM SCMI base extended revision information at boot time.
+
+choice ARM_SCMI_SMC_METHOD
+	bool "Select ARM SCMI SMC Calling Convention method"
+	depends on ARM_SCMI_TRANSPORT_SMC
+	default ARM_SCMI_SMC_METHOD_SMC
+
+config ARM_SCMI_SMC_METHOD_SMC
+	bool "Use ARM SCMI Secure Monitor Call (SMC) method"
+	help
+	  Use ARM Secure Monitor Call (SMC) method to access SCMI.
+
+config ARM_SCMI_SMC_METHOD_HVC
+	bool "Use ARM SCMI Hypervisor Call (HVC) method"
+	help
+	  Use ARM Hypervisor Call (HVC) method to access SCMI.
+endchoice
+
+endif # ARM_SCMI
