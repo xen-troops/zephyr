@@ -42,4 +42,10 @@ config ARM_SCMI_SMC_METHOD_HVC
 	  Use ARM Hypervisor Call (HVC) method to access SCMI.
 endchoice
 
+config ARM_SCMI_SHELL
+	bool "ARM SCMI shell interface"
+	default n
+	help
+	  Enable ARM SCMI shell interface used for testing/demo purposes.
+
 endif # ARM_SCMI
