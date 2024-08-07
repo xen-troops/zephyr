@@ -7,3 +7,10 @@ config ARM_SCMI_RESET
 	default y
 	help
 	  Enable ARM SCMI reset driver based on Reset domain management protocol.
+
+config ARM_SCMI_RESET_SHELL
+	bool "ARM SCMI reset shell interface"
+	depends on ARM_SCMI_SHELL
+	default y
+	help
+	  Enable ARM SCMI reset shell interface used for testing/demo purposes.
