@@ -45,6 +45,8 @@ if ((CONFIG_MP_MAX_NUM_CPUS GREATER 1) OR (CONFIG_SMP))
   zephyr_library_sources(smp.c)
 endif ()
 
+zephyr_library_sources_ifdef(CONFIG_LIBAFL_QEMU libafl.c)
+
 zephyr_cc_option_ifdef(CONFIG_USERSPACE -mno-outline-atomics)
 zephyr_cc_option_ifdef(CONFIG_FRAME_POINTER -mno-omit-leaf-frame-pointer)
 

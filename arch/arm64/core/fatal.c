@@ -21,6 +21,10 @@
 #include <zephyr/sys/poweroff.h>
 #include <kernel_arch_func.h>
 
+#ifdef CONFIG_LIBAFL_QEMU
+#include <zephyr/arch/arm64/libafl_qemu.h>
+#endif
+
 #include "paging.h"
 
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
@@ -351,6 +355,9 @@ void z_arm64_fatal_error(unsigned int reason, struct arch_esf *esf)
 	uint64_t far = 0;
 	uint64_t el;
 
+#ifdef CONFIG_LIBAFL_CRASH_IS_OK
+	libafl_qemu_end(LIBAFL_QEMU_END_OK);
+#endif
 	if (reason != K_ERR_SPURIOUS_IRQ) {
 		el = read_currentel();
 

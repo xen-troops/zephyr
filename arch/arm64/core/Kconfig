@@ -367,4 +367,18 @@ config MAX_XLAT_TABLES
 
 endif # ARM_MMU
 
+config LIBAFL_QEMU
+       bool "Enable LibAFL QEMU callbacks. Only for fuzzing harness builds!"
+       help
+         This option enables LibAFL QEMU callbacks for aarch64. Use this option
+	 only if you are building a test LibAFL-based test harness
+
+config LIBAFL_CRASH_IS_OK
+       depends on LIBFAL_QEMU
+       bool "Treat Zephyr crashes as successfully run"
+       help
+         Treat crashes as successful ending of LibAFL test case. This is handy when
+	 using Zephyr as a test harness for, say, Xen, because Xen may inject aborts
+	 as a reaction to invalid input.
+
 endif # CPU_CORTEX_A || CPU_AARCH64_CORTEX_R
