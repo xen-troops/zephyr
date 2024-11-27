@@ -305,7 +305,7 @@ int gnttab_map_refs(struct gnttab_map_grant_ref *map_ops, unsigned int count)
 	return 0;
 }
 
-int gnttab_unmap_refs(struct gnttab_map_grant_ref *unmap_ops, unsigned int count)
+int gnttab_unmap_refs(struct gnttab_unmap_grant_ref *unmap_ops, unsigned int count)
 {
 #ifdef CONFIG_XEN_REGIONS
 	for (unsigned int i = 0; i < count; i++) {
