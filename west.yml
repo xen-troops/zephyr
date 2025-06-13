@@ -415,6 +415,9 @@ manifest:
     - name: zcbor
       revision: 9164bd18dcd88ff9d9ef98279501fc1093571017
       path: modules/lib/zcbor
+    - name: zephyr-xenlib
+      revision: 583e266c12166b6220b53199f8c36c1b5adb5c73
+      path: modules/lib/zephyr-xenlib
   # zephyr-keep-sorted-stop
 
   self:
