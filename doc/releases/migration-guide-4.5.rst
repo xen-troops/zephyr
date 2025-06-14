@@ -45,6 +45,12 @@ Device Drivers and Devicetree
 .. zephyr-keep-sorted-start re(^\w) ignorecase
 
 
+Xen
+===
+
+* With the introduction of zephyr-xenlib, the path to Xen's public headers has changed.
+  Please use ``xen/public/...`` instead of ``zephyr/xen/public/...``.
+
 .. zephyr-keep-sorted-stop
 
 Bluetooth
