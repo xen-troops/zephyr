@@ -70,6 +70,4 @@ int xen_sysctl_getdomaininfo(struct xen_domctl_getdomaininfo *domaininfo,
  */
 int xen_sysctl_cpu_hotplug(uint32_t cpu, bool enable);
 
-/** @} */
-
 #endif /* __XEN_DOM0_SYSCTL_H__ */
