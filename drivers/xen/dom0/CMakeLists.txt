@@ -3,3 +3,4 @@
 
 zephyr_sources(domctl.c)
 zephyr_sources(sysctl.c)
+zephyr_sources(physdev.c)
