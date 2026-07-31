@@ -30,6 +30,12 @@ LOG_MODULE_REGISTER(optee);
  */
 #define TEE_OPTEE_CAP_TZ  BIT(0)
 
+#define MAX_ARG_PARAM_COUNT 6
+
+#define MAX_SHM_SIZE OPTEE_MSG_NONCONTIG_PAGE_SIZE
+#define MIN_ARG_SIZE OPTEE_MSG_GET_ARG_SIZE(MAX_ARG_PARAM_COUNT)
+#define MAX_ARG_COUNT_PER_ENTRY (MAX_SHM_SIZE / MIN_ARG_SIZE)
+
 struct optee_rpc_param {
 	uint32_t a0;
 	uint32_t a1;
@@ -77,6 +83,12 @@ struct optee_supp {
 	struct k_sem reqs_c;
 };
 
+struct shm_cache {
+	struct k_mutex mutex;
+	int shm_count;
+	sys_dlist_t shm;
+};
+
 struct optee_driver_data {
 	smc_call_t smc_call;
 
@@ -87,6 +99,16 @@ struct optee_driver_data {
 	struct optee_supp supp;
 	unsigned long sec_caps;
 	struct k_sem call_sem;
+	unsigned int rpc_param_count;
+
+	struct shm_cache shm_cache;
+};
+
+struct shm_cache_entry {
+	sys_dnode_t node;
+	bool used;
+
+	struct tee_shm *shm;
 };
 
 /* Wrapping functions so function pointer can be used */
@@ -422,9 +444,10 @@ static void handle_cmd_get_time(const struct device *dev, struct optee_msg_arg *
 	}
 
 	ticks = k_uptime_ticks();
+	up_nsecs = k_ticks_to_ns_floor64(ticks);
 
-	up_secs = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-	up_nsecs = k_ticks_to_ns_floor64(ticks - up_secs * CONFIG_SYS_CLOCK_TICKS_PER_SEC);
+	up_secs = up_nsecs / Z_HZ_ns;
+	up_nsecs %= Z_HZ_ns;
 	arg->params[0].u.value.a = up_secs;
 	arg->params[0].u.value.b = up_nsecs;
 
@@ -605,11 +628,9 @@ out:
 	k_free(params);
 }
 
-static uint32_t handle_func_rpc_call(const struct device *dev, struct tee_shm *shm,
+static uint32_t handle_func_rpc_call(const struct device *dev, struct optee_msg_arg *arg,
 				     void **pages)
 {
-	struct optee_msg_arg *arg = shm->addr;
-
 	switch (arg->cmd) {
 	case OPTEE_RPC_CMD_SHM_ALLOC:
 		free_shm_pages(pages);
@@ -639,7 +660,7 @@ static uint32_t handle_func_rpc_call(const struct device *dev, struct tee_shm *s
 }
 
 static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *param,
-			    void **pages)
+			    void **pages, struct optee_msg_arg *rpc_arg)
 {
 	struct tee_shm *shm = NULL;
 	uint32_t res = OPTEE_SMC_CALL_RETURN_FROM_RPC;
@@ -666,8 +687,12 @@ static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *pa
 		/* Foreign interrupt was raised */
 		break;
 	case OPTEE_SMC_RPC_FUNC_CMD:
-		shm = (struct tee_shm *)regs_to_u64(param->a1, param->a2);
-		res = handle_func_rpc_call(dev, shm, pages);
+		if (!rpc_arg) {
+			shm = (struct tee_shm *)regs_to_u64(param->a1,
+							    param->a2);
+			rpc_arg = shm->addr;
+		}
+		res = handle_func_rpc_call(dev, rpc_arg, pages);
 		break;
 	default:
 		break;
@@ -676,17 +701,40 @@ static void handle_rpc_call(const struct device *dev, struct optee_rpc_param *pa
 	param->a0 = res;
 }
 
-static int optee_call(const struct device *dev, struct optee_msg_arg *arg)
+static inline void *get_off_addr(void *addr, unsigned int offset)
+{
+	return (uint8_t *)addr + offset;
+}
+
+static int optee_call(const struct device *dev, struct optee_msg_arg *arg, struct tee_shm *shm)
 {
 	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
-	struct optee_rpc_param param = {
-		.a0 = OPTEE_SMC_CALL_WITH_ARG
-	};
+	struct optee_rpc_param param = { };
+	struct optee_msg_arg *rpc_arg = NULL;
+	unsigned int rpc_arg_offs;
 	void *pages = NULL;
 
-	u64_to_regs((uint64_t)k_mem_phys_addr(arg), &param.a1, &param.a2);
+	if (data->rpc_param_count != 0) {
+		rpc_arg_offs = OPTEE_MSG_GET_ARG_SIZE(arg->num_params);
+		rpc_arg = get_off_addr(shm->addr, rpc_arg_offs);
+	}
+
+	/* For the registered memory REGD_ARG should be sent */
+	if (rpc_arg && shm->flags & TEE_SHM_REGISTER) {
+		param.a0 = OPTEE_SMC_CALL_WITH_REGD_ARG;
+		u64_to_regs((uint64_t)shm, &param.a1, &param.a2);
+	} else {
+		if (rpc_arg != NULL) {
+			param.a0 = OPTEE_SMC_CALL_WITH_RPC_ARG;
+		} else {
+			param.a0 = OPTEE_SMC_CALL_WITH_ARG;
+		}
+
+		u64_to_regs((uint64_t)k_mem_phys_addr(arg), &param.a1, &param.a2);
+	}
 
 	k_sem_take(&data->call_sem, K_FOREVER);
+
 	while (true) {
 		struct arm_smccc_res res;
 
@@ -698,7 +746,7 @@ static int optee_call(const struct device *dev, struct optee_msg_arg *arg)
 			param.a1 = res.a1;
 			param.a2 = res.a2;
 			param.a3 = res.a3;
-			handle_rpc_call(dev, &param, &pages);
+			handle_rpc_call(dev, &param, &pages, rpc_arg);
 		} else {
 			free_shm_pages(&pages);
 			k_sem_give(&data->call_sem);
@@ -726,30 +774,122 @@ static int optee_get_version(const struct device *dev, struct tee_version_info *
 	return 0;
 }
 
+static size_t get_shm_size(const struct device *dev)
+{
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+	size_t shm_size = OPTEE_MSG_GET_ARG_SIZE(MAX_ARG_PARAM_COUNT);
+
+	if (data->rpc_param_count != 0) {
+		shm_size += OPTEE_MSG_GET_ARG_SIZE(data->rpc_param_count);
+	}
+
+	return shm_size;
+}
+
+static int alloc_shm_cache_entry(struct shm_cache_entry **entry)
+{
+	if (entry == NULL) {
+		return -EINVAL;
+	}
+
+	*entry = k_malloc(sizeof(**entry));
+	if (*entry == NULL) {
+		return -ENOMEM;
+	}
+
+	memset(*entry, 0, sizeof(**entry));
+
+	return 0;
+}
+
+static int get_or_alloc_shm(const struct device *dev, size_t num_params, unsigned int flags,
+			    struct shm_cache_entry **entry_r, struct optee_msg_arg **arg)
+{
+	int rc = 0;
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+	size_t shm_size = get_shm_size(dev);
+	size_t args_cnt;
+	struct shm_cache_entry *entry;
+
+	if (num_params > MAX_ARG_PARAM_COUNT) {
+		return -EINVAL;
+	}
+
+	if (data->rpc_param_count) {
+		args_cnt = OPTEE_MSG_NONCONTIG_PAGE_SIZE / shm_size;
+	} else {
+		args_cnt = 1;
+	}
+
+	k_mutex_lock(&data->shm_cache.mutex, K_FOREVER);
+	SYS_DLIST_FOR_EACH_CONTAINER(&data->shm_cache.shm, entry, node) {
+		if (!entry->used) {
+			goto found;
+		}
+	}
+
+	if (data->shm_cache.shm_count >= CONFIG_OPTEE_SHM_CACHE_MAX_ENTRIES) {
+		rc = -ENOMEM;
+		goto unlock;
+	}
+
+	rc = alloc_shm_cache_entry(&entry);
+	if (rc != 0) {
+		goto unlock;
+	}
+	data->shm_cache.shm_count++;
+
+	rc = tee_add_shm(dev, NULL, MAX_SHM_SIZE, MAX_SHM_SIZE, flags, &entry->shm);
+	if (rc != 0) {
+		LOG_ERR("Unable to get shared memory, rc = %d", rc);
+		k_free(entry);
+		goto unlock;
+	}
+
+	sys_dlist_append(&data->shm_cache.shm, &entry->node);
+found:
+	entry->used = true;
+	*arg = entry->shm->addr;
+	memset(*arg, 0, shm_size);
+	*entry_r = entry;
+unlock:
+	k_mutex_unlock(&data->shm_cache.mutex);
+	return rc;
+}
+
+static void free_shm_entry(const struct device *dev, struct shm_cache_entry *entry)
+{
+	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
+
+	if (entry == NULL) {
+		return;
+	}
+
+	k_mutex_lock(&data->shm_cache.mutex, K_FOREVER);
+	entry->used = false;
+
+	k_mutex_unlock(&data->shm_cache.mutex);
+}
+
 static int optee_close_session(const struct device *dev, uint32_t session_id)
 {
 	int rc;
-	struct tee_shm *shm;
+	struct shm_cache_entry *entry;
 	struct optee_msg_arg *marg;
 
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
-			 OPTEE_MSG_GET_ARG_SIZE(0),
-			 TEE_SHM_ALLOC, &shm);
+	rc = get_or_alloc_shm(dev, 0, TEE_SHM_ALLOC, &entry, &marg);
 	if (rc) {
 		LOG_ERR("Unable to get shared memory, rc = %d", rc);
 		return rc;
 	}
 
-	marg = shm->addr;
 	marg->num_params = 0;
 	marg->cmd = OPTEE_MSG_CMD_CLOSE_SESSION;
 	marg->session = session_id;
 
-	rc = optee_call(dev, marg);
+	rc = optee_call(dev, marg, entry->shm);
 
-	if (tee_rm_shm(dev, shm)) {
-		LOG_ERR("Unable to free shared memory");
-	}
+	free_shm_entry(dev, entry);
 
 	return rc;
 }
@@ -758,24 +898,18 @@ static int optee_open_session(const struct device *dev, struct tee_open_session_
 			      unsigned int num_param, struct tee_param *param,
 			      uint32_t *session_id)
 {
-	int rc, ret;
-	struct tee_shm *shm;
+	int rc, ret = 0;
+	struct shm_cache_entry *entry;
 	struct optee_msg_arg *marg;
 
 	if (!arg || !session_id) {
 		return -EINVAL;
 	}
-
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
-			 OPTEE_MSG_GET_ARG_SIZE(num_param + 2),
-			 TEE_SHM_ALLOC, &shm);
+	rc = get_or_alloc_shm(dev, num_param + 2, TEE_SHM_ALLOC, &entry, &marg);
 	if (rc) {
 		LOG_ERR("Unable to get shared memory, rc = %d", rc);
 		return rc;
 	}
-
-	marg = shm->addr;
-	memset(marg, 0, OPTEE_MSG_GET_ARG_SIZE(num_param + 2));
 
 	marg->num_params = num_param + 2;
 	marg->cmd = OPTEE_MSG_CMD_OPEN_SESSION;
@@ -792,7 +926,7 @@ static int optee_open_session(const struct device *dev, struct tee_open_session_
 		goto out;
 	}
 
-	arg->ret = optee_call(dev, marg);
+	arg->ret = optee_call(dev, marg, entry->shm);
 	if (arg->ret) {
 		arg->ret_origin = TEEC_ORIGIN_COMMS;
 		goto out;
@@ -818,10 +952,7 @@ static int optee_open_session(const struct device *dev, struct tee_open_session_
 	arg->ret = marg->ret;
 	arg->ret_origin = marg->ret_origin;
 out:
-	ret = tee_rm_shm(dev, shm);
-	if (ret) {
-		LOG_ERR("Unable to free shared memory");
-	}
+	free_shm_entry(dev, entry);
 
 	return (rc) ? rc : ret;
 }
@@ -829,28 +960,23 @@ out:
 static int optee_cancel(const struct device *dev, uint32_t session_id, uint32_t cancel_id)
 {
 	int rc;
-	struct tee_shm *shm;
+	struct shm_cache_entry *entry;
 	struct optee_msg_arg *marg;
 
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
-			 OPTEE_MSG_GET_ARG_SIZE(0),
-			 TEE_SHM_ALLOC, &shm);
-	if (rc) {
+	rc = get_or_alloc_shm(dev, 0, TEE_SHM_ALLOC, &entry, &marg);
+	if (rc != 0) {
 		LOG_ERR("Unable to get shared memory, rc = %d", rc);
 		return rc;
 	}
 
-	marg = shm->addr;
 	marg->num_params = 0;
 	marg->cmd = OPTEE_MSG_CMD_CANCEL;
 	marg->cancel_id = cancel_id;
 	marg->session = session_id;
 
-	rc = optee_call(dev, marg);
+	rc = optee_call(dev, marg, entry->shm);
 
-	if (tee_rm_shm(dev, shm)) {
-		LOG_ERR("Unable to free shared memory");
-	}
+	free_shm_entry(dev, entry);
 
 	return rc;
 }
@@ -858,24 +984,19 @@ static int optee_cancel(const struct device *dev, uint32_t session_id, uint32_t 
 static int optee_invoke_func(const struct device *dev, struct tee_invoke_func_arg *arg,
 			     unsigned int num_param, struct tee_param *param)
 {
-	int rc, ret;
-	struct tee_shm *shm;
+	int rc;
+	struct shm_cache_entry *entry;
 	struct optee_msg_arg *marg;
 
 	if (!arg) {
 		return -EINVAL;
 	}
 
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE,
-			 OPTEE_MSG_GET_ARG_SIZE(num_param),
-			 TEE_SHM_ALLOC, &shm);
+	rc = get_or_alloc_shm(dev, num_param, TEE_SHM_ALLOC, &entry, &marg);
 	if (rc) {
 		LOG_ERR("Unable to get shared memory, rc = %d", rc);
 		return rc;
 	}
-
-	marg = shm->addr;
-	memset(marg, 0, OPTEE_MSG_GET_ARG_SIZE(num_param));
 
 	marg->num_params = num_param;
 	marg->cmd = OPTEE_MSG_CMD_INVOKE_COMMAND;
@@ -887,7 +1008,7 @@ static int optee_invoke_func(const struct device *dev, struct tee_invoke_func_ar
 		goto out;
 	}
 
-	arg->ret = optee_call(dev, marg);
+	arg->ret = optee_call(dev, marg, entry->shm);
 	if (arg->ret) {
 		arg->ret_origin = TEEC_ORIGIN_COMMS;
 		goto out;
@@ -903,12 +1024,9 @@ static int optee_invoke_func(const struct device *dev, struct tee_invoke_func_ar
 	arg->ret = marg->ret;
 	arg->ret_origin = marg->ret_origin;
 out:
-	ret = tee_rm_shm(dev, shm);
-	if (ret) {
-		LOG_ERR("Unable to free shared memory");
-	}
+	free_shm_entry(dev, entry);
 
-	return (rc) ? rc : ret;
+	return rc;
 }
 
 static void *optee_construct_page_list(void *buf, uint32_t len, uint64_t *phys_buf)
@@ -970,9 +1088,9 @@ static int optee_shm_register(const struct device *dev, struct tee_shm *shm)
 	void *pl;
 	uint64_t pl_phys_and_offset;
 	int rc;
+	size_t shm_size = get_shm_size(dev);
 
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE, OPTEE_MSG_GET_ARG_SIZE(1),
-			 TEE_SHM_ALLOC, &shm_arg);
+	rc = tee_add_shm(dev, NULL, MAX_SHM_SIZE, shm_size, TEE_SHM_ALLOC, &shm_arg);
 	if (rc) {
 		return rc;
 	}
@@ -996,7 +1114,7 @@ static int optee_shm_register(const struct device *dev, struct tee_shm *shm)
 	msg_arg->params->u.tmem.shm_ref = (uint64_t)shm;
 	msg_arg->params->u.tmem.size = shm->size;
 
-	if (optee_call(dev, msg_arg)) {
+	if (optee_call(dev, msg_arg, shm_arg)) {
 		rc = -EINVAL;
 	}
 
@@ -1012,9 +1130,9 @@ static int optee_shm_unregister(const struct device *dev, struct tee_shm *shm)
 	struct tee_shm *shm_arg;
 	struct optee_msg_arg *msg_arg;
 	int rc;
+	size_t shm_size = get_shm_size(dev);
 
-	rc = tee_add_shm(dev, NULL, OPTEE_MSG_NONCONTIG_PAGE_SIZE, OPTEE_MSG_GET_ARG_SIZE(1),
-			 TEE_SHM_ALLOC, &shm_arg);
+	rc = tee_add_shm(dev, NULL, MAX_SHM_SIZE, shm_size, TEE_SHM_ALLOC, &shm_arg);
 	if (rc) {
 		return rc;
 	}
@@ -1028,7 +1146,7 @@ static int optee_shm_unregister(const struct device *dev, struct tee_shm *shm)
 	msg_arg->params[0].attr = OPTEE_MSG_ATTR_TYPE_RMEM_INPUT;
 	msg_arg->params[0].u.rmem.shm_ref = (uint64_t)shm;
 
-	if (optee_call(dev, msg_arg)) {
+	if (optee_call(dev, msg_arg, shm_arg)) {
 		rc = -EINVAL;
 	}
 
@@ -1119,7 +1237,6 @@ static int optee_suppl_send(const struct device *dev, unsigned int ret, unsigned
 			break;
 		case TEE_PARAM_ATTR_TYPE_MEMREF_OUTPUT:
 		case TEE_PARAM_ATTR_TYPE_MEMREF_INOUT:
-			LOG_WRN("Memref params are not fully tested");
 			p->a = param[n].a;
 			p->b = param[n].b;
 			p->c = param[n].c;
@@ -1186,7 +1303,8 @@ static void optee_get_revision(const struct device *dev)
 	}
 }
 
-static bool optee_exchange_caps(const struct device *dev, unsigned long *sec_caps)
+static bool optee_exchange_caps(const struct device *dev, unsigned long *sec_caps,
+				unsigned int *rpc_param_count)
 {
 	struct optee_driver_data *data = (struct optee_driver_data *)dev->data;
 	struct arm_smccc_res res = { 0 };
@@ -1203,6 +1321,13 @@ static bool optee_exchange_caps(const struct device *dev, unsigned long *sec_cap
 	}
 
 	*sec_caps = res.a1;
+
+	if (*sec_caps & OPTEE_SMC_SEC_CAP_RPC_ARG) {
+		*rpc_param_count = (unsigned int)res.a3;
+	} else {
+		*rpc_param_count = 0;
+	}
+
 	return true;
 }
 
@@ -1222,6 +1347,35 @@ static unsigned long optee_get_thread_count(const struct device *dev, unsigned l
 	return true;
 }
 
+static void optee_enable_shm_cache(struct optee_driver_data *data)
+{
+	struct arm_smccc_res res;
+
+	data->smc_call(OPTEE_SMC_ENABLE_SHM_CACHE, 0, 0, 0, 0, 0, 0, 0, &res);
+	if (res.a0 != OPTEE_SMC_RETURN_OK) {
+		LOG_ERR("Can't enable shm cache");
+	}
+}
+
+static void optee_disable_shm_cache(const struct device *dev, bool mapped)
+{
+	struct arm_smccc_res res;
+	struct tee_shm *shm;
+	struct optee_driver_data *data = dev->data;
+
+	while (true) {
+		data->smc_call(OPTEE_SMC_DISABLE_SHM_CACHE, 0, 0, 0, 0, 0, 0, 0, &res);
+		if (res.a0 == OPTEE_SMC_RETURN_ENOTAVAIL) {
+			break;
+		}
+
+		if (mapped && res.a0 == OPTEE_SMC_RETURN_OK) {
+			shm = (struct tee_shm *)regs_to_u64(res.a1, res.a2);
+			tee_rm_shm(dev, shm);
+		}
+	}
+}
+
 static int optee_init(const struct device *dev)
 {
 	struct optee_driver_data *data = dev->data;
@@ -1236,6 +1390,9 @@ static int optee_init(const struct device *dev)
 	k_sem_init(&data->supp.reqs_c, 0, 1);
 	sys_dlist_init(&data->supp.reqs);
 
+	k_mutex_init(&data->shm_cache.mutex);
+	sys_dlist_init(&data->shm_cache.shm);
+
 	if (!optee_check_uid(dev)) {
 		LOG_ERR("OPTEE API UID mismatch");
 		return -EINVAL;
@@ -1243,7 +1400,7 @@ static int optee_init(const struct device *dev)
 
 	optee_get_revision(dev);
 
-	if (!optee_exchange_caps(dev, &data->sec_caps)) {
+	if (!optee_exchange_caps(dev, &data->sec_caps, &data->rpc_param_count)) {
 		LOG_ERR("OPTEE capabilities exchange failed\n");
 		return -EINVAL;
 	}
@@ -1259,6 +1416,22 @@ static int optee_init(const struct device *dev)
 	}
 
 	k_sem_init(&data->call_sem, thread_count, thread_count);
+
+	/*
+	 * We need to disable all existing shm objects before enabling caching.
+	 * This prevents us from receiving invalid shm addresses. It could occur,
+	 * for example if we are being rebooted by the hypervisor and the previous
+	 * instance did not cleanup the cache on shutdown.
+	 */
+	optee_disable_shm_cache(dev, false);
+
+	/*
+	 * Only enable the shm cache in case we're not able to pass the RPC
+	 * arg struct right after the normal arg struct.
+	 */
+	if (data->rpc_param_count == 0) {
+		optee_enable_shm_cache(data);
+	}
 
 	return 0;
 }

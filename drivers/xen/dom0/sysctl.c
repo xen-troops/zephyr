@@ -35,6 +35,28 @@ int xen_sysctl_physinfo(struct xen_sysctl_physinfo *info)
 	return ret;
 }
 
+int xen_sysctl_tbuf_op(struct xen_sysctl_tbuf_op *tbuf_op)
+{
+	int ret;
+	xen_sysctl_t sysctl = {
+		.cmd = XEN_SYSCTL_tbuf_op,
+	};
+
+	if (!tbuf_op) {
+		return -EINVAL;
+	}
+
+	sysctl.u.tbuf_op = *tbuf_op;
+
+	ret = do_sysctl(&sysctl);
+	if (ret < 0) {
+		return ret;
+	}
+	*tbuf_op = sysctl.u.tbuf_op;
+
+	return ret;
+}
+
 int xen_sysctl_getdomaininfo(struct xen_domctl_getdomaininfo *domaininfo,
 			     uint16_t first, uint16_t num)
 {
@@ -56,4 +78,18 @@ int xen_sysctl_getdomaininfo(struct xen_domctl_getdomaininfo *domaininfo,
 	}
 
 	return sysctl.u.getdomaininfolist.num_domains;
+}
+
+int xen_sysctl_cpu_hotplug(uint32_t cpu, bool enable)
+{
+	int ret;
+	xen_sysctl_t sysctl = {
+		.cmd = XEN_SYSCTL_cpu_hotplug,
+		.u.cpu_hotplug.cpu = cpu,
+		.u.cpu_hotplug.op = enable ? XEN_SYSCTL_CPU_HOTPLUG_ONLINE
+					   : XEN_SYSCTL_CPU_HOTPLUG_OFFLINE,
+	};
+
+	ret = do_sysctl(&sysctl);
+	return ret;
 }

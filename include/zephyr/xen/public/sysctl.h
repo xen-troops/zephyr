@@ -20,6 +20,25 @@
 #include "xen.h"
 #include "domctl.h"
 
+/* Get trace buffers machine base address */
+/* XEN_SYSCTL_tbuf_op */
+struct xen_sysctl_tbuf_op {
+	/* IN variables */
+#define XEN_SYSCTL_TBUFOP_get_info     0
+#define XEN_SYSCTL_TBUFOP_set_cpu_mask 1
+#define XEN_SYSCTL_TBUFOP_set_evt_mask 2
+#define XEN_SYSCTL_TBUFOP_set_size     3
+#define XEN_SYSCTL_TBUFOP_enable       4
+#define XEN_SYSCTL_TBUFOP_disable      5
+	uint32_t cmd;
+	/* IN/OUT variables */
+	struct xenctl_bitmap cpu_mask;
+	uint32_t evt_mask;
+	/* OUT variables */
+	uint64_aligned_t buffer_mfn;
+	uint32_t size;  /* Also an IN variable! */
+};
+
 /*
  * Get physical information about the host machine
  */
@@ -101,6 +120,41 @@ struct xen_sysctl_getcpuinfo {
 	uint32_t nr_cpus;
 };
 
+/**
+ * @brief CPU hotplug data
+ * XEN_SYSCTL_cpu_hotplug
+ */
+struct xen_sysctl_cpu_hotplug {
+	/** Physical cpu. */
+	uint32_t cpu;
+
+	/** Single CPU enable. */
+#define XEN_SYSCTL_CPU_HOTPLUG_ONLINE  0
+	/** Single CPU disable. */
+#define XEN_SYSCTL_CPU_HOTPLUG_OFFLINE 1
+
+	/*
+	 * SMT enable/disable.
+	 *
+	 * These two ops loop over all present CPUs, and either online or offline
+	 * every non-primary sibling thread (those with a thread id which is not
+	 * 0).  This behaviour is chosen to simplify the implementation.
+	 *
+	 * They are intended as a shorthand for identifying and feeding the cpu
+	 * numbers individually to HOTPLUG_{ON,OFF}LINE.
+	 *
+	 * These are not expected to be used in conjunction with debugging options
+	 * such as `maxcpus=` or when other manual configuration of offline cpus
+	 * is in use.
+	 */
+	/** SMT enable */
+#define XEN_SYSCTL_CPU_HOTPLUG_SMT_ENABLE  2
+	/** SMT disable */
+#define XEN_SYSCTL_CPU_HOTPLUG_SMT_DISABLE 3
+	/** hotplug opcode */
+	uint32_t op;
+};
+
 struct xen_sysctl {
 	uint32_t cmd;
 #define XEN_SYSCTL_readconsole                    1
@@ -133,9 +187,12 @@ struct xen_sysctl {
 #define XEN_SYSCTL_get_cpu_policy                29
 	uint32_t interface_version; /* XEN_SYSCTL_INTERFACE_VERSION */
 	union {
+		struct xen_sysctl_tbuf_op           tbuf_op;
 		struct xen_sysctl_physinfo          physinfo;
 		struct xen_sysctl_getdomaininfolist getdomaininfolist;
 		struct xen_sysctl_getcpuinfo        getcpuinfo;
+		/** XEN_SYSCTL_cpu_hotplug input */
+		struct xen_sysctl_cpu_hotplug       cpu_hotplug;
 		uint8_t                             pad[128];
 	} u;
 };

@@ -322,8 +322,19 @@ struct xen_arch_domainconfig {
 #endif /* CONFIG_XEN_DOMCTL_INTERFACE_VERSION */
 	/* IN */
 	uint16_t tee_type;
+#ifdef CONFIG_XEN_DOMCTL_XENTROOPS_ARCH_SCI_TYPE
+	/* IN */
+	uint16_t arm_sci_type;
+#endif /* CONFIG_XEN_DOMCTL_XENTROOPS_ARCH_SCI_TYPE */
 	/* IN */
 	uint32_t nr_spis;
+#ifdef CONFIG_XEN_DOMCTL_XENTROOPS_ARCH_VGSX_OSID
+	/*
+	 * IN
+	 * OSID used by virtual GSX device.
+	 */
+	uint8_t vgsx_osid;
+#endif /* CONFIG_XEN_DOMCTL_XENTROOPS_ARCH_VGSX_OSID */
 	/*
 	 * OUT
 	 * Based on the property clock-frequency in the DT timer node.
@@ -338,6 +349,15 @@ struct xen_arch_domainconfig {
 	 *
 	 */
 	uint32_t clock_frequency;
+#if CONFIG_XEN_DOMCTL_INTERFACE_VERSION >= 0x00000017
+	/* IN */
+	uint8_t arm_sci_type;
+#endif /* CONFIG_XEN_DOMCTL_INTERFACE_VERSION */
+#if CONFIG_XEN_DOMCTL_INTERFACE_VERSION >= 0x00000018
+	/* IN */
+	uint8_t v8r_el1_msa;
+	uint16_t pad;
+#endif /* CONFIG_XEN_DOMCTL_INTERFACE_VERSION */
 };
 #endif /* CONFIG_XEN_DOM0 */
 
@@ -440,8 +460,8 @@ typedef uint64_t xen_callback_t;
 
 #define GUEST_RAM_BANKS			2
 
-#define GUEST_RAM0_BASE			xen_mk_ullong(0x40000000) /* 3GB of low RAM @ 1GB */
-#define GUEST_RAM0_SIZE			xen_mk_ullong(0xc0000000)
+#define GUEST_RAM0_BASE			xen_mk_ullong(0x40000000) /* 2GB of low RAM @ 1GB */
+#define GUEST_RAM0_SIZE			xen_mk_ullong(0x80000000)
 
 #define GUEST_RAM1_BASE			xen_mk_ullong(0x0200000000) /* 1016GB of RAM @ 8GB */
 #define GUEST_RAM1_SIZE			xen_mk_ullong(0xfe00000000)
