@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 NXP
+ * Copyright 2024,2026 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,6 +36,54 @@
  */
 #define SCMI_PROTOCOL_NAME(proto) CONCAT(scmi_protocol_, proto)
 
+#ifdef CONFIG_ARM_SCMI_MAILBOX_TRANSPORT
+/**
+ * @brief Devicetree compatible string for the Mailbox transport.
+ */
+#define DT_SCMI_TRANSPORT_COMPATIBLE arm_scmi
+#elif CONFIG_ARM_SCMI_SMC_TRANSPORT
+/**
+ * @brief Devicetree compatible string for the SMC transport.
+ */
+#define DT_SCMI_TRANSPORT_COMPATIBLE arm_scmi_smc
+#elif CONFIG_ARM_SCMI_OPTEE_TRANSPORT
+/**
+ * @brief Devicetree compatible string for the OP-TEE transport.
+ */
+#define DT_SCMI_TRANSPORT_COMPATIBLE linaro_scmi_optee
+#else
+#error "Transport needs to define COMPATIBLE macro"
+#endif
+
+/**
+ * @brief Check if a node is the base SCMI transport node.
+ *
+ * This macro determines if the given node_id corresponds to the primary
+ * SCMI transport layer (the base node), by verifying if the node has
+ * a compatible string matching the current transport's definition
+ * (DT_SCMI_TRANSPORT_COMPATIBLE).
+ *
+ * @param node_id protocol node identifier
+ * @return 1 if the node is the base transport node, 0 otherwise.
+ */
+#define DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id) \
+	DT_NODE_HAS_COMPAT(node_id, DT_SCMI_TRANSPORT_COMPATIBLE)
+
+/**
+ * @brief Get the protocol ID from the protocol DT node
+ *
+ * Map a DT protocol node to its corresponding protocol ID.
+ * Base protocol requires special handling since it shares
+ * the same DT node with the transport.
+ *
+ * @param node_id protocol node identifier
+ * @return protocol ID
+ */
+#define DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id)					\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id),			\
+		    (SCMI_PROTOCOL_BASE),					\
+		    (DT_REG_ADDR_RAW(node_id)))
+
 #ifdef CONFIG_ARM_SCMI_TRANSPORT_HAS_STATIC_CHANNELS
 
 #ifdef CONFIG_ARM_SCMI_MAILBOX_TRANSPORT
@@ -58,12 +106,31 @@
 /** @brief Check if a protocol node has an associated channel
  *
  * For SMC transport, all protocols share the base channel.
- * Return 0, to make all protocols fall back to base channel.
+ * Only the base node may describe channels. This allows future extensions
+ * where the base node may describe an optional RX channel via
+ * a second `shmem` phandle, while keeping per-protocol channels unsupported.
  *
  * @param node_id protocol node identifier
  * @idx channel index
  */
-#define DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, idx) 0
+#define DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, idx)		\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id),	\
+		    (DT_PROP_HAS_IDX(node_id, shmem, idx)),	\
+		    (0))
+#elif CONFIG_ARM_SCMI_OPTEE_TRANSPORT
+/** @brief Check if a protocol node has an associated channel
+ *
+ * For OP-TEE transport using a single shared channel, only the base SCMI node
+ * defines the primary channel (idx 0). All child protocols share this base channel.
+ *
+ * @param node_id Protocol node identifier
+ * @param idx Channel index (0 for TX)
+ */
+#define DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, idx) \
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id), \
+		    (IS_EQ(idx, 0)), \
+		    (0))
+
 #else
 #error "Transport with static channels needs to define HAS_CHAN macro"
 #endif
@@ -84,24 +151,62 @@
 #define DT_SCMI_TRANSPORT_TX_CHAN_DECLARE(node_id)				\
 	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 0),		\
 		    (extern struct scmi_channel					\
-		     SCMI_TRANSPORT_CHAN_NAME(DT_REG_ADDR_RAW(node_id), 0);),	\
+		     SCMI_TRANSPORT_CHAN_NAME(					\
+			DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id), 0);),		\
 		    (extern struct scmi_channel					\
 		     SCMI_TRANSPORT_CHAN_NAME(SCMI_PROTOCOL_BASE, 0);))		\
+
+/**
+ * @brief Declare RX SCMI channel for a protocol node (optional)
+ *
+ * Declares (via @c extern) the RX channel symbol used by a protocol.
+ *
+ * Resolution order:
+ * 1) If the protocol node provides a dedicated RX channel (index 1 in its transport
+ *    description), declare that channel symbol.
+ * 2) Otherwise, fall back to the RX channel described on the SCMI node (base protocol
+ *    transport description), if present.
+ * 3) If neither exists, no declaration is emitted and the RX channel is treated as
+ *    absent.
+ *
+ * Note:
+ * Some transports do not provide an RX channel. Also, the base protocol is
+ * represented by the SCMI node itself (compatible "arm,scmi" or others), so relying
+ * unconditionally on @c DT_PARENT(node_id) for transport properties can be incorrect.
+ * The fallback therefore checks the SCMI node transport description using the
+ * transport-provided DT_SCMI_TRANSPORT_PROTO_HAS_CHAN() macro.
+ *
+ * @param node_id Protocol node identifier
+ */
+#define DT_SCMI_TRANSPORT_RX_CHAN_DECLARE_BASE_RAW(node_id)				\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 1),			\
+		    (extern struct scmi_channel						\
+		     SCMI_TRANSPORT_CHAN_NAME(SCMI_PROTOCOL_BASE, 1);),			\
+		    ())
+
+#define DT_SCMI_TRANSPORT_RX_CHAN_DECLARE_BASE(node_id)					\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id),				\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_DECLARE_BASE_RAW(node_id)),		\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_DECLARE_BASE_RAW(DT_PARENT(node_id))))	\
+
+#define DT_SCMI_TRANSPORT_RX_CHAN_DECLARE(node_id)					\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 1),			\
+		    (extern struct scmi_channel						\
+		     SCMI_TRANSPORT_CHAN_NAME(DT_REG_ADDR_RAW(node_id), 1);),		\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_DECLARE_BASE(node_id)))
 
 /**
  * @brief Declare SCMI TX/RX channels
  *
  * Given a node_id for a protocol, this macro declares the
  * SCMI TX and RX channels statically bound to said protocol via
- * the "extern" qualifier. Since RX channels are currently not
- * supported, this is equivalent to DT_SCMI_TRANSPORT_TX_CHAN_DECLARE().
- * Despite this, users should opt for this macro instead of the TX-specific
- * one.
+ * the "extern" qualifier.
  *
  * @param node_id protocol node identifier
  */
 #define DT_SCMI_TRANSPORT_CHANNELS_DECLARE(node_id)				\
 	DT_SCMI_TRANSPORT_TX_CHAN_DECLARE(node_id)				\
+	DT_SCMI_TRANSPORT_RX_CHAN_DECLARE(node_id)				\
 
 /**
  * @brief Declare SCMI TX/RX channels using node instance number
@@ -128,8 +233,37 @@
  */
 #define DT_SCMI_TRANSPORT_TX_CHAN(node_id)					\
 	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 0),		\
-		    (&SCMI_TRANSPORT_CHAN_NAME(DT_REG_ADDR_RAW(node_id), 0)),	\
+		    (&SCMI_TRANSPORT_CHAN_NAME(					\
+			DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id), 0)),		\
 		    (&SCMI_TRANSPORT_CHAN_NAME(SCMI_PROTOCOL_BASE, 0)))
+
+/**
+ * @brief Get a reference to a protocol's SCMI RX channel
+ *
+ * Given a node_id for a protocol, this macro returns a
+ * reference to an SCMI RX channel statically bound to said
+ * protocol.
+ *
+ * @param node_id protocol node identifier
+ *
+ * @return reference to the struct scmi_channel of the RX channel
+ * bound to the protocol identifier by node_id
+ */
+#define DT_SCMI_TRANSPORT_RX_CHAN_BASE_RAW(node_id)				\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 1),		\
+		    (&SCMI_TRANSPORT_CHAN_NAME(SCMI_PROTOCOL_BASE, 1)),		\
+		    (NULL))
+
+#define DT_SCMI_TRANSPORT_RX_CHAN_BASE(node_id)					\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_IS_BASE(node_id),			\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_BASE_RAW(node_id)),		\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_BASE_RAW(DT_PARENT(node_id))))
+
+#define DT_SCMI_TRANSPORT_RX_CHAN(node_id)					\
+	COND_CODE_1(DT_SCMI_TRANSPORT_PROTO_HAS_CHAN(node_id, 1),		\
+		    (&SCMI_TRANSPORT_CHAN_NAME(DT_REG_ADDR_RAW(node_id), 1)),	\
+		    (DT_SCMI_TRANSPORT_RX_CHAN_BASE(node_id)))
+
 
 /**
  * @brief Define an SCMI channel for a protocol
@@ -169,6 +303,7 @@
 	{									\
 		.id = proto,							\
 		.tx = DT_SCMI_TRANSPORT_TX_CHAN(node_id),			\
+		.rx = DT_SCMI_TRANSPORT_RX_CHAN(node_id),			\
 		.data = pdata,							\
 		.version = version_val						\
 	}
@@ -230,11 +365,13 @@
 #define DT_SCMI_PROTOCOL_DEFINE(node_id, init_fn, pm, data, config,		\
 				level, prio, api, version_val)			\
 	DT_SCMI_TRANSPORT_CHANNELS_DECLARE(node_id)				\
-	DT_SCMI_PROTOCOL_DATA_DEFINE(node_id, DT_REG_ADDR_RAW(node_id), data,	\
-			version_val);						\
+	DT_SCMI_PROTOCOL_DATA_DEFINE(node_id,					\
+				     DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id),	\
+				     data, version_val);			\
 	DEVICE_DT_DEFINE(node_id, init_fn, pm,					\
-			 &SCMI_PROTOCOL_NAME(DT_REG_ADDR_RAW(node_id)),		\
-					     config, level, prio, api)
+			 &SCMI_PROTOCOL_NAME(					\
+				DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id)),	\
+			 config, level, prio, api)
 
 /**
  * @brief Just like DT_SCMI_PROTOCOL_DEFINE(), but uses an instance
@@ -267,8 +404,9 @@
  */
 #define DT_SCMI_PROTOCOL_DEFINE_NODEV(node_id, data, version)			\
 	DT_SCMI_TRANSPORT_CHANNELS_DECLARE(node_id)				\
-	DT_SCMI_PROTOCOL_DATA_DEFINE(node_id, DT_REG_ADDR_RAW(node_id), data,	\
-			version)						\
+	DT_SCMI_PROTOCOL_DATA_DEFINE(node_id,					\
+				     DT_SCMI_TRANSPORT_PROTOCOL_ID(node_id),	\
+				     data, version)
 
 /**
  * @brief Create an SCMI message field
