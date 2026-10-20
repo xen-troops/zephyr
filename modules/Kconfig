@@ -130,6 +130,9 @@ comment "cmsis-nn module not available."
 comment "Dhara module not available."
 	depends on !ZEPHYR_DHARA_MODULE
 
+comment "OpteeLib module not available."
+	depends on !ZEPHYR_OPTEELIB_MODULE
+
 # This ensures that symbols are available in Kconfig for dependency checking
 # and referencing, while keeping the settings themselves unavailable when the
 # modules are not present in the workspace
